@@ -4,49 +4,27 @@ Drop it local. Pick it up anywhere.
 
 DropLocal is a zero-account LAN sharing tool for text snippets and files. Run one command, open a browser on any device in the same network, and share instantly.
 
-## Why DropLocal
+## Why DropLocal ✨
 
-- Works across platforms: Mac, Windows, Linux, iOS, Android.
-- No app installs on receiving devices.
-- No cloud dependency.
-- Real-time updates with WebSocket sync.
-- Ephemeral by default.
+- 🌍 Works across platforms: Mac, Windows, Linux, iOS, Android.
+- 📲 No app installs on receiving devices.
+- ☁️ No cloud dependency.
+- ⚡ Real-time updates with WebSocket sync.
+- 🫧 Ephemeral by default.
 
-## Features
+## Features 🚀
 
-- Shared clipboard history with copy/delete actions.
-- Drag and drop file uploads.
-- Download and delete shared files.
-- Upload progress indicator.
-- Live connected device count.
-- Automatic WebSocket reconnect.
-- Dark mode with light mode toggle.
-- LAN URL + QR code on startup.
-- Port fallback if requested port is busy.
+- 📋 Shared clipboard history with copy/delete actions.
+- 📁 Drag and drop file uploads.
+- ⬇️ Download and delete shared files.
+- 📶 Upload progress indicator.
+- 👥 Live connected device count.
+- 🔄 Automatic WebSocket reconnect.
+- 🌓 Dark mode with light mode toggle.
+- 🔗 LAN URL + QR code on startup.
+- 🧭 Port fallback if requested port is busy.
 
-## Screenshots
-
-### Terminal startup with QR
-
-![DropLocal terminal startup QR](assets/screenshots/terminal-startup.png)
-
-### Desktop - Text tab
-
-![DropLocal desktop text tab](assets/screenshots/desktop-text.png)
-
-### Desktop - Files tab
-
-![DropLocal desktop files tab](assets/screenshots/desktop-files.png)
-
-### Mobile - Text tab
-
-![DropLocal mobile text tab](assets/screenshots/mobile-text.png)
-
-### Mobile - Files tab
-
-![DropLocal mobile files tab](assets/screenshots/mobile-files.png)
-
-## Quickstart
+## Quickstart 🏁
 
 ### Run with npx
 
@@ -85,7 +63,7 @@ After startup, DropLocal prints:
 
 Open the URL on any device on the same Wi-Fi/LAN.
 
-## Local Development
+## Local Development 🛠️
 
 ```bash
 npm install
@@ -93,7 +71,7 @@ npm test
 npm start
 ```
 
-## API
+## API 🧩
 
 ### REST
 
@@ -123,7 +101,7 @@ Supported events:
 - `file:delete`
 - `device:count`
 
-## Project Structure
+## Project Structure 🗂️
 
 ```text
 droplocal/
@@ -139,7 +117,7 @@ droplocal/
 └── LICENSE
 ```
 
-## Technical Notes
+## Technical Notes ⚙️
 
 - Backend: Node.js HTTP server + WebSocket server.
 - Frontend: single-file vanilla HTML/CSS/JS.
@@ -147,7 +125,7 @@ droplocal/
 - Default uploads directory: system temp under `droplocal`.
 - Files are deleted on server shutdown for the current session.
 
-## Security Model
+## Security Model 🔒
 
 DropLocal is designed for trusted local networks.
 
@@ -157,7 +135,7 @@ DropLocal is designed for trusted local networks.
 
 Do not expose DropLocal directly to the public internet.
 
-## Contributing
+## Contributing 🤝
 
 Contributions are welcome for bugs, UX polish, tests, and docs.
 
@@ -171,16 +149,16 @@ Contributions are welcome for bugs, UX polish, tests, and docs.
 
 See `CONTRIBUTING.md` for the full workflow and checklist.
 
-## History
+## History 🕰️
 
 Release history and notable changes are tracked in `HISTORY.md`.
 
-## Support
+## Support ☕
 
 If DropLocal saves you time, you can support the project here:
 
 [Buy Me a Coffee](https://buymeacoffee.com/haihai)
 
-## License
+## License 📄
 
 MIT - see `LICENSE`.

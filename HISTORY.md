@@ -7,7 +7,6 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Contribution guide in `CONTRIBUTING.md`.
-- Screenshot gallery in `README.md` including terminal QR capture.
 
 ### Changed
 
@@ -28,4 +27,3 @@ All notable changes to this project will be documented in this file.
 - LAN interface discovery and terminal QR startup output.
 - Dark/light theme toggle and responsive mobile-first layout.
 - Automated CLI/unit/integration tests.
-
