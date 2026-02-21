@@ -1,0 +1,38 @@
+{
+  "name": "droplocal",
+  "version": "1.0.0",
+  "description": "Drop it local. Pick it up anywhere.",
+  "main": "index.js",
+  "type": "commonjs",
+  "bin": {
+    "droplocal": "index.js"
+  },
+  "files": [
+    "CONTRIBUTING.md",
+    "HISTORY.md",
+    "index.js",
+    "ui.html",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "keywords": [
+    "lan",
+    "file-share",
+    "clipboard",
+    "local-network",
+    "websocket"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.18.1"
+  }
+}

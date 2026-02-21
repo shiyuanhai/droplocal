@@ -1,0 +1,1153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DropLocal</title>
+    <style>
+      :root {
+        --bg: #0a0a0a;
+        --bg-soft: #101018;
+        --card: #1a1a1a;
+        --card-2: #202030;
+        --accent: #6366f1;
+        --accent-2: #22d3ee;
+        --text: #e5e5e5;
+        --muted: #737373;
+        --border: #262626;
+        --success: #22c55e;
+        --danger: #f43f5e;
+        --shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
+      }
+
+      [data-theme="light"] {
+        --bg: #fafafa;
+        --bg-soft: #f2f4ff;
+        --card: #ffffff;
+        --card-2: #eef1ff;
+        --accent: #4f46e5;
+        --accent-2: #0284c7;
+        --text: #171717;
+        --muted: #6b7280;
+        --border: #e5e5e5;
+        --success: #16a34a;
+        --danger: #e11d48;
+        --shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.18), transparent 38%),
+          radial-gradient(circle at 100% 0%, rgba(34, 211, 238, 0.16), transparent 42%),
+          var(--bg);
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .app {
+        width: min(920px, 100%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: clip;
+        background: var(--bg-soft);
+        box-shadow: var(--shadow);
+      }
+
+      .header {
+        display: grid;
+        align-items: start;
+        gap: 12px;
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--border);
+        background: linear-gradient(120deg, var(--card), var(--card-2));
+      }
+
+      .brand {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 100%;
+      }
+
+      .brand-badge {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(130deg, var(--accent), var(--accent-2));
+      }
+
+      .brand-title {
+        margin: 0;
+        font-size: 1.2rem;
+        letter-spacing: 0.2px;
+      }
+
+      .brand-subtitle {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        color: var(--muted);
+        font-size: 0.96rem;
+      }
+
+      .status-main {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--danger);
+        box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.55);
+      }
+
+      .status-dot.connected {
+        background: var(--success);
+        animation: pulse 1.7s infinite;
+      }
+
+      .theme-toggle {
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        border-radius: 11px;
+        min-width: 82px;
+        min-height: 38px;
+        padding: 0 14px;
+        cursor: pointer;
+        font-size: 0.93rem;
+        font-weight: 600;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      #deviceCount {
+        white-space: nowrap;
+      }
+
+      @media (max-width: 360px) {
+        .brand-title {
+          font-size: 1.08rem;
+        }
+
+        .brand-subtitle {
+          font-size: 0.85rem;
+        }
+
+        .status-row {
+          font-size: 0.88rem;
+        }
+
+        .theme-toggle {
+          min-width: 72px;
+        }
+      }
+
+      .body {
+        padding: 16px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .tab {
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        padding: 10px 12px;
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+
+      .tab.active {
+        border-color: var(--accent);
+        background: linear-gradient(130deg, var(--card-2), var(--card));
+      }
+
+      .panel {
+        display: none;
+      }
+
+      .panel.active {
+        display: block;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: linear-gradient(130deg, var(--card), var(--card-2));
+        padding: 12px;
+      }
+
+      .input-text {
+        width: 100%;
+        min-height: 118px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        background: var(--bg);
+        color: var(--text);
+        padding: 12px;
+        font-size: 0.96rem;
+        line-height: 1.45;
+      }
+
+      .controls {
+        margin-top: 10px;
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .hint {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .btn {
+        border: 1px solid transparent;
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--text);
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btn.primary {
+        background: linear-gradient(130deg, var(--accent), var(--accent-2));
+        color: #fff;
+      }
+
+      .btn.danger {
+        border-color: var(--danger);
+        color: var(--danger);
+      }
+
+      .stack {
+        margin-top: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      .empty {
+        margin: 0;
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .snippet-text {
+        margin: 0;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .snippet-text.preview {
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.79rem;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .dropzone {
+        border: 2px dashed var(--accent);
+        border-radius: 13px;
+        padding: 20px 14px;
+        text-align: center;
+        cursor: pointer;
+        transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+        background: var(--card);
+      }
+
+      .dropzone strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .dropzone.dragging {
+        transform: scale(1.01);
+        border-color: var(--accent);
+        background: var(--card-2);
+      }
+
+      .upload-progress {
+        margin-top: 12px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .progress-item {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px;
+        background: var(--card);
+      }
+
+      .progress-track {
+        margin-top: 6px;
+        height: 6px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: var(--border);
+      }
+
+      .progress-fill {
+        width: 0%;
+        height: 100%;
+        transition: width 90ms linear;
+        background: linear-gradient(130deg, var(--accent), var(--accent-2));
+      }
+
+      .file-name {
+        margin: 0;
+        font-size: 0.92rem;
+      }
+
+      .animated-in {
+        animation: slideIn 220ms ease;
+      }
+
+      .removing {
+        animation: fadeOut 180ms ease forwards;
+      }
+
+      .toast-wrap {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 16px;
+        display: grid;
+        place-items: center;
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      .toast {
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 999px;
+        box-shadow: var(--shadow);
+        animation: toastIn 240ms ease;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.98);
+        }
+      }
+
+      @keyframes toastIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+        }
+        70% {
+          box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+        }
+        100% {
+          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+      }
+
+      @media (min-width: 760px) {
+        body {
+          padding: 26px;
+        }
+
+        .body {
+          padding: 20px;
+        }
+
+        .grid-two {
+          display: grid;
+          grid-template-columns: 1.1fr 1fr;
+          gap: 14px;
+        }
+
+        .header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 18px 20px;
+        }
+
+        .brand {
+          align-items: center;
+          min-width: 0;
+        }
+
+        .brand-title {
+          font-size: 1.06rem;
+        }
+
+        .brand-subtitle {
+          margin: 2px 0 0;
+          font-size: 0.83rem;
+        }
+
+        .status-row {
+          flex-wrap: nowrap;
+          font-size: 0.84rem;
+        }
+
+        .theme-toggle {
+          min-width: 48px;
+          min-height: 36px;
+          padding: 0 12px;
+          font-size: 0.98rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <section class="brand">
+          <div class="brand-badge" aria-hidden="true">DL</div>
+          <div>
+            <h1 class="brand-title">DropLocal</h1>
+            <p class="brand-subtitle">Drop it local. Pick it up anywhere.</p>
+          </div>
+        </section>
+        <section class="status-row">
+          <span class="status-main">
+            <span id="statusDot" class="status-dot" aria-hidden="true"></span>
+            <span id="statusText">Offline</span>
+          </span>
+          <span id="deviceCount">0 devices</span>
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">Moon</button>
+        </section>
+      </header>
+
+      <section class="body">
+        <nav class="tabs" aria-label="DropLocal tabs">
+          <button class="tab active" type="button" data-tab="text">Text</button>
+          <button class="tab" type="button" data-tab="files">Files</button>
+        </nav>
+
+        <section id="panel-text" class="panel active" aria-live="polite">
+          <div class="grid-two">
+            <article class="card">
+              <textarea id="snippetInput" class="input-text" placeholder="Type or paste text here..."></textarea>
+              <div class="controls">
+                <p class="hint">Press Cmd/Ctrl + Enter to send.</p>
+                <button id="sendSnippet" class="btn primary" type="button">Drop</button>
+              </div>
+            </article>
+            <article class="card">
+              <p class="hint" style="margin: 0 0 8px">Shared snippets update instantly across all devices.</p>
+              <p class="hint" style="margin: 0">Everything is ephemeral and local to this server session.</p>
+            </article>
+          </div>
+          <div id="snippetsList" class="stack" style="margin-top: 14px"></div>
+        </section>
+
+        <section id="panel-files" class="panel" aria-live="polite">
+          <article id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload files">
+            <strong>Drop files here</strong>
+            <span class="meta">or tap to browse</span>
+            <input id="fileInput" type="file" multiple hidden />
+          </article>
+          <div id="uploadProgress" class="upload-progress"></div>
+          <div id="filesList" class="stack"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
+
+    <script>
+      (function () {
+        const state = {
+          snippets: [],
+          files: [],
+          ws: null,
+          reconnectAttempts: 0,
+          reconnectTimer: null,
+          userThemeChoice: false
+        };
+
+        const refs = {
+          statusDot: document.getElementById("statusDot"),
+          statusText: document.getElementById("statusText"),
+          deviceCount: document.getElementById("deviceCount"),
+          themeToggle: document.getElementById("themeToggle"),
+          tabs: Array.from(document.querySelectorAll(".tab")),
+          panels: {
+            text: document.getElementById("panel-text"),
+            files: document.getElementById("panel-files")
+          },
+          snippetInput: document.getElementById("snippetInput"),
+          sendSnippet: document.getElementById("sendSnippet"),
+          snippetsList: document.getElementById("snippetsList"),
+          dropzone: document.getElementById("dropzone"),
+          fileInput: document.getElementById("fileInput"),
+          uploadProgress: document.getElementById("uploadProgress"),
+          filesList: document.getElementById("filesList"),
+          toastWrap: document.getElementById("toastWrap")
+        };
+
+        function safeText(value) {
+          return String(value || "");
+        }
+
+        function formatRelative(isoTime) {
+          const ts = new Date(isoTime).getTime();
+          const delta = Math.max(1, Math.round((Date.now() - ts) / 1000));
+          if (delta < 60) return `${delta}s ago`;
+          if (delta < 3600) return `${Math.round(delta / 60)}m ago`;
+          if (delta < 86400) return `${Math.round(delta / 3600)}h ago`;
+          return `${Math.round(delta / 86400)}d ago`;
+        }
+
+        function formatBytes(bytes) {
+          if (!Number.isFinite(bytes) || bytes < 1) return "0 B";
+          const units = ["B", "KB", "MB", "GB", "TB"];
+          let value = bytes;
+          let unit = 0;
+          while (value >= 1024 && unit < units.length - 1) {
+            value /= 1024;
+            unit += 1;
+          }
+          return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function toast(message) {
+          const node = document.createElement("div");
+          node.className = "toast";
+          node.textContent = message;
+          refs.toastWrap.appendChild(node);
+          window.setTimeout(() => {
+            node.classList.add("removing");
+            window.setTimeout(() => node.remove(), 180);
+          }, 1800);
+        }
+
+        function setConnection(connected) {
+          refs.statusDot.classList.toggle("connected", connected);
+          refs.statusText.textContent = connected ? "Connected" : "Offline";
+        }
+
+        function setDeviceCount(count) {
+          const n = Number.isFinite(count) ? count : 0;
+          refs.deviceCount.textContent = `${n} device${n === 1 ? "" : "s"}`;
+        }
+
+        function setTheme(theme, persist) {
+          document.documentElement.setAttribute("data-theme", theme);
+          refs.themeToggle.textContent = theme === "dark" ? "Sun" : "Moon";
+          if (persist) {
+            localStorage.setItem("droplocal-theme", theme);
+            state.userThemeChoice = true;
+          }
+        }
+
+        function initTheme() {
+          const saved = localStorage.getItem("droplocal-theme");
+          const media = window.matchMedia("(prefers-color-scheme: dark)");
+          if (saved === "dark" || saved === "light") {
+            state.userThemeChoice = true;
+            setTheme(saved, false);
+          } else {
+            setTheme(media.matches ? "dark" : "light", false);
+          }
+
+          media.addEventListener("change", (event) => {
+            if (!state.userThemeChoice) {
+              setTheme(event.matches ? "dark" : "light", false);
+            }
+          });
+
+          refs.themeToggle.addEventListener("click", () => {
+            const current = document.documentElement.getAttribute("data-theme") || "dark";
+            setTheme(current === "dark" ? "light" : "dark", true);
+          });
+        }
+
+        function renderSnippets() {
+          refs.snippetsList.innerHTML = "";
+          if (!state.snippets.length) {
+            const empty = document.createElement("p");
+            empty.className = "empty";
+            empty.textContent = "No snippets yet. Drop the first one.";
+            refs.snippetsList.appendChild(empty);
+            return;
+          }
+
+          const fragment = document.createDocumentFragment();
+          for (const snippet of state.snippets) {
+            fragment.appendChild(createSnippetCard(snippet));
+          }
+          refs.snippetsList.appendChild(fragment);
+        }
+
+        function createSnippetCard(snippet) {
+          const card = document.createElement("article");
+          card.className = "card animated-in";
+          card.dataset.id = snippet.id;
+
+          const text = document.createElement("p");
+          text.className = "snippet-text preview";
+          text.textContent = safeText(snippet.text);
+
+          const meta = document.createElement("span");
+          meta.className = "meta";
+          meta.textContent = formatRelative(snippet.timestamp);
+
+          const copyBtn = document.createElement("button");
+          copyBtn.className = "btn";
+          copyBtn.type = "button";
+          copyBtn.textContent = "Copy";
+          copyBtn.addEventListener("click", async () => {
+            const ok = await copyText(snippet.text);
+            if (ok) {
+              copyBtn.textContent = "Copied";
+              toast("Text copied");
+              window.setTimeout(() => {
+                copyBtn.textContent = "Copy";
+              }, 1300);
+            } else {
+              toast("Copy failed");
+            }
+          });
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "btn danger";
+          deleteBtn.type = "button";
+          deleteBtn.textContent = "Delete";
+          deleteBtn.addEventListener("click", async () => {
+            try {
+              const response = await fetch(`/api/snippets/${encodeURIComponent(snippet.id)}`, { method: "DELETE" });
+              if (!response.ok) {
+                throw new Error("Delete failed");
+              }
+              removeSnippet(snippet.id);
+              toast("Snippet deleted");
+            } catch (_error) {
+              toast("Delete failed");
+            }
+          });
+
+          const topRow = document.createElement("div");
+          topRow.className = "row";
+          topRow.append(text, copyBtn);
+
+          const bottomRow = document.createElement("div");
+          bottomRow.className = "row";
+          bottomRow.style.marginTop = "10px";
+          bottomRow.append(meta, deleteBtn);
+
+          card.append(topRow, bottomRow);
+          return card;
+        }
+
+        function renderFiles() {
+          refs.filesList.innerHTML = "";
+          if (!state.files.length) {
+            const empty = document.createElement("p");
+            empty.className = "empty";
+            empty.textContent = "No files yet. Drop one to share instantly.";
+            refs.filesList.appendChild(empty);
+            return;
+          }
+
+          const fragment = document.createDocumentFragment();
+          for (const file of state.files) {
+            fragment.appendChild(createFileCard(file));
+          }
+          refs.filesList.appendChild(fragment);
+        }
+
+        function createFileCard(file) {
+          const card = document.createElement("article");
+          card.className = "card animated-in";
+          card.dataset.id = file.id;
+
+          const name = document.createElement("p");
+          name.className = "file-name";
+          name.textContent = file.name;
+
+          const meta = document.createElement("span");
+          meta.className = "meta";
+          meta.textContent = `${formatBytes(file.size)} - ${formatRelative(file.timestamp)}`;
+
+          const downloadLink = document.createElement("a");
+          downloadLink.className = "btn";
+          downloadLink.href = `/api/files/${encodeURIComponent(file.id)}`;
+          downloadLink.textContent = "Download";
+          downloadLink.download = file.name;
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "btn danger";
+          deleteBtn.type = "button";
+          deleteBtn.textContent = "Delete";
+          deleteBtn.addEventListener("click", async () => {
+            try {
+              const response = await fetch(`/api/files/${encodeURIComponent(file.id)}`, { method: "DELETE" });
+              if (!response.ok) {
+                throw new Error("Delete failed");
+              }
+              removeFile(file.id);
+              toast("File deleted");
+            } catch (_error) {
+              toast("Delete failed");
+            }
+          });
+
+          const left = document.createElement("div");
+          left.style.display = "grid";
+          left.style.gap = "4px";
+          left.style.minWidth = "0";
+          left.append(name, meta);
+
+          const actions = document.createElement("div");
+          actions.className = "actions";
+          actions.append(downloadLink, deleteBtn);
+
+          const row = document.createElement("div");
+          row.className = "row";
+          row.append(left, actions);
+
+          card.appendChild(row);
+          return card;
+        }
+
+        function upsertSnippet(snippet) {
+          const index = state.snippets.findIndex((item) => item.id === snippet.id);
+          if (index === -1) {
+            state.snippets.unshift(snippet);
+          } else {
+            state.snippets[index] = snippet;
+          }
+          state.snippets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          renderSnippets();
+        }
+
+        function upsertFile(file) {
+          const index = state.files.findIndex((item) => item.id === file.id);
+          if (index === -1) {
+            state.files.unshift(file);
+          } else {
+            state.files[index] = file;
+          }
+          state.files.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          renderFiles();
+        }
+
+        function removeSnippet(id) {
+          const index = state.snippets.findIndex((item) => item.id === id);
+          if (index === -1) {
+            return;
+          }
+          state.snippets.splice(index, 1);
+          renderSnippets();
+        }
+
+        function removeFile(id) {
+          const index = state.files.findIndex((item) => item.id === id);
+          if (index === -1) {
+            return;
+          }
+          state.files.splice(index, 1);
+          renderFiles();
+        }
+
+        async function copyText(text) {
+          if (navigator.clipboard && window.isSecureContext) {
+            try {
+              await navigator.clipboard.writeText(text);
+              return true;
+            } catch (_error) {
+              return fallbackCopy(text);
+            }
+          }
+          return fallbackCopy(text);
+        }
+
+        function fallbackCopy(text) {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "readonly");
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          let ok = false;
+          try {
+            ok = document.execCommand("copy");
+          } catch (_error) {
+            ok = false;
+          }
+          document.body.removeChild(ta);
+          return ok;
+        }
+
+        function createProgressRow(name) {
+          const wrap = document.createElement("article");
+          wrap.className = "progress-item";
+          const title = document.createElement("div");
+          title.className = "meta";
+          title.textContent = `Uploading ${name}`;
+          const track = document.createElement("div");
+          track.className = "progress-track";
+          const fill = document.createElement("div");
+          fill.className = "progress-fill";
+          track.appendChild(fill);
+          wrap.append(title, track);
+          refs.uploadProgress.appendChild(wrap);
+          return {
+            setPercent(percent) {
+              fill.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+            },
+            done() {
+              fill.style.width = "100%";
+              window.setTimeout(() => wrap.remove(), 550);
+            },
+            fail() {
+              title.textContent = `Upload failed: ${name}`;
+              fill.style.background = "var(--danger)";
+              window.setTimeout(() => wrap.remove(), 1300);
+            }
+          };
+        }
+
+        function uploadFile(file) {
+          return new Promise((resolve, reject) => {
+            const progress = createProgressRow(file.name);
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "/api/files");
+
+            xhr.upload.addEventListener("progress", (event) => {
+              if (event.lengthComputable && event.total > 0) {
+                progress.setPercent((event.loaded / event.total) * 100);
+              }
+            });
+
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState !== 4) {
+                return;
+              }
+
+              if (xhr.status >= 200 && xhr.status < 300) {
+                progress.done();
+                try {
+                  resolve(JSON.parse(xhr.responseText));
+                } catch (_error) {
+                  resolve(null);
+                }
+              } else {
+                progress.fail();
+                reject(new Error("Upload failed"));
+              }
+            };
+
+            const data = new FormData();
+            data.append("file", file, file.name);
+            xhr.send(data);
+          });
+        }
+
+        async function uploadFiles(files) {
+          const list = Array.from(files || []);
+          if (!list.length) {
+            return;
+          }
+
+          for (const file of list) {
+            try {
+              const result = await uploadFile(file);
+              if (result && result.id) {
+                upsertFile(result);
+              }
+              toast(`Uploaded ${file.name}`);
+            } catch (_error) {
+              toast(`Upload failed: ${file.name}`);
+            }
+          }
+        }
+
+        async function sendSnippet() {
+          const text = refs.snippetInput.value.trim();
+          if (!text) {
+            return;
+          }
+
+          refs.sendSnippet.disabled = true;
+          try {
+            const response = await fetch("/api/snippets", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ text })
+            });
+
+            if (!response.ok) {
+              throw new Error("Send failed");
+            }
+
+            const snippet = await response.json();
+            upsertSnippet(snippet);
+            refs.snippetInput.value = "";
+            toast("Snippet dropped");
+          } catch (_error) {
+            toast("Send failed");
+          } finally {
+            refs.sendSnippet.disabled = false;
+          }
+        }
+
+        function bindTabs() {
+          refs.tabs.forEach((tab) => {
+            tab.addEventListener("click", () => {
+              const tabName = tab.dataset.tab;
+              refs.tabs.forEach((entry) => entry.classList.toggle("active", entry === tab));
+              Object.entries(refs.panels).forEach(([key, panel]) => {
+                panel.classList.toggle("active", key === tabName);
+              });
+            });
+          });
+        }
+
+        function bindUploadZone() {
+          const activateFileDialog = () => refs.fileInput.click();
+
+          refs.dropzone.addEventListener("click", activateFileDialog);
+          refs.dropzone.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              activateFileDialog();
+            }
+          });
+
+          refs.fileInput.addEventListener("change", () => {
+            uploadFiles(refs.fileInput.files);
+            refs.fileInput.value = "";
+          });
+
+          ["dragenter", "dragover"].forEach((eventName) => {
+            refs.dropzone.addEventListener(eventName, (event) => {
+              event.preventDefault();
+              refs.dropzone.classList.add("dragging");
+            });
+          });
+
+          ["dragleave", "dragend", "drop"].forEach((eventName) => {
+            refs.dropzone.addEventListener(eventName, () => {
+              refs.dropzone.classList.remove("dragging");
+            });
+          });
+
+          refs.dropzone.addEventListener("drop", (event) => {
+            event.preventDefault();
+            if (event.dataTransfer && event.dataTransfer.files) {
+              uploadFiles(event.dataTransfer.files);
+            }
+          });
+        }
+
+        function bindSnippetActions() {
+          refs.sendSnippet.addEventListener("click", sendSnippet);
+          refs.snippetInput.addEventListener("keydown", (event) => {
+            const withModifier = event.metaKey || event.ctrlKey;
+            if (event.key === "Enter" && withModifier) {
+              event.preventDefault();
+              sendSnippet();
+            }
+          });
+        }
+
+        function handleSocketEvent(message) {
+          if (!message || typeof message.event !== "string") {
+            return;
+          }
+
+          if (message.event === "snippet:new" && message.data) {
+            upsertSnippet(message.data);
+          }
+
+          if (message.event === "snippet:delete" && message.data) {
+            removeSnippet(message.data.id);
+          }
+
+          if (message.event === "file:new" && message.data) {
+            upsertFile(message.data);
+          }
+
+          if (message.event === "file:delete" && message.data) {
+            removeFile(message.data.id);
+          }
+
+          if (message.event === "device:count" && message.data) {
+            setDeviceCount(message.data.count);
+          }
+        }
+
+        function connectWebSocket() {
+          const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+          const socket = new WebSocket(`${protocol}//${location.host}/ws`);
+          state.ws = socket;
+
+          socket.addEventListener("open", () => {
+            setConnection(true);
+            state.reconnectAttempts = 0;
+          });
+
+          socket.addEventListener("message", (event) => {
+            try {
+              handleSocketEvent(JSON.parse(event.data));
+            } catch (_error) {
+              // Ignore malformed message.
+            }
+          });
+
+          socket.addEventListener("close", () => {
+            setConnection(false);
+            scheduleReconnect();
+          });
+
+          socket.addEventListener("error", () => {
+            socket.close();
+          });
+        }
+
+        function scheduleReconnect() {
+          if (state.reconnectTimer) {
+            return;
+          }
+          const delay = Math.min(8000, 600 * 2 ** state.reconnectAttempts);
+          state.reconnectTimer = window.setTimeout(() => {
+            state.reconnectTimer = null;
+            state.reconnectAttempts += 1;
+            connectWebSocket();
+          }, delay);
+        }
+
+        async function loadInitialData() {
+          try {
+            const [snippetsRes, filesRes, statusRes] = await Promise.all([
+              fetch("/api/snippets"),
+              fetch("/api/files"),
+              fetch("/api/status")
+            ]);
+
+            if (snippetsRes.ok) {
+              state.snippets = await snippetsRes.json();
+            }
+            if (filesRes.ok) {
+              state.files = await filesRes.json();
+            }
+            if (statusRes.ok) {
+              const status = await statusRes.json();
+              const wsOpen =
+                state.ws &&
+                typeof state.ws.readyState === "number" &&
+                state.ws.readyState === WebSocket.OPEN;
+              if (!wsOpen) {
+                setDeviceCount(status.connectedDevices || 0);
+              }
+            }
+          } catch (_error) {
+            toast("Server not reachable");
+          }
+
+          renderSnippets();
+          renderFiles();
+        }
+
+        bindTabs();
+        bindSnippetActions();
+        bindUploadZone();
+        initTheme();
+        loadInitialData();
+        connectWebSocket();
+      })();
+    </script>
+  </body>
+</html>
