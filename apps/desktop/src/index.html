@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DropLocal Desktop</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero card">
+        <div class="brand-line">
+          <div class="badge">DL</div>
+          <div>
+            <h1>DropLocal Desktop</h1>
+            <p class="sub">Run local sharing from your tray, copy URL, and scan QR instantly.</p>
+          </div>
+        </div>
+        <div class="runtime-grid">
+          <article class="metric">
+            <p class="metric-label">Server</p>
+            <p id="serverState" class="metric-value">Starting</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Devices</p>
+            <p id="deviceCount" class="metric-value">0</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Port</p>
+            <p id="serverPort" class="metric-value">-</p>
+          </article>
+          <article class="metric">
+            <p class="metric-label">Uptime</p>
+            <p id="uptime" class="metric-value">-</p>
+          </article>
+        </div>
+        <div class="url-row">
+          <label for="primaryUrl">Share URL</label>
+          <div class="url-actions">
+            <input id="primaryUrl" readonly />
+            <button id="copyUrlBtn" type="button" class="btn ghost">Copy URL</button>
+            <button id="openBrowserBtn" type="button" class="btn primary">Open in Browser</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-grid">
+        <section class="card qrcode">
+          <header>
+            <h2>Scan From Phone</h2>
+            <p>Point your camera at this code to open DropLocal on your LAN.</p>
+          </header>
+          <div id="qrCode" class="qr-frame"></div>
+        </section>
+
+        <section class="card controls">
+          <header>
+            <h2>Runtime Controls</h2>
+            <p>Server starts automatically and can be controlled from the tray icon.</p>
+          </header>
+          <div class="button-grid">
+            <button id="toggleServerBtn" type="button" class="btn primary">Stop Server</button>
+            <button id="refreshBtn" type="button" class="btn ghost">Refresh Status</button>
+          </div>
+          <p id="runtimeMessage" class="hint"></p>
+        </section>
+      </section>
+
+      <section class="card settings">
+        <header>
+          <h2>Settings</h2>
+          <p>Changes apply immediately after save by restarting the local server.</p>
+        </header>
+        <form id="settingsForm" class="settings-form">
+          <label>
+            Port
+            <input id="portInput" name="port" type="number" min="0" max="65535" required />
+          </label>
+          <label>
+            File storage directory
+            <input id="storageDirInput" name="storageDir" type="text" required />
+          </label>
+          <label class="check">
+            <input id="showQrInput" name="showQrInTray" type="checkbox" />
+            Show QR section by default
+          </label>
+          <label class="check">
+            <input id="autoCleanInput" name="autoCleanOnQuit" type="checkbox" />
+            Auto-clean shared files when app quits
+          </label>
+          <label class="check">
+            <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
+            Notify when a new device connects
+          </label>
+          <div class="settings-actions">
+            <button id="saveSettingsBtn" type="submit" class="btn primary">Save Settings</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

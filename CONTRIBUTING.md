@@ -10,12 +10,14 @@ Thanks for contributing to DropLocal.
 
 ```bash
 npm install
+npm run desktop:install
 ```
 
 4. Run tests before each push:
 
 ```bash
 npm test
+npm run desktop:test
 ```
 
 5. Open a pull request with a clear summary and testing notes.
@@ -36,10 +38,12 @@ npm test
 - Preserve mobile-first behavior.
 - Include or update tests for behavior changes.
 - Keep API and WebSocket behavior backward compatible for existing clients.
+- Keep desktop tray/dashboard behavior consistent with CLI semantics.
 
 ## Pull request checklist
 
 - [ ] I ran `npm test` locally.
+- [ ] I ran `npm run desktop:test` locally.
 - [ ] I added/updated tests for new behavior.
 - [ ] I updated docs (`README.md`, `HISTORY.md`) when needed.
 - [ ] I verified mobile layout (narrow viewport).

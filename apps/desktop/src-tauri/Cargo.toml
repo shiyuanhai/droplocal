@@ -1,0 +1,31 @@
+[package]
+name = "droplocal-desktop"
+version = "1.0.0"
+description = "DropLocal desktop distribution"
+authors = ["DropLocal Contributors"]
+edition = "2021"
+
+[lib]
+name = "droplocal_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.1", features = [] }
+
+[dependencies]
+anyhow = "1.0.95"
+arboard = "3.4.1"
+axum = { version = "0.8.1", features = ["ws", "multipart", "json"] }
+chrono = { version = "0.4.39", features = ["serde", "clock"] }
+dirs = "5.0.1"
+futures-util = "0.3.31"
+local-ip-address = "0.6.3"
+open = "5.3.2"
+qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.137"
+tauri = { version = "2.1.1", features = ["tray-icon"] }
+tokio = { version = "1.42.0", features = ["full"] }
+tokio-util = { version = "0.7.13", features = ["io"] }
+uuid = { version = "1.11.1", features = ["v4", "serde"] }
+

@@ -2,163 +2,116 @@
 
 Drop it local. Pick it up anywhere.
 
-DropLocal is a zero-account LAN sharing tool for text snippets and files. Run one command, open a browser on any device in the same network, and share instantly.
+DropLocal shares text snippets and files across devices on the same local network, with no accounts and no cloud.
 
-## Why DropLocal ✨
+## Distribution Targets
 
-- 🌍 Works across platforms: Mac, Windows, Linux, iOS, Android.
-- 📲 No app installs on receiving devices.
-- ☁️ No cloud dependency.
-- ⚡ Real-time updates with WebSocket sync.
-- 🫧 Ephemeral by default.
+- CLI: `npx droplocal` or `npm install -g droplocal`
+- Desktop: native tray app via Tauri (macOS, Windows, Linux)
 
-## Features 🚀
+## Features
 
-- 📋 Shared clipboard history with copy/delete actions.
-- 📁 Drag and drop file uploads.
-- ⬇️ Download and delete shared files.
-- 📶 Upload progress indicator.
-- 👥 Live connected device count.
-- 🔄 Automatic WebSocket reconnect.
-- 🌓 Dark mode with light mode toggle.
-- 🔗 LAN URL + QR code on startup.
-- 🧭 Port fallback if requested port is busy.
+- Shared snippet history with copy/delete actions
+- File upload/download/delete with drag-and-drop
+- Real-time sync over WebSocket
+- Connected-device count and live status
+- LAN URL + terminal QR code (CLI)
+- Native tray controls + desktop dashboard (Desktop app)
 
-## Quickstart 🏁
-
-### Run with npx
+## Quickstart (CLI)
 
 ```bash
 npx droplocal
 ```
 
-### Install globally
+Common options:
 
 ```bash
-npm install -g droplocal
-droplocal
-```
-
-### Common options
-
-```bash
-# Custom port
 droplocal -p 8080
-
-# Custom upload directory
 droplocal --dir ./shared
-
-# Help
 droplocal --help
-
-# Version
 droplocal --version
 ```
 
-After startup, DropLocal prints:
-
-1. Share URL (LAN IP)
-2. Available network interfaces
-3. Terminal QR code
-
-Open the URL on any device on the same Wi-Fi/LAN.
-
-## Local Development 🛠️
+## Desktop App (Local Dev)
 
 ```bash
-npm install
-npm test
-npm start
+npm run desktop:install
+npm run desktop:check
+npm run desktop:test
+npm run desktop:dev
 ```
 
-## API 🧩
+Build installers/bundles:
+
+```bash
+npm run desktop:build
+```
+
+Desktop details live in `apps/desktop/README.md`.
+
+## Release Strategy
+
+- Tagged releases (`v*`) trigger cross-platform desktop builds via GitHub Actions.
+- Built artifacts are uploaded to GitHub Releases.
+- CLI distribution remains via npm (`npx droplocal`).
+
+See:
+- `docs/release/desktop-release.md`
+- `.github/workflows/release-desktop.yml`
+
+## Repository Structure
+
+```text
+droplocal/
+├── index.js                      # CLI app entrypoint/server
+├── ui.html                       # Shared browser UI served by CLI + desktop backend
+├── test/                         # Node CLI and integration tests
+├── apps/desktop/                 # Tauri desktop app
+│   ├── src/                      # Desktop dashboard UI
+│   └── src-tauri/                # Rust backend + tray + bundling config
+├── docs/
+│   ├── droplocal-prd.md
+│   ├── droplocal-distribution-prd.md
+│   └── release/desktop-release.md
+└── .github/workflows/
+```
+
+## API
 
 ### REST
 
 - `GET /` - UI
 - `GET /api/snippets` - list snippets
-- `POST /api/snippets` - create snippet `{ "text": "..." }`
+- `POST /api/snippets` - create snippet
 - `DELETE /api/snippets/:id` - delete snippet
 - `GET /api/files` - list files
-- `POST /api/files` - upload file (`multipart/form-data`)
+- `POST /api/files` - upload files
 - `GET /api/files/:id` - download file
 - `DELETE /api/files/:id` - delete file
-- `GET /api/status` - server and device status
+- `GET /api/status` - runtime status
 
-### WebSocket (`/ws`)
+### WebSocket
 
-Messages are JSON with shape:
+Endpoint: `/ws`
 
-```json
-{ "event": "snippet:new", "data": { "id": "..." } }
-```
-
-Supported events:
-
+Events:
 - `snippet:new`
 - `snippet:delete`
 - `file:new`
 - `file:delete`
 - `device:count`
 
-## Project Structure 🗂️
+## Security Model
 
-```text
-droplocal/
-├── CONTRIBUTING.md
-├── HISTORY.md
-├── index.js
-├── ui.html
-├── test/
-│   ├── cli.test.js
-│   └── integration.test.js
-├── package.json
-├── README.md
-└── LICENSE
-```
+DropLocal assumes trusted LAN usage.
 
-## Technical Notes ⚙️
-
-- Backend: Node.js HTTP server + WebSocket server.
-- Frontend: single-file vanilla HTML/CSS/JS.
-- Uploads stream directly to disk (not buffered in memory).
-- Default uploads directory: system temp under `droplocal`.
-- Files are deleted on server shutdown for the current session.
-
-## Security Model 🔒
-
-DropLocal is designed for trusted local networks.
-
-- No authentication.
-- No encryption (HTTP only).
-- No persistent user database.
+- No auth
+- No TLS by default
+- No account system
 
 Do not expose DropLocal directly to the public internet.
 
-## Contributing 🤝
+## License
 
-Contributions are welcome for bugs, UX polish, tests, and docs.
-
-1. Fork and clone this repo.
-2. Create a branch from `main`.
-3. Run `npm test`.
-4. Submit a PR with:
-   - what changed
-   - why it changed
-   - how you tested it
-
-See `CONTRIBUTING.md` for the full workflow and checklist.
-
-## History 🕰️
-
-Release history and notable changes are tracked in `HISTORY.md`.
-
-## Support ☕
-
-If DropLocal saves you time, you can support the project here:
-
-[Buy Me a Coffee](https://buymeacoffee.com/haihai)
-
-## License 📄
-
-MIT - see `LICENSE`.
+MIT (`LICENSE`)
