@@ -110,7 +110,7 @@ fn build_qr_svg(payload: String) -> Result<String, String> {
     Ok(qr
         .render::<svg::Color>()
         .min_dimensions(220, 220)
-        .dark_color(svg::Color("#1f2a1d"))
+        .dark_color(svg::Color("#0f172a"))
         .light_color(svg::Color("#ffffff"))
         .build())
 }
@@ -143,6 +143,9 @@ async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
         requested_port: settings.port,
         storage_dir: settings.resolved_storage_dir(),
         auto_clean_on_quit: settings.auto_clean_on_quit,
+        pin: settings.pin.clone(),
+        expire_minutes: settings.expire_minutes,
+        enable_mdns: true,
     };
 
     let runtime = server::start(config)

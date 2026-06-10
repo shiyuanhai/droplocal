@@ -154,6 +154,98 @@ test("files upload, list, download and delete", async () => {
   assert.deepEqual(await emptyList.json(), []);
 });
 
+test("pin protection gates the api until /api/auth succeeds", async () => {
+  const pinDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-pin-"));
+  const pinApp = createDropLocalApp({ port: 0, dir: pinDir, pin: "4471" });
+  const startInfo = await pinApp.start();
+  const base = `http://127.0.0.1:${startInfo.port}`;
+
+  try {
+    const unauthorized = await fetch(`${base}/api/snippets`);
+    assert.equal(unauthorized.status, 401);
+
+    const uiShell = await fetch(base);
+    assert.equal(uiShell.status, 200, "UI shell stays public so the PIN gate can render");
+
+    const wrong = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: "0000" })
+    });
+    assert.equal(wrong.status, 403);
+
+    const right = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: "4471" })
+    });
+    assert.equal(right.status, 200);
+    const setCookie = right.headers.get("set-cookie");
+    assert.ok(setCookie && setCookie.includes("droplocal_auth="));
+
+    const cookie = setCookie.split(";")[0];
+    const authorized = await fetch(`${base}/api/snippets`, { headers: { cookie } });
+    assert.equal(authorized.status, 200);
+  } finally {
+    await pinApp.stop();
+    await fsp.rm(pinDir, { recursive: true, force: true });
+  }
+});
+
+test("drops persist across restarts by default", async () => {
+  const persistDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-persist-"));
+
+  const first = createDropLocalApp({ port: 0, dir: persistDir });
+  const firstInfo = await first.start();
+  await fetch(`http://127.0.0.1:${firstInfo.port}/api/snippets`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: "survives restarts" })
+  });
+  await first.stop();
+
+  const second = createDropLocalApp({ port: 0, dir: persistDir });
+  const secondInfo = await second.start();
+  try {
+    const listed = await fetch(`http://127.0.0.1:${secondInfo.port}/api/snippets`).then((r) =>
+      r.json()
+    );
+    assert.equal(listed.length, 1);
+    assert.equal(listed[0].text, "survives restarts");
+  } finally {
+    await second.stop();
+    await fsp.rm(persistDir, { recursive: true, force: true });
+  }
+});
+
+test("expired drops are swept on startup", async () => {
+  const expireDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-expire-"));
+
+  const first = createDropLocalApp({ port: 0, dir: expireDir });
+  const firstInfo = await first.start();
+  await fetch(`http://127.0.0.1:${firstInfo.port}/api/snippets`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: "short lived" })
+  });
+  await first.stop();
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  // ~6ms lifetime: the restored snippet must be expired by the startup sweep.
+  const second = createDropLocalApp({ port: 0, dir: expireDir, expireMinutes: 0.0001 });
+  const secondInfo = await second.start();
+  try {
+    const listed = await fetch(`http://127.0.0.1:${secondInfo.port}/api/snippets`).then((r) =>
+      r.json()
+    );
+    assert.deepEqual(listed, []);
+  } finally {
+    await second.stop();
+    await fsp.rm(expireDir, { recursive: true, force: true });
+  }
+});
+
 test("websocket broadcasts updates and status endpoint tracks device count", async () => {
   const ws = new WebSocket(baseUrl.replace("http", "ws") + "/ws");
   const deviceCountPromise = waitForWsEvent(ws, "device:count", (data) => data.count >= 1);

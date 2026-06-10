@@ -95,6 +95,14 @@
             <span data-i18n="settings.storageDir"></span>
             <input id="storageDirInput" name="storageDir" type="text" required />
           </label>
+          <label>
+            <span data-i18n="settings.pin"></span>
+            <input id="pinInput" name="pin" type="text" autocomplete="off" />
+          </label>
+          <label>
+            <span data-i18n="settings.expire"></span>
+            <input id="expireInput" name="expireMinutes" type="number" min="0" max="10080" />
+          </label>
           <label class="check">
             <input id="showQrInput" name="showQrInTray" type="checkbox" />
             <span data-i18n="settings.showQr"></span>
@@ -155,7 +163,9 @@
     "settings.showQr": "Show QR section by default",
     "settings.autoClean": "Auto-clean shared files when the app quits",
     "settings.notify": "Notify when a new device connects",
-    "settings.save": "Save Settings"
+    "settings.save": "Save Settings",
+    "settings.pin": "PIN for joining devices (empty = none)",
+    "settings.expire": "Auto-delete drops after minutes (0 = never)"
   },
   "zh": {
     "hero.sub": "从菜单栏开始本地分享。无云端，无账号。",
@@ -196,7 +206,9 @@
     "settings.showQr": "默认显示二维码区域",
     "settings.autoClean": "退出时自动清理共享文件",
     "settings.notify": "新设备连接时通知",
-    "settings.save": "保存设置"
+    "settings.save": "保存设置",
+    "settings.pin": "设备加入所需 PIN 码（留空 = 不启用）",
+    "settings.expire": "自动删除时间（分钟，0 = 永不）"
   },
   "ja": {
     "hero.sub": "メニューバーからローカル共有。クラウドなし、アカウントなし。",
@@ -237,7 +249,9 @@
     "settings.showQr": "QRコードを既定で表示",
     "settings.autoClean": "終了時に共有ファイルを自動削除",
     "settings.notify": "新しいデバイス接続時に通知",
-    "settings.save": "設定を保存"
+    "settings.save": "設定を保存",
+    "settings.pin": "参加デバイス用PIN（空欄 = 無効）",
+    "settings.expire": "自動削除までの分数（0 = しない）"
   }
 }
     </script>
