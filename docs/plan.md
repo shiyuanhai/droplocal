@@ -107,17 +107,17 @@ Today the app icon ([apps/desktop/icons/icon.png](../apps/desktop/icons/icon.png
 square, the tray uses it, the web UI has a gradient "DL" badge, and there's no favicon or og-image.
 Everything visual downstream (signed dmg, landing page, redesign) needs this first.
 
-- [ ] **Logo mark + wordmark** as SVG masters (e.g. a droplet/down-arrow fused with a Wi-Fi arc —
+- [x] **Logo mark + wordmark** as SVG masters (e.g. a droplet/down-arrow fused with a Wi-Fi arc —
       explore 2–3 concepts, pick one). Keep it legible at 16px.
-- [ ] **App icon**: one 1024×1024 PNG master → `npx @tauri-apps/cli icon path/to/master.png`
+- [x] **App icon**: one 1024×1024 PNG master → `npx @tauri-apps/cli icon path/to/master.png`
       regenerates `icon.icns`, `icon.ico`, and all PNG sizes into `apps/desktop/icons/`.
-- [ ] **macOS tray template icon**: monochrome PNG @1x/@2x, configured with `iconAsTemplate` so it
+- [x] **macOS tray template icon**: monochrome PNG @1x/@2x, configured with `iconAsTemplate` so it
       adapts to light/dark menubar (current tray shows the blank placeholder).
-- [ ] **Web favicons**: inline SVG favicon + apple-touch-icon (180px) served by both servers — keep
+- [x] **Web favicons**: inline SVG favicon + apple-touch-icon (180px) served by both servers — keep
       ui.html single-file by inlining as data URIs, or add a `/favicon.svg` route to
       [index.js](../index.js) and [server.rs](../apps/desktop/src-tauri/src/server.rs).
-- [ ] **og-image** (1200×630) for the landing page and link previews.
-- [ ] README header gets the logo.
+- [x] **og-image** (1200×630) for the landing page and link previews.
+- [x] README header gets the logo.
 
 **Done when:** dock, dmg, tray, browser tab, and README all show the mark; no white square anywhere.
 

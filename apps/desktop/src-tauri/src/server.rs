@@ -35,6 +35,8 @@ use uuid::Uuid;
 
 const MAX_PORT_RETRIES: u16 = 20;
 const EMBEDDED_UI: &str = include_str!("../../../../ui.html");
+const FAVICON_SVG: &str = include_str!("../../../../assets/brand/logo.svg");
+const TOUCH_ICON_PNG: &[u8] = include_bytes!("../../../../assets/brand/apple-touch-icon.png");
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -265,6 +267,9 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
     let state = Arc::new(ServerState::new(config.storage_dir.clone()));
     let router = Router::new()
         .route("/", get(index_html))
+        .route("/favicon.svg", get(favicon_svg))
+        .route("/favicon.ico", get(favicon_svg))
+        .route("/apple-touch-icon.png", get(touch_icon_png))
         .route("/api/snippets", get(list_snippets).post(create_snippet))
         .route("/api/snippets/{id}", delete(delete_snippet))
         .route("/api/files", get(list_files).post(upload_files))
@@ -367,6 +372,18 @@ async fn index_html() -> impl IntoResponse {
         [("content-type", "text/html; charset=utf-8")],
         EMBEDDED_UI,
     )
+}
+
+async fn favicon_svg() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [("content-type", "image/svg+xml")],
+        FAVICON_SVG,
+    )
+}
+
+async fn touch_icon_png() -> impl IntoResponse {
+    (StatusCode::OK, [("content-type", "image/png")], TOUCH_ICON_PNG)
 }
 
 async fn list_snippets(State(state): State<Arc<ServerState>>) -> impl IntoResponse {

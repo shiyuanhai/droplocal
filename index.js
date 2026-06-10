@@ -17,6 +17,16 @@ const DEFAULT_PORT = 3000;
 const MAX_PORT_RETRIES = 20;
 const DEFAULT_UPLOAD_ROOT = path.join(os.tmpdir(), "droplocal");
 const UI_PATH = path.join(__dirname, "ui.html");
+const FAVICON_SVG_PATH = path.join(__dirname, "assets", "brand", "logo.svg");
+const TOUCH_ICON_PATH = path.join(__dirname, "assets", "brand", "apple-touch-icon.png");
+
+function readOptionalAsset(assetPath) {
+  try {
+    return fs.readFileSync(assetPath);
+  } catch (_error) {
+    return null;
+  }
+}
 
 const ansi = {
   reset: "\x1b[0m",
@@ -456,6 +466,22 @@ function createDropLocalApp(options = {}) {
     if (method === "GET" && pathname === "/") {
       createTextResponder(res, 200, state.uiHtml, "text/html; charset=utf-8");
       return;
+    }
+
+    if (method === "GET" && (pathname === "/favicon.svg" || pathname === "/favicon.ico")) {
+      const favicon = readOptionalAsset(FAVICON_SVG_PATH);
+      if (favicon) {
+        createTextResponder(res, 200, favicon, "image/svg+xml");
+        return;
+      }
+    }
+
+    if (method === "GET" && pathname === "/apple-touch-icon.png") {
+      const touchIcon = readOptionalAsset(TOUCH_ICON_PATH);
+      if (touchIcon) {
+        createTextResponder(res, 200, touchIcon, "image/png");
+        return;
+      }
     }
 
     if (method === "GET" && pathname === "/api/snippets") {
