@@ -17,7 +17,9 @@ DropLocal shares text snippets and files across devices on the same local networ
 
 ## Features
 
-- One shared **drop stream** — notes and files interleaved, synced live to every device
+- One shared **drop stream** — notes and files interleaved, synced live to every device,
+  **persistent across restarts** (opt out with `--ephemeral`)
+- Optional **PIN protection** (`--pin 4471`) and auto-expiry (`--expire 60`)
 - Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
 - **Connect card in the web UI**: QR code + address so any device can onboard the next one
 - Per-file upload progress, copy/download/delete actions
@@ -39,7 +41,10 @@ Common options:
 
 ```bash
 droplocal -p 8080
-droplocal --dir ./shared
+droplocal --dir ./shared          # default: ~/Downloads/DropLocal
+droplocal --pin 4471              # other devices must enter this PIN
+droplocal --expire 60             # auto-delete drops after 60 minutes
+droplocal --ephemeral             # wipe everything when the server stops
 droplocal --help
 droplocal --version
 ```

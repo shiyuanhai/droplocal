@@ -25,6 +25,8 @@ const refs = {
   settingsForm: document.getElementById("settingsForm"),
   portInput: document.getElementById("portInput"),
   storageDirInput: document.getElementById("storageDirInput"),
+  pinInput: document.getElementById("pinInput"),
+  expireInput: document.getElementById("expireInput"),
   showQrInput: document.getElementById("showQrInput"),
   autoCleanInput: document.getElementById("autoCleanInput"),
   notifyDeviceInput: document.getElementById("notifyDeviceInput")
@@ -180,6 +182,8 @@ async function loadSettings() {
     const settings = await invoke("get_settings");
     refs.portInput.value = String(settings.port);
     refs.storageDirInput.value = settings.storageDir;
+    refs.pinInput.value = settings.pin || "";
+    refs.expireInput.value = String(settings.expireMinutes || 0);
     refs.showQrInput.checked = Boolean(settings.showQrInTray);
     refs.autoCleanInput.checked = Boolean(settings.autoCleanOnQuit);
     refs.notifyDeviceInput.checked = Boolean(settings.notifyOnDeviceConnect);
@@ -195,6 +199,8 @@ async function saveSettings(event) {
   const nextSettings = {
     port: Number.parseInt(refs.portInput.value, 10),
     storageDir: refs.storageDirInput.value.trim(),
+    pin: refs.pinInput.value.trim(),
+    expireMinutes: Number.parseInt(refs.expireInput.value, 10) || 0,
     showQrInTray: refs.showQrInput.checked,
     autoCleanOnQuit: refs.autoCleanInput.checked,
     notifyOnDeviceConnect: refs.notifyDeviceInput.checked

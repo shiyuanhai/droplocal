@@ -9,6 +9,10 @@ pub struct DesktopSettings {
     pub show_qr_in_tray: bool,
     pub auto_clean_on_quit: bool,
     pub notify_on_device_connect: bool,
+    #[serde(default)]
+    pub pin: String,
+    #[serde(default)]
+    pub expire_minutes: u32,
 }
 
 impl Default for DesktopSettings {
@@ -24,6 +28,8 @@ impl Default for DesktopSettings {
             show_qr_in_tray: true,
             auto_clean_on_quit: false,
             notify_on_device_connect: false,
+            pin: String::new(),
+            expire_minutes: 0,
         }
     }
 }
@@ -33,6 +39,8 @@ impl DesktopSettings {
         if self.storage_dir.trim().is_empty() {
             self.storage_dir = DesktopSettings::default().storage_dir;
         }
+
+        self.pin = self.pin.trim().to_string();
 
         self
     }

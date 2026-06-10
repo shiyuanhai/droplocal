@@ -19,7 +19,14 @@ const AUTO_PORT_PRIMARY = 80;
 const MAX_PORT_RETRIES = 20;
 const MDNS_HOSTNAME_BASE = "droplocal";
 const MDNS_MAX_NAME_ATTEMPTS = 5;
-const DEFAULT_UPLOAD_ROOT = path.join(os.tmpdir(), "droplocal");
+const AUTH_COOKIE = "droplocal_auth";
+const INDEX_FILE_NAME = ".droplocal.json";
+const EXPIRY_SWEEP_INTERVAL_MS = 30_000;
+// Received files belong somewhere a human looks: Downloads/DropLocal,
+// matching the desktop app. Fall back to a temp dir on systems without it.
+const DEFAULT_UPLOAD_ROOT = fs.existsSync(path.join(os.homedir(), "Downloads"))
+  ? path.join(os.homedir(), "Downloads", "DropLocal")
+  : path.join(os.tmpdir(), "droplocal");
 const UI_PATH = path.join(__dirname, "ui.html");
 const FAVICON_SVG_PATH = path.join(__dirname, "assets", "brand", "logo.svg");
 const TOUCH_ICON_PATH = path.join(__dirname, "assets", "brand", "apple-touch-icon.png");
@@ -56,6 +63,9 @@ function parseArgs(argv, env = process.env) {
   // port === null means "auto": try 80 first, then 3000 with upward scan.
   let port = env.PORT ? parsePortValue(env.PORT, "PORT") : null;
   let dir = "";
+  let pin = "";
+  let expireMinutes = 0;
+  let ephemeral = false;
   let help = false;
   let version = false;
 
@@ -92,12 +102,47 @@ function parseArgs(argv, env = process.env) {
       continue;
     }
 
+    if (arg === "--pin") {
+      const next = argv[i + 1];
+      if (!next) {
+        throw new Error("Missing value for --pin.");
+      }
+      if (!/^\S{4,32}$/.test(next)) {
+        throw new Error("Invalid --pin value. Expected 4-32 characters without spaces.");
+      }
+      pin = next;
+      i += 1;
+      continue;
+    }
+
+    if (arg === "--expire") {
+      const next = argv[i + 1];
+      if (!next) {
+        throw new Error("Missing value for --expire.");
+      }
+      const minutes = Number(next);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        throw new Error(`Invalid --expire value "${next}". Expected minutes > 0.`);
+      }
+      expireMinutes = minutes;
+      i += 1;
+      continue;
+    }
+
+    if (arg === "--ephemeral") {
+      ephemeral = true;
+      continue;
+    }
+
     throw new Error(`Unknown option: ${arg}`);
   }
 
   return {
     port,
     dir,
+    pin,
+    expireMinutes,
+    ephemeral,
     help,
     version
   };
@@ -112,14 +157,18 @@ function renderHelp() {
     "",
     "Options:",
     "  -p, --port <number>   Port to listen on (default: auto — tries 80, then 3000+)",
-    "      --dir <path>      Directory for uploaded files (default: system temp)",
+    "      --dir <path>      Directory for shared files (default: ~/Downloads/DropLocal)",
+    "      --pin <pin>       Require a PIN before other devices can join",
+    "      --expire <mins>   Auto-delete drops older than this many minutes",
+    "      --ephemeral       Wipe shared files and history when the server stops",
     "  -v, --version         Show version",
     "  -h, --help            Show this help",
     "",
     "Examples:",
     "  droplocal",
     "  droplocal -p 8080",
-    "  droplocal --dir ./shared"
+    "  droplocal --pin 4471 --expire 60",
+    "  droplocal --dir ./shared --ephemeral"
   ].join("\n");
 }
 
@@ -128,6 +177,16 @@ function isPrivateIpv4(ip) {
     ip.startsWith("10.") ||
     ip.startsWith("192.168.") ||
     /^172\.(1[6-9]|2\d|3[01])\./.test(ip)
+  );
+}
+
+// VPN tunnels, container bridges and link-local helpers advertise private
+// IPv4 addresses that peers on the real LAN cannot reach — keep them out of
+// the primary share URL.
+function isVirtualInterface(name) {
+  const lowered = String(name || "").toLowerCase();
+  return ["utun", "tun", "tap", "docker", "vmnet", "bridge", "br-", "zt", "awdl", "llw", "veth"].some(
+    (prefix) => lowered.startsWith(prefix)
   );
 }
 
@@ -147,18 +206,19 @@ function getLocalNetworkAddresses() {
         addresses.push({
           interface: name,
           address: info.address,
-          private: isPrivateIpv4(info.address)
+          private: isPrivateIpv4(info.address),
+          virtual: isVirtualInterface(name)
         });
       }
     }
   }
 
+  // Real private LAN first, then virtual private (VPN/container), then public.
+  const score = (entry) => (entry.private ? 0 : 2) + (entry.virtual ? 1 : 0);
   addresses.sort((left, right) => {
-    if (left.private && !right.private) {
-      return -1;
-    }
-    if (!left.private && right.private) {
-      return 1;
+    const diff = score(left) - score(right);
+    if (diff !== 0) {
+      return diff;
     }
     return left.interface.localeCompare(right.interface);
   });
@@ -465,9 +525,37 @@ function createServerState(options = {}) {
     lastPortFallbacks: 0,
     useCustomDir,
     mdns: null,
-    friendlyUrl: ""
+    friendlyUrl: "",
+    pin: typeof options.pin === "string" ? options.pin.trim() : "",
+    sessionToken: randomUUID(),
+    expireMinutes: Number(options.expireMinutes) > 0 ? Number(options.expireMinutes) : 0,
+    ephemeral: Boolean(options.ephemeral),
+    expiryTimer: null,
+    persistTimer: null
   };
 }
+
+function parseCookies(header) {
+  const cookies = {};
+  for (const part of String(header || "").split(";")) {
+    const separator = part.indexOf("=");
+    if (separator > 0) {
+      cookies[part.slice(0, separator).trim()] = part.slice(separator + 1).trim();
+    }
+  }
+  return cookies;
+}
+
+const PUBLIC_GET_PATHS = new Set([
+  "/",
+  "/favicon.svg",
+  "/favicon.ico",
+  "/apple-touch-icon.png",
+  "/vendor/qrcode.js",
+  "/manifest.webmanifest",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png"
+]);
 
 const WEB_MANIFEST = JSON.stringify({
   name: "DropLocal",
@@ -533,6 +621,13 @@ function createDropLocalApp(options = {}) {
     broadcast("device:count", { count: connectedDeviceCount() });
   }
 
+  function isAuthorized(req) {
+    if (!state.pin) {
+      return true;
+    }
+    return parseCookies(req.headers.cookie)[AUTH_COOKIE] === state.sessionToken;
+  }
+
   server.on("upgrade", (req, socket, head) => {
     let pathname = "/";
     try {
@@ -547,10 +642,103 @@ function createDropLocalApp(options = {}) {
       return;
     }
 
+    if (!isAuthorized(req)) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+
     wss.handleUpgrade(req, socket, head, (wsSocket) => {
       wss.emit("connection", wsSocket, req);
     });
   });
+
+  const indexPath = () => path.join(state.uploadDir, INDEX_FILE_NAME);
+
+  function schedulePersist() {
+    if (state.ephemeral) {
+      return;
+    }
+    clearTimeout(state.persistTimer);
+    state.persistTimer = setTimeout(() => {
+      const payload = JSON.stringify({
+        snippets: state.snippets,
+        files: state.files
+      });
+      fsp.writeFile(indexPath(), payload).catch(() => {});
+    }, 250);
+    if (typeof state.persistTimer.unref === "function") {
+      state.persistTimer.unref();
+    }
+  }
+
+  async function restoreIndex() {
+    if (state.ephemeral) {
+      return;
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(await fsp.readFile(indexPath(), "utf8"));
+    } catch (_error) {
+      return;
+    }
+
+    if (Array.isArray(parsed.snippets)) {
+      state.snippets = parsed.snippets.filter(
+        (snippet) => snippet && typeof snippet.id === "string" && typeof snippet.text === "string"
+      );
+    }
+
+    if (Array.isArray(parsed.files)) {
+      const restored = [];
+      for (const file of parsed.files) {
+        if (!file || typeof file.id !== "string" || typeof file.path !== "string") {
+          continue;
+        }
+        try {
+          await fsp.access(file.path);
+          restored.push(file);
+        } catch (_error) {
+          // File vanished between sessions; drop the index entry.
+        }
+      }
+      state.files = restored;
+    }
+  }
+
+  function sweepExpired() {
+    if (!state.expireMinutes) {
+      return;
+    }
+    const cutoff = Date.now() - state.expireMinutes * 60_000;
+
+    const expiredSnippets = state.snippets.filter(
+      (snippet) => new Date(snippet.timestamp).getTime() <= cutoff
+    );
+    if (expiredSnippets.length) {
+      state.snippets = state.snippets.filter(
+        (snippet) => new Date(snippet.timestamp).getTime() > cutoff
+      );
+      for (const snippet of expiredSnippets) {
+        broadcast("snippet:delete", { id: snippet.id });
+      }
+    }
+
+    const expiredFiles = state.files.filter(
+      (file) => new Date(file.timestamp).getTime() <= cutoff
+    );
+    if (expiredFiles.length) {
+      state.files = state.files.filter((file) => new Date(file.timestamp).getTime() > cutoff);
+      for (const file of expiredFiles) {
+        fsp.unlink(file.path).catch(() => {});
+        broadcast("file:delete", { id: file.id });
+      }
+    }
+
+    if (expiredSnippets.length || expiredFiles.length) {
+      schedulePersist();
+    }
+  }
 
   wss.on("connection", (wsSocket) => {
     sockets.add(wsSocket);
@@ -582,6 +770,36 @@ function createDropLocalApp(options = {}) {
     const method = req.method || "GET";
     const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     const pathname = parsedUrl.pathname;
+
+    const isPublic =
+      (method === "GET" && PUBLIC_GET_PATHS.has(pathname)) ||
+      (method === "POST" && pathname === "/api/auth");
+    if (!isPublic && !isAuthorized(req)) {
+      createJsonResponder(res, 401, { error: "PIN required" });
+      return;
+    }
+
+    if (method === "POST" && pathname === "/api/auth") {
+      if (!state.pin) {
+        createJsonResponder(res, 200, { ok: true });
+        return;
+      }
+      const body = await readJsonBody(req);
+      const submitted = typeof body.pin === "string" ? body.pin.trim() : "";
+      if (submitted && submitted === state.pin) {
+        const cookie = `${AUTH_COOKIE}=${state.sessionToken}; Path=/; HttpOnly; SameSite=Lax`;
+        const payload = JSON.stringify({ ok: true });
+        res.writeHead(200, {
+          "content-type": "application/json; charset=utf-8",
+          "content-length": Buffer.byteLength(payload),
+          "set-cookie": cookie
+        });
+        res.end(payload);
+      } else {
+        createJsonResponder(res, 403, { error: "Wrong PIN" });
+      }
+      return;
+    }
 
     if (method === "GET" && pathname === "/") {
       createTextResponder(res, 200, state.uiHtml, "text/html; charset=utf-8");
@@ -660,6 +878,7 @@ function createDropLocalApp(options = {}) {
 
       state.snippets.unshift(snippet);
       broadcast("snippet:new", snippet);
+      schedulePersist();
       createJsonResponder(res, 201, snippet);
       return;
     }
@@ -674,6 +893,7 @@ function createDropLocalApp(options = {}) {
 
       state.snippets.splice(index, 1);
       broadcast("snippet:delete", { id });
+      schedulePersist();
       createJsonResponder(res, 200, { ok: true });
       return;
     }
@@ -693,6 +913,7 @@ function createDropLocalApp(options = {}) {
         state.files.unshift(file);
         broadcast("file:new", publicFileMetadata(file));
       }
+      schedulePersist();
 
       if (uploadedFiles.length === 1) {
         createJsonResponder(res, 201, publicFileMetadata(uploadedFiles[0]));
@@ -754,6 +975,7 @@ function createDropLocalApp(options = {}) {
         }
       });
       broadcast("file:delete", { id: file.id });
+      schedulePersist();
       createJsonResponder(res, 200, { ok: true });
       return;
     }
@@ -782,6 +1004,15 @@ function createDropLocalApp(options = {}) {
     }
 
     await fsp.mkdir(state.uploadDir, { recursive: true });
+    await restoreIndex();
+
+    if (state.expireMinutes) {
+      sweepExpired();
+      state.expiryTimer = setInterval(sweepExpired, EXPIRY_SWEEP_INTERVAL_MS);
+      if (typeof state.expiryTimer.unref === "function") {
+        state.expiryTimer.unref();
+      }
+    }
 
     const requestedPort = Number.isInteger(options.port) ? options.port : null;
     let selectedPort = requestedPort;
@@ -845,7 +1076,8 @@ function createDropLocalApp(options = {}) {
       fallbackCount,
       urls: buildShareUrls(selectedPort),
       friendlyUrl: state.friendlyUrl || null,
-      uploadDir: state.uploadDir
+      uploadDir: state.uploadDir,
+      pin: state.pin
     };
   }
 
@@ -881,24 +1113,44 @@ function createDropLocalApp(options = {}) {
       });
     });
 
-    const filesToDelete = state.files.map((file) => file.path);
-    await Promise.all(
-      filesToDelete.map(async (targetPath) => {
-        try {
-          await fsp.unlink(targetPath);
-        } catch (error) {
-          if (error.code !== "ENOENT") {
-            throw error;
-          }
-        }
-      })
-    );
+    if (state.expiryTimer) {
+      clearInterval(state.expiryTimer);
+      state.expiryTimer = null;
+    }
+    clearTimeout(state.persistTimer);
 
-    if (!state.useCustomDir) {
-      await fsp.rm(state.uploadDir, { recursive: true, force: true });
+    if (state.ephemeral) {
+      // Opt-in cleanup: wipe shared files (and the whole default dir).
+      const filesToDelete = state.files.map((file) => file.path);
+      await Promise.all(
+        filesToDelete.map(async (targetPath) => {
+          try {
+            await fsp.unlink(targetPath);
+          } catch (error) {
+            if (error.code !== "ENOENT") {
+              throw error;
+            }
+          }
+        })
+      );
+
+      if (!state.useCustomDir) {
+        await fsp.rm(state.uploadDir, { recursive: true, force: true });
+      }
+
+      state.files.length = 0;
+      state.snippets.length = 0;
+    } else {
+      // Persistent by default: flush the index synchronously so a quick
+      // restart picks everything back up.
+      try {
+        fs.writeFileSync(
+          path.join(state.uploadDir, INDEX_FILE_NAME),
+          JSON.stringify({ snippets: state.snippets, files: state.files })
+        );
+      } catch (_error) {}
     }
 
-    state.files.length = 0;
     running = false;
   }
 
@@ -975,6 +1227,10 @@ function printStartupSummary(startInfo) {
     process.stdout.write(`${ansi.bold("Share URL")}: ${ansi.cyan(primaryUrl)}\n`);
   }
 
+  if (startInfo.pin) {
+    process.stdout.write(`${ansi.bold("PIN")}: ${ansi.yellow(startInfo.pin)} ${ansi.dim("(other devices must enter this)")}\n`);
+  }
+
   if (startInfo.urls.interfaces.length > 1) {
     process.stdout.write(`${ansi.bold("Network Interfaces")}:\n`);
     for (const entry of startInfo.urls.interfaces) {
@@ -1047,6 +1303,9 @@ async function runCli(argv = process.argv.slice(2), env = process.env) {
   const app = createDropLocalApp({
     port: args.port,
     dir: args.dir,
+    pin: args.pin,
+    expireMinutes: args.expireMinutes,
+    ephemeral: args.ephemeral,
     mdns: true
   });
 
