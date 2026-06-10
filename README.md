@@ -1,6 +1,10 @@
-# DropLocal
+<p align="center">
+  <img src="assets/brand/logo.svg" alt="DropLocal logo" width="96" />
+</p>
 
-Drop it local. Pick it up anywhere.
+<h1 align="center">DropLocal</h1>
+
+<p align="center"><em>Drop it local. Pick it up anywhere.</em></p>
 
 DropLocal shares text snippets and files across devices on the same local network, with no accounts and no cloud.
 

@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body {
+    width: 1200px; height: 630px; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(circle at 8% 0%, rgba(56, 189, 248, 0.16), transparent 42%),
+      radial-gradient(circle at 95% 100%, rgba(99, 102, 241, 0.14), transparent 46%),
+      #f8fafc;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+  .row { display: flex; align-items: center; gap: 30px; }
+  .name { font-size: 88px; font-weight: 800; letter-spacing: -2.5px; color: #0f172a; }
+  .tag { font-size: 32px; color: #475569; letter-spacing: -0.3px; }
+  .domain {
+    font-size: 24px; font-weight: 600; color: #ffffff; padding: 10px 26px; border-radius: 999px;
+    background: linear-gradient(135deg, #38BDF8, #6366F1);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="row">
+      <svg width="132" height="132" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
+          </linearGradient>
+        </defs>
+        <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#g)"/>
+        <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="name">DropLocal</div>
+    </div>
+    <div class="tag">Drop it local. Pick it up anywhere — no cloud, no accounts.</div>
+    <div class="domain">droplocal.app</div>
+  </div>
+</body>
+</html>
