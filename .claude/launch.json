@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "droplocal",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["index.js", "--port", "3997", "--dir", "/tmp/dl-ui"],
+      "port": 3997
+    }
+  ]
+}
