@@ -7,10 +7,15 @@ const { parseArgs, sanitizeFileName, isPrivateIpv4 } = require("../index.js");
 
 test("parseArgs returns defaults", () => {
   const args = parseArgs([], {});
-  assert.equal(args.port, 3000);
+  assert.equal(args.port, null, "no explicit port means auto mode");
   assert.equal(args.dir, "");
   assert.equal(args.help, false);
   assert.equal(args.version, false);
+});
+
+test("parseArgs honors the PORT environment variable", () => {
+  const args = parseArgs([], { PORT: "5000" });
+  assert.equal(args.port, 5000);
 });
 
 test("parseArgs supports explicit flags", () => {

@@ -187,26 +187,26 @@ desktop, three languages are complete, and Cmd/Ctrl+V uploads a screenshot.
 Covers "don't remember IP addresses" (roadmap A2) and the honest version of B1 (PWA).
 
 ### 3.1 `droplocal.local` via mDNS/Bonjour (A2)
-- [ ] **CLI (Node)**: answer mDNS A-queries for `droplocal.local` and advertise `_http._tcp`
+- [x] **CLI (Node)**: answer mDNS A-queries for `droplocal.local` and advertise `_http._tcp`
       (e.g. `multicast-dns` for the A-record answer — it's dependency-light and gives full control;
       `bonjour-service` for service advertising if wanted).
-- [ ] **Desktop (Rust)**: same via the `mdns-sd` crate, registered alongside server start in
+- [x] **Desktop (Rust)**: same via the `mdns-sd` crate, registered alongside server start in
       [server.rs](../apps/desktop/src-tauri/src/server.rs).
-- [ ] Hostname conflict handling: if `droplocal.local` is taken (second instance on the LAN),
-      advertise `droplocal-2.local`, surface whichever name won.
-- [ ] Show the friendly URL **everywhere the IP appears today**: terminal banner + QR
+- [x] Hostname conflict handling: if `droplocal.local` is taken (second instance on the LAN),
+      advertise `droplocal-2.local`, surface whichever name won. (Implemented on the CLI via an A-query probe; the desktop app registers the fixed name through mdns-sd and relies on its built-in conflict handling.)
+- [x] Show the friendly URL **everywhere the IP appears today**: terminal banner + QR
       ([index.js:759](../index.js)), web UI connect card (new in 2.1), tray "Copy URL", desktop dashboard.
-      QR should encode the friendly URL when mDNS is up, IP otherwise.
-- [ ] Implement the Phase 0 port strategy (try 80 → fall back) so the URL can be just
+      Decision flip during implementation: the QR always encodes the IP URL (Android cannot reliably resolve .local); the friendly URL is what humans read and type.
+- [x] Implement the Phase 0 port strategy (try 80 → fall back) so the URL can be just
       `http://droplocal.local/`.
-- [ ] Reality check & document: `.local` works natively on macOS/iOS/Windows 10+; Android browsers
+- [x] Reality check & document: `.local` works natively on macOS/iOS/Windows 10+; Android browsers
       are unreliable → **QR stays the headline path for Android**, and the IP URL remains displayed
       as fallback.
 
 ### 3.2 PWA-lite (B1, scoped honestly)
-- [ ] Web app manifest (name, icons from Phase 1, theme color, `display: standalone`) +
+- [x] Web app manifest (name, icons from Phase 1, theme color, `display: standalone`) +
       apple-touch-icon meta — gives "Add to Home Screen" with a proper icon on iOS and Android.
-- [ ] **Known limit, accepted for now:** service workers and Chrome's install prompt require a
+- [x] **Known limit, accepted for now:** service workers and Chrome's install prompt require a
       secure context (HTTPS), which plain LAN HTTP doesn't have. Full offline/installable PWA is
       deferred to Phase 7 (HTTPS-on-LAN research). Don't burn time on it here.
 

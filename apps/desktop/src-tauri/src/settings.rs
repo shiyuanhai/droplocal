@@ -18,7 +18,8 @@ impl Default for DesktopSettings {
             .join("DropLocal");
 
         Self {
-            port: 3000,
+            // 0 = automatic: try 80 (portless URL), then 3000 with upward scan.
+            port: 0,
             storage_dir: default_storage.to_string_lossy().to_string(),
             show_qr_in_tray: true,
             auto_clean_on_quit: false,

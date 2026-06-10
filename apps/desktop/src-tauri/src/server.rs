@@ -34,10 +34,16 @@ use tokio_util::io::ReaderStream;
 use uuid::Uuid;
 
 const MAX_PORT_RETRIES: u16 = 20;
+const AUTO_PORT_PRIMARY: u16 = 80;
+const AUTO_PORT_FALLBACK: u16 = 3000;
+const MDNS_HOSTNAME: &str = "droplocal.local";
 const EMBEDDED_UI: &str = include_str!("../../../../ui.html");
 const FAVICON_SVG: &str = include_str!("../../../../assets/brand/logo.svg");
 const TOUCH_ICON_PNG: &[u8] = include_bytes!("../../../../assets/brand/apple-touch-icon.png");
 const QRCODE_VENDOR_JS: &str = include_str!("../../../../assets/vendor/qrcode.js");
+const ICON_192_PNG: &[u8] = include_bytes!("../../../../assets/brand/icon-192.png");
+const ICON_512_PNG: &[u8] = include_bytes!("../../../../assets/brand/icon-512.png");
+const WEB_MANIFEST: &str = r##"{"name":"DropLocal","short_name":"DropLocal","description":"Drop it local. Pick it up anywhere.","start_url":"/","display":"standalone","background_color":"#F5F7FB","theme_color":"#4F6BF5","icons":[{"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png"}]}"##;
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -54,6 +60,7 @@ pub struct RuntimeStatus {
     pub requested_port: u16,
     pub fallback_count: u16,
     pub primary_url: String,
+    pub friendly_url: String,
     pub all_urls: Vec<String>,
     pub connected_devices: usize,
     pub snippet_count: usize,
@@ -62,17 +69,18 @@ pub struct RuntimeStatus {
     pub upload_dir: String,
 }
 
-#[derive(Debug)]
 pub struct ServerRuntime {
     state: Arc<ServerState>,
     port: u16,
     requested_port: u16,
     fallback_count: u16,
     primary_url: String,
+    friendly_url: Option<String>,
     all_urls: Vec<String>,
     shutdown_tx: Option<oneshot::Sender<()>>,
     task: Arc<tokio::sync::Mutex<Option<JoinHandle<()>>>>,
     auto_clean_on_quit: bool,
+    mdns: Option<mdns_sd::ServiceDaemon>,
 }
 
 impl ServerRuntime {
@@ -83,6 +91,7 @@ impl ServerRuntime {
             requested_port: self.requested_port,
             fallback_count: self.fallback_count,
             primary_url: self.primary_url.clone(),
+            friendly_url: self.friendly_url.clone().unwrap_or_default(),
             all_urls: self.all_urls.clone(),
             connected_devices: self.state.connected_devices.load(Ordering::SeqCst),
             snippet_count: self.state.snippet_len(),
@@ -93,6 +102,10 @@ impl ServerRuntime {
     }
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {
+        if let Some(daemon) = self.mdns.take() {
+            let _ = daemon.shutdown();
+        }
+
         if let Some(tx) = self.shutdown_tx.take() {
             let _ = tx.send(());
         }
@@ -127,11 +140,17 @@ struct ServerState {
     started_at: Instant,
     upload_dir: PathBuf,
     primary_url: String,
+    friendly_url: String,
     share_urls: Vec<String>,
 }
 
 impl ServerState {
-    fn new(upload_dir: PathBuf, primary_url: String, share_urls: Vec<String>) -> Self {
+    fn new(
+        upload_dir: PathBuf,
+        primary_url: String,
+        friendly_url: String,
+        share_urls: Vec<String>,
+    ) -> Self {
         let (events_tx, _events_rx) = broadcast::channel(120);
 
         Self {
@@ -142,6 +161,7 @@ impl ServerState {
             started_at: Instant::now(),
             upload_dir,
             primary_url,
+            friendly_url,
             share_urls,
         }
     }
@@ -247,6 +267,7 @@ pub fn stopped_status() -> RuntimeStatus {
         requested_port: 0,
         fallback_count: 0,
         primary_url: String::new(),
+        friendly_url: String::new(),
         all_urls: Vec::new(),
         connected_devices: 0,
         snippet_count: 0,
@@ -269,9 +290,19 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .cloned()
         .unwrap_or_else(|| format!("http://127.0.0.1:{bound_port}"));
 
+    let mdns = register_mdns(bound_port);
+    let friendly_url = mdns.as_ref().map(|_| {
+        if bound_port == 80 {
+            format!("http://{MDNS_HOSTNAME}")
+        } else {
+            format!("http://{MDNS_HOSTNAME}:{bound_port}")
+        }
+    });
+
     let state = Arc::new(ServerState::new(
         config.storage_dir.clone(),
         primary_url.clone(),
+        friendly_url.clone().unwrap_or_default(),
         urls.clone(),
     ));
     let router = Router::new()
@@ -280,6 +311,9 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .route("/favicon.ico", get(favicon_svg))
         .route("/apple-touch-icon.png", get(touch_icon_png))
         .route("/vendor/qrcode.js", get(qrcode_vendor_js))
+        .route("/manifest.webmanifest", get(web_manifest))
+        .route("/icons/icon-192.png", get(icon_192))
+        .route("/icons/icon-512.png", get(icon_512))
         .route("/api/info", get(info))
         .route("/api/snippets", get(list_snippets).post(create_snippet))
         .route("/api/snippets/{id}", delete(delete_snippet))
@@ -307,15 +341,53 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         requested_port: config.requested_port,
         fallback_count,
         primary_url,
+        friendly_url,
         all_urls: urls,
         shutdown_tx: Some(shutdown_tx),
         task: Arc::new(tokio::sync::Mutex::new(Some(task))),
         auto_clean_on_quit: config.auto_clean_on_quit,
+        mdns,
     })
+}
+
+/// Best-effort mDNS registration so the server is reachable as
+/// `http://droplocal.local`. Returns `None` when registration fails —
+/// the IP URL keeps working either way.
+fn register_mdns(port: u16) -> Option<mdns_sd::ServiceDaemon> {
+    let daemon = mdns_sd::ServiceDaemon::new().ok()?;
+    let properties: &[(&str, &str)] = &[];
+    let info = mdns_sd::ServiceInfo::new(
+        "_http._tcp.local.",
+        "DropLocal",
+        &format!("{MDNS_HOSTNAME}."),
+        "",
+        port,
+        properties,
+    )
+    .ok()?
+    .enable_addr_auto();
+
+    daemon.register(info).ok()?;
+    Some(daemon)
 }
 
 async fn bind_listener(requested_port: u16) -> anyhow::Result<TcpListener> {
     if requested_port == 0 {
+        // Auto mode: port 80 gives a portless URL (http://droplocal.local);
+        // fall back to the classic 3000+ scan, then an ephemeral port.
+        if let Ok(listener) =
+            TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], AUTO_PORT_PRIMARY))).await
+        {
+            return Ok(listener);
+        }
+
+        for offset in 0..=MAX_PORT_RETRIES {
+            let port = AUTO_PORT_FALLBACK + offset;
+            if let Ok(listener) = TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await {
+                return Ok(listener);
+            }
+        }
+
         return Ok(TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], 0))).await?);
     }
 
@@ -406,15 +478,38 @@ async fn qrcode_vendor_js() -> impl IntoResponse {
 }
 
 async fn info(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+    let friendly = if state.friendly_url.is_empty() {
+        Value::Null
+    } else {
+        Value::String(state.friendly_url.clone())
+    };
+
     Json(json!({
         "name": "DropLocal",
         "version": env!("CARGO_PKG_VERSION"),
         "urls": {
             "primary": state.primary_url,
+            "friendly": friendly,
             "all": state.share_urls,
             "interfaces": []
         }
     }))
+}
+
+async fn web_manifest() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [("content-type", "application/manifest+json; charset=utf-8")],
+        WEB_MANIFEST,
+    )
+}
+
+async fn icon_192() -> impl IntoResponse {
+    (StatusCode::OK, [("content-type", "image/png")], ICON_192_PNG)
+}
+
+async fn icon_512() -> impl IntoResponse {
+    (StatusCode::OK, [("content-type", "image/png")], ICON_512_PNG)
 }
 
 async fn list_snippets(State(state): State<Arc<ServerState>>) -> impl IntoResponse {

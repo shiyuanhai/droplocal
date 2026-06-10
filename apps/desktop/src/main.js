@@ -124,7 +124,7 @@ function renderRuntime(runtime) {
   refs.deviceCount.textContent = String(deviceCount);
   refs.serverPort.textContent = running ? String(runtime.port) : "-";
   refs.uptime.textContent = running ? formatUptime(runtime.uptimeSeconds) : "-";
-  refs.primaryUrl.value = running ? runtime.primaryUrl : "";
+  refs.primaryUrl.value = running ? runtime.friendlyUrl || runtime.primaryUrl : "";
 
   refs.toggleServerBtn.textContent = running ? t("controls.stop") : t("controls.start");
   refs.toggleServerBtn.classList.toggle("danger", running);
