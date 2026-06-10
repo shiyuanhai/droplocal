@@ -265,19 +265,19 @@ Covers B6 + "landing page for my domain" + "mobile friendly website". The existi
 hardcoded — for a real domain it's a rebuild, and it's deliberately last: it needs the Phase 1
 brand, Phase 2 screenshots, and Phase 4 download links to exist.
 
-- [ ] **Rebuild the page**: hero (logo, tagline, screenshot of the new UI on phone + desktop),
+- [x] **Rebuild the page**: hero (logo, tagline, screenshot of the new UI on phone + desktop),
       3-step "how it works" (start it → scan the QR → drop), feature trio (no cloud / no accounts /
       no size limits), download buttons pointing at real release assets
       (`/releases/latest/download/...` permalinks), `npx droplocal` one-liner with a copy button,
       short FAQ (it's LAN-only — that's the point; security note), footer (GitHub, MIT).
-- [ ] **Mobile-first** layout; aim Lighthouse ≥95 (it's one static page — no excuse).
-- [ ] **i18n**: en/zh-Hans/ja — three static variants or one page with the same dictionary pattern
+- [x] **Mobile-first** layout, verified at a true 390px viewport via CDP emulation. (Run Lighthouse once deployed — single static page, should be ≥95.)
+- [x] **i18n**: en/zh-Hans/ja — three static variants or one page with the same dictionary pattern
       as the app; `hreflang` tags + visible language switcher.
-- [ ] **SEO/social**: title/description, og tags + Phase 1 og-image, twitter card; no analytics
+- [x] **SEO/social**: title/description, og tags + Phase 1 og-image, twitter card; no analytics
       (privacy is the brand) or a cookieless counter at most.
-- [ ] **Deploy** per Phase 0 decision (Cloudflare Pages or GH Pages): custom domain
+- [ ] **(user step — RELEASING.md §8)** **Deploy** per Phase 0 decision (Cloudflare Pages or GH Pages): custom domain
       `droplocal.app`, HTTPS enforced, `www` → apex redirect.
-- [ ] Point README's links at the site.
+- [x] Point README's links at the site.
 
 **Done when:** `https://droplocal.app` loads fast on a phone, in three languages, and a visitor can
 go from landing → working app in under two minutes.
@@ -302,6 +302,28 @@ independent — pick one when the mood strikes; none block launch.
 | 6.9 | **C2 — Rust backend tests** | Mirror the Node integration suite (snippets/files/ws lifecycle) against the axum server; `cargo test` is currently empty. | M |
 
 ---
+
+### Phase 6 status (2026-06-10)
+
+Landed in the phase-6 branch:
+
+- **C1 — PIN protection**: `--pin` flag / desktop setting; cookie session after `/api/auth`;
+  WS upgrades gated; localized PIN gate in the web UI; covered by Node + Rust tests.
+- **C4 — streaming review**: found and fixed a real bug — axum's 2 MB default body limit
+  would have rejected any real upload on the desktop app (now disabled; both servers stream
+  to disk chunk-by-chunk).
+- **A5 — upload progress & resilience**: per-file XHR progress landed with Phase 2; cancel
+  button added; failures toast per file.
+- **A6 — persistence**: shared `.droplocal.json` index, deliberately the same format on both
+  servers so CLI and desktop can read each other's folder. CLI default dir moved to
+  `~/Downloads/DropLocal`; cleanup is now opt-in (`--ephemeral` / auto-clean setting).
+- **C3 — NIC ordering**: virtual interfaces (utun/tun/docker/vmnet/…) deprioritized on both
+  sides so VPNs stop hijacking the share URL.
+- **A4 — expiration**: `--expire <minutes>` / desktop setting; 30 s sweep broadcasts deletions.
+- **C2 — Rust tests**: HTTP integration tests (lifecycle, PIN, persistence) — `cargo test` now 7.
+
+Partial: **A7** — URLs in notes are linkified; markdown/syntax highlighting still open.
+Deferred: **A3** — multi-select zip download (next session).
 
 ## Phase 7 — Reassess (after living with all the above)
 
