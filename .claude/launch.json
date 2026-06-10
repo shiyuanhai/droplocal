@@ -6,6 +6,12 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["index.js", "--port", "3997", "--dir", "/tmp/dl-ui"],
       "port": 3997
+    },
+    {
+      "name": "droplocal-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8088", "-d", "docs"],
+      "port": 8088
     }
   ]
 }
