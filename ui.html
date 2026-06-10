@@ -619,6 +619,79 @@
         padding: 48px 56px;
       }
 
+      .pin-gate {
+        position: fixed;
+        inset: 0;
+        z-index: 70;
+        display: grid;
+        place-items: center;
+        background: var(--overlay);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 24px;
+      }
+
+      .pin-gate[hidden] {
+        display: none;
+      }
+
+      .pin-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: min(340px, 100%);
+        padding: 28px 24px;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        text-align: center;
+      }
+
+      .pin-title {
+        margin: 4px 0 0;
+        font-size: 1.05rem;
+      }
+
+      .pin-body {
+        margin: 0 0 6px;
+        color: var(--muted);
+        font-size: 0.84rem;
+      }
+
+      .pin-input {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface-2);
+        padding: 11px 14px;
+        font-size: 1.1rem;
+        text-align: center;
+        letter-spacing: 0.3em;
+        outline: none;
+      }
+
+      .pin-input:focus {
+        border-color: var(--accent);
+      }
+
+      .pin-card .send-btn {
+        width: 100%;
+      }
+
+      .pin-error {
+        margin: 0;
+        color: var(--danger);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .item-text a {
+        color: var(--accent);
+        word-break: break-all;
+      }
+
       .toast {
         position: fixed;
         left: 50%;
@@ -750,6 +823,26 @@
     <div class="drop-overlay" id="dropOverlay" hidden>
       <div class="drop-overlay-inner" id="dropOverlayText"></div>
     </div>
+    <div class="pin-gate" id="pinGate" hidden>
+      <form class="pin-card" id="pinForm">
+        <svg width="44" height="44" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="pg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
+            </linearGradient>
+          </defs>
+          <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#pg)"/>
+          <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <h2 class="pin-title" data-i18n="pin.title"></h2>
+        <p class="pin-body" data-i18n="pin.body"></p>
+        <input class="pin-input" id="pinInput" inputmode="numeric" autocomplete="one-time-code" />
+        <button class="send-btn" id="pinSubmit" type="submit">
+          <span data-i18n="pin.submit"></span>
+        </button>
+        <p class="pin-error" id="pinError" hidden data-i18n="pin.wrong"></p>
+      </form>
+    </div>
     <div class="toast" id="toast" role="status"></div>
 
     <script src="/vendor/qrcode.js"></script>
@@ -790,7 +883,13 @@
     "aria.lang": "Language",
     "aria.connect": "Show connect info",
     "aria.close": "Close",
-    "time.now": "just now"
+    "time.now": "just now",
+    "pin.title": "Enter the PIN",
+    "pin.body": "This DropLocal requires a PIN. It is shown on the device that started the server.",
+    "pin.placeholder": "PIN",
+    "pin.submit": "Unlock",
+    "pin.wrong": "Wrong PIN — try again",
+    "item.cancel": "Cancel upload"
   },
   "zh": {
     "tagline": "本地一放，随处可取。",
@@ -827,7 +926,13 @@
     "aria.lang": "语言",
     "aria.connect": "显示连接信息",
     "aria.close": "关闭",
-    "time.now": "刚刚"
+    "time.now": "刚刚",
+    "pin.title": "输入 PIN 码",
+    "pin.body": "此 DropLocal 需要 PIN 码。它显示在启动服务器的设备上。",
+    "pin.placeholder": "PIN 码",
+    "pin.submit": "解锁",
+    "pin.wrong": "PIN 码错误——请重试",
+    "item.cancel": "取消上传"
   },
   "ja": {
     "tagline": "ローカルにドロップ、どこでもピックアップ。",
@@ -864,7 +969,13 @@
     "aria.lang": "言語",
     "aria.connect": "接続情報を表示",
     "aria.close": "閉じる",
-    "time.now": "たった今"
+    "time.now": "たった今",
+    "pin.title": "PINを入力",
+    "pin.body": "このDropLocalにはPINが必要です。サーバーを起動したデバイスに表示されています。",
+    "pin.placeholder": "PIN",
+    "pin.submit": "ロック解除",
+    "pin.wrong": "PINが違います — もう一度お試しください",
+    "item.cancel": "アップロードをキャンセル"
   }
 }
     </script>
@@ -898,6 +1009,10 @@
           shareHint: document.getElementById("shareHint"),
           dropOverlay: document.getElementById("dropOverlay"),
           dropOverlayText: document.getElementById("dropOverlayText"),
+          pinGate: document.getElementById("pinGate"),
+          pinForm: document.getElementById("pinForm"),
+          pinInput: document.getElementById("pinInput"),
+          pinError: document.getElementById("pinError"),
           toast: document.getElementById("toast")
         };
 
@@ -911,7 +1026,8 @@
           wsState: "connecting",
           shareUrl: "",
           toastTimer: 0,
-          expanded: new Set()
+          expanded: new Set(),
+          locked: false
         };
 
         /* ---------- i18n ---------- */
@@ -962,6 +1078,7 @@
           }
 
           refs.shareInput.placeholder = t("share.placeholder");
+          refs.pinInput.placeholder = t("pin.placeholder");
           refs.shareHint.textContent = t(IS_MAC ? "share.hint.mac" : "share.hint.other");
           refs.themeToggle.setAttribute("aria-label", t("aria.theme"));
           refs.langSelect.setAttribute("aria-label", t("aria.lang"));
@@ -1161,6 +1278,24 @@
           }, 1400);
         }
 
+        var URL_PATTERN = /(https?:\/\/[^\s<>"']+)/g;
+
+        function appendLinkified(container, value) {
+          var parts = String(value).split(URL_PATTERN);
+          for (var i = 0; i < parts.length; i += 1) {
+            if (i % 2 === 1) {
+              var anchor = document.createElement("a");
+              anchor.href = parts[i];
+              anchor.textContent = parts[i];
+              anchor.target = "_blank";
+              anchor.rel = "noopener noreferrer";
+              container.appendChild(anchor);
+            } else if (parts[i]) {
+              container.appendChild(document.createTextNode(parts[i]));
+            }
+          }
+        }
+
         function buildTextItem(item) {
           var li = document.createElement("li");
           li.className = "item" + (state.expanded.has(item.id) ? " expanded" : "");
@@ -1175,7 +1310,7 @@
 
           var text = document.createElement("p");
           text.className = "item-text";
-          text.textContent = item.text;
+          appendLinkified(text, item.text);
           main.appendChild(text);
 
           if (item.text.length > 280 || item.text.split("\n").length > 6) {
@@ -1288,7 +1423,7 @@
           return li;
         }
 
-        function buildUploadItem(upload) {
+        function buildUploadItem(upload, uploadId) {
           var li = document.createElement("li");
           li.className = "item";
 
@@ -1317,8 +1452,22 @@
           track.appendChild(fill);
           main.appendChild(track);
 
+          var actions = document.createElement("div");
+          actions.className = "item-actions";
+          var cancelBtn = iconButton(t("item.cancel"), ICONS.trash, "danger");
+          cancelBtn.addEventListener("click", function () {
+            var entry = state.uploads.get(uploadId);
+            if (entry && entry.xhr) {
+              entry.xhr.abort();
+            }
+            state.uploads.delete(uploadId);
+            renderStream();
+          });
+          actions.appendChild(cancelBtn);
+
           li.appendChild(icon);
           li.appendChild(main);
+          li.appendChild(actions);
           return li;
         }
 
@@ -1330,8 +1479,8 @@
 
           refs.stream.textContent = "";
 
-          state.uploads.forEach(function (upload) {
-            refs.stream.appendChild(buildUploadItem(upload));
+          state.uploads.forEach(function (upload, uploadId) {
+            refs.stream.appendChild(buildUploadItem(upload, uploadId));
           });
 
           entries.forEach(function (item) {
@@ -1369,18 +1518,64 @@
           });
         }
 
+        function setLocked(locked) {
+          state.locked = locked;
+          refs.pinGate.hidden = !locked;
+          if (locked) {
+            refs.pinInput.focus();
+          }
+        }
+
         function loadInitial() {
-          Promise.all([
-            fetch("/api/snippets").then(function (r) { return r.ok ? r.json() : []; }),
-            fetch("/api/files").then(function (r) { return r.ok ? r.json() : []; })
-          ])
+          Promise.all([fetch("/api/snippets"), fetch("/api/files")])
+            .then(function (responses) {
+              if (responses.some(function (r) { return r.status === 401; })) {
+                setLocked(true);
+                return null;
+              }
+              return Promise.all(
+                responses.map(function (r) { return r.ok ? r.json() : []; })
+              );
+            })
             .then(function (results) {
+              if (!results) {
+                return;
+              }
               results[0].forEach(addSnippet);
               results[1].forEach(addFile);
               renderStream();
             })
             .catch(function () {
               renderStream();
+            });
+        }
+
+        function submitPin(event) {
+          event.preventDefault();
+          var pin = refs.pinInput.value.trim();
+          if (!pin) {
+            return;
+          }
+          fetch("/api/auth", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ pin: pin })
+          })
+            .then(function (response) {
+              if (response.ok) {
+                refs.pinError.hidden = true;
+                refs.pinInput.value = "";
+                setLocked(false);
+                loadInitial();
+                connectSocket();
+                refreshConnectInfo();
+              } else {
+                refs.pinError.hidden = false;
+                refs.pinInput.select();
+              }
+            })
+            .catch(function () {
+              refs.pinError.hidden = false;
             });
         }
 
@@ -1434,14 +1629,19 @@
         function uploadFile(file, displayName) {
           var name = displayName || file.name || "file";
           var uploadId = "upload-" + Date.now() + "-" + Math.random().toString(36).slice(2);
-          state.uploads.set(uploadId, { name: name, progress: 0 });
-          renderStream();
 
           var formData = new FormData();
           formData.append("file", file, name);
 
           var xhr = new XMLHttpRequest();
           xhr.open("POST", "/api/files");
+          state.uploads.set(uploadId, { name: name, progress: 0, xhr: xhr });
+          renderStream();
+
+          xhr.addEventListener("abort", function () {
+            state.uploads.delete(uploadId);
+            renderStream();
+          });
 
           xhr.upload.addEventListener("progress", function (event) {
             if (event.lengthComputable) {
@@ -1484,6 +1684,9 @@
         /* ---------- websocket ---------- */
 
         function connectSocket() {
+          if (state.locked) {
+            return;
+          }
           var protocol = location.protocol === "https:" ? "wss" : "ws";
           var socket = new WebSocket(protocol + "://" + location.host + "/ws");
           state.ws = socket;
@@ -1521,6 +1724,9 @@
           });
 
           socket.addEventListener("close", function () {
+            if (state.locked) {
+              return;
+            }
             state.wsState = "offline";
             renderStatus();
             state.wsAttempts += 1;
@@ -1582,6 +1788,10 @@
             renderQr(fallbackUrl);
           }
 
+          refreshConnectInfo();
+        }
+
+        function refreshConnectInfo() {
           fetch("/api/info")
             .then(function (response) {
               return response.ok ? response.json() : null;
@@ -1769,6 +1979,8 @@
               sendText();
             }
           });
+
+          refs.pinForm.addEventListener("submit", submitPin);
 
           window.setInterval(refreshTimes, 30000);
         }
