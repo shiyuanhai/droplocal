@@ -15,10 +15,12 @@ DropLocal shares text snippets and files across devices on the same local networ
 
 ## Features
 
-- Shared snippet history with copy/delete actions
-- File upload/download/delete with drag-and-drop
-- Real-time sync over WebSocket
-- Connected-device count and live status
+- One shared **drop stream** — notes and files interleaved, synced live to every device
+- Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
+- **Connect card in the web UI**: QR code + address so any device can onboard the next one
+- Per-file upload progress, copy/download/delete actions
+- English, 简体中文, and 日本語 UI (auto-detected, switchable)
+- Light/dark theme, mobile-first layout
 - LAN URL + terminal QR code (CLI)
 - Native tray controls + desktop dashboard (Desktop app)
 

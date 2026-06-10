@@ -14,6 +14,7 @@
     "ui.html",
     "assets/brand/logo.svg",
     "assets/brand/apple-touch-icon.png",
+    "assets/vendor/qrcode.js",
     "README.md",
     "LICENSE"
   ],

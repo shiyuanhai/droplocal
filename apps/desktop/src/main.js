@@ -6,7 +6,11 @@ if (!invoke) {
   throw new Error("Tauri API is not available. This UI must run inside DropLocal Desktop.");
 }
 
+const I18N = JSON.parse(document.getElementById("i18n-data").textContent);
+const SUPPORTED_LANGS = ["en", "zh", "ja"];
+
 const refs = {
+  langSelect: document.getElementById("langSelect"),
   serverState: document.getElementById("serverState"),
   deviceCount: document.getElementById("deviceCount"),
   serverPort: document.getElementById("serverPort"),
@@ -28,8 +32,52 @@ const refs = {
 
 const state = {
   runtime: null,
-  pollTimer: null
+  pollTimer: null,
+  lang: "en"
 };
+
+function detectLang() {
+  try {
+    const stored = localStorage.getItem("droplocal-lang");
+    if (stored && SUPPORTED_LANGS.includes(stored)) {
+      return stored;
+    }
+  } catch (_error) {}
+  const nav = (navigator.language || "en").toLowerCase();
+  if (nav.startsWith("zh")) return "zh";
+  if (nav.startsWith("ja")) return "ja";
+  return "en";
+}
+
+function t(key, params) {
+  const table = I18N[state.lang] || I18N.en;
+  let value = table[key] || I18N.en[key] || key;
+  if (params) {
+    for (const [name, replacement] of Object.entries(params)) {
+      value = value.replace(`{${name}}`, String(replacement));
+    }
+  }
+  return value;
+}
+
+function applyLang(lang) {
+  state.lang = lang;
+  try {
+    localStorage.setItem("droplocal-lang", lang);
+  } catch (_error) {}
+  document.documentElement.lang = lang === "zh" ? "zh-Hans" : lang;
+  refs.langSelect.value = lang;
+
+  for (const node of document.querySelectorAll("[data-i18n]")) {
+    node.textContent = t(node.getAttribute("data-i18n"));
+  }
+
+  if (state.runtime) {
+    renderRuntime(state.runtime);
+  } else {
+    refs.serverState.textContent = t("state.starting");
+  }
+}
 
 function applyQrVisibility(showQr) {
   const qrSection = document.querySelector(".qrcode");
@@ -54,7 +102,7 @@ function formatUptime(seconds) {
 async function renderQr(url) {
   refs.qrCode.innerHTML = "";
   if (!url) {
-    refs.qrCode.textContent = "Server is stopped.";
+    refs.qrCode.textContent = t("qr.stopped");
     return;
   }
 
@@ -62,7 +110,7 @@ async function renderQr(url) {
     const svg = await invoke("build_qr_svg", { payload: url });
     refs.qrCode.innerHTML = svg;
   } catch (error) {
-    refs.qrCode.textContent = "QR unavailable";
+    refs.qrCode.textContent = t("qr.unavailable");
     console.error(error);
   }
 }
@@ -72,13 +120,13 @@ function renderRuntime(runtime) {
   const running = Boolean(runtime?.running);
   const deviceCount = running ? runtime.connectedDevices : 0;
 
-  refs.serverState.textContent = running ? "Running" : "Stopped";
+  refs.serverState.textContent = running ? t("state.running") : t("state.stopped");
   refs.deviceCount.textContent = String(deviceCount);
   refs.serverPort.textContent = running ? String(runtime.port) : "-";
   refs.uptime.textContent = running ? formatUptime(runtime.uptimeSeconds) : "-";
   refs.primaryUrl.value = running ? runtime.primaryUrl : "";
 
-  refs.toggleServerBtn.textContent = running ? "Stop Server" : "Start Server";
+  refs.toggleServerBtn.textContent = running ? t("controls.stop") : t("controls.start");
   refs.toggleServerBtn.classList.toggle("danger", running);
   refs.toggleServerBtn.classList.toggle("primary", !running);
 
@@ -91,7 +139,7 @@ async function refreshRuntime() {
     renderRuntime(runtime);
     setRuntimeMessage("");
   } catch (error) {
-    setRuntimeMessage(`Runtime check failed: ${String(error)}`);
+    setRuntimeMessage(t("msg.statusFailed", { error: String(error) }));
   }
 }
 
@@ -101,9 +149,9 @@ async function toggleServer() {
     const running = Boolean(state.runtime?.running);
     const runtime = running ? await invoke("stop_server") : await invoke("start_server");
     renderRuntime(runtime);
-    setRuntimeMessage(running ? "Server stopped." : "Server started.");
+    setRuntimeMessage(running ? t("msg.stopped") : t("msg.started"));
   } catch (error) {
-    setRuntimeMessage(`Server action failed: ${String(error)}`);
+    setRuntimeMessage(t("msg.actionFailed", { error: String(error) }));
   } finally {
     refs.toggleServerBtn.disabled = false;
   }
@@ -112,18 +160,18 @@ async function toggleServer() {
 async function copyUrl() {
   try {
     await invoke("copy_share_url");
-    setRuntimeMessage("Share URL copied to clipboard.");
+    setRuntimeMessage(t("msg.copied"));
   } catch (error) {
-    setRuntimeMessage(`Copy failed: ${String(error)}`);
+    setRuntimeMessage(t("msg.copyFailed", { error: String(error) }));
   }
 }
 
 async function openBrowser() {
   try {
     await invoke("open_share_url");
-    setRuntimeMessage("Opened DropLocal in your default browser.");
+    setRuntimeMessage(t("msg.opened"));
   } catch (error) {
-    setRuntimeMessage(`Open failed: ${String(error)}`);
+    setRuntimeMessage(t("msg.openFailed", { error: String(error) }));
   }
 }
 
@@ -137,7 +185,7 @@ async function loadSettings() {
     refs.notifyDeviceInput.checked = Boolean(settings.notifyOnDeviceConnect);
     applyQrVisibility(refs.showQrInput.checked);
   } catch (error) {
-    setRuntimeMessage(`Failed to load settings: ${String(error)}`);
+    setRuntimeMessage(t("msg.settingsLoadFailed", { error: String(error) }));
   }
 }
 
@@ -157,9 +205,9 @@ async function saveSettings(event) {
     await invoke("save_settings", { settings: nextSettings });
     const runtime = await invoke("restart_server_with_settings");
     renderRuntime(runtime);
-    setRuntimeMessage("Settings saved and server restarted.");
+    setRuntimeMessage(t("msg.saved"));
   } catch (error) {
-    setRuntimeMessage(`Save failed: ${String(error)}`);
+    setRuntimeMessage(t("msg.saveFailed", { error: String(error) }));
   } finally {
     refs.settingsForm.querySelector("button[type='submit']").disabled = false;
   }
@@ -176,6 +224,11 @@ function startRuntimePolling() {
 }
 
 async function initialize() {
+  applyLang(detectLang());
+
+  refs.langSelect.addEventListener("change", () => {
+    applyLang(refs.langSelect.value);
+  });
   refs.toggleServerBtn.addEventListener("click", () => {
     void toggleServer();
   });

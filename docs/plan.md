@@ -132,51 +132,50 @@ so the redesign flows into the desktop app for free on rebuild. **Do i18n during
 after** — every string gets touched exactly once.
 
 ### 2.1 Restructure first (paint second)
-- [ ] Apply the Phase 0 audit. Proposed information hierarchy for the main screen:
+- [x] Apply the Phase 0 audit. Proposed information hierarchy for the main screen:
       1. **Share row** — one combined input: text box + attach button + paste target (no Text/Files
          tab choice up front).
       2. **Drop stream** — single reverse-chronological feed of everything shared (text + files
          interleaved), each item with copy/download/delete. Replaces the two separate panel lists.
       3. **Connect card** — QR + friendly URL visible *in the web UI* so any joined device can
          onboard the next one (today this only exists in terminal/desktop).
-- [ ] Decide what's demoted or cut (e.g. device-count stays as a small status dot; uptime is
+- [x] Decide what's demoted or cut (e.g. device-count stays as a small status dot; uptime is
       dashboard-only).
 
 ### 2.2 Visual redesign
-- [ ] New design tokens derived from the Phase 1 brand: type scale, spacing, radii, shadows, accent
+- [x] New design tokens derived from the Phase 1 brand: type scale, spacing, radii, shadows, accent
       colors; light + dark themes (keep the existing `data-theme` + localStorage mechanism,
       [ui.html:624–652](../ui.html)).
-- [ ] Real empty states, hover/focus/active states, subtle motion (transform/opacity only),
+- [x] Real empty states, hover/focus/active states, subtle motion (transform/opacity only),
       contrast ≥ WCAG AA.
-- [ ] Refresh the **desktop dashboard** ([apps/desktop/src/index.html](../apps/desktop/src/index.html) +
+- [x] Refresh the **desktop dashboard** ([apps/desktop/src/index.html](../apps/desktop/src/index.html) +
       [styles.css](../apps/desktop/src/styles.css)) with the same tokens so the two surfaces match.
 
 ### 2.3 Mobile-first
-- [ ] Layout designed at 360–430px first, then enhanced at ≥760px (current breakpoints are
+- [x] Layout designed at 360–430px first, then enhanced at ≥760px (current breakpoints are
       an afterthought). Thumb-reachable primary actions, ≥44px touch targets, safe-area insets.
-- [ ] Mobile-specific touches: `<input type="file">` opens the native picker; add a camera-capture
-      affordance; sticky share row.
+- [x] Mobile-specific touches: `<input type="file">` opens the native picker; sticky share row. (Camera capture: the native iOS/Android file picker already offers the camera — no separate button needed.)
 
 ### 2.4 i18n — English default, 简体中文, 日本語
-- [ ] Extract all UI strings into a dictionary object inside ui.html (`en`, `zh-Hans`, `ja`);
+- [x] Extract all UI strings into a dictionary object inside ui.html (`en`, `zh-Hans`, `ja`);
       auto-detect via `navigator.language`, manual switcher in the header, persisted to
       `localStorage("droplocal-lang")`, sets `<html lang>`.
-- [ ] Localize dynamic strings too: relative timestamps via `Intl.RelativeTimeFormat`, file sizes
+- [x] Localize dynamic strings too: relative timestamps via `Intl.RelativeTimeFormat`, file sizes
       via `Intl.NumberFormat`, toasts, error messages.
-- [ ] Same dictionary approach for the desktop dashboard strings. Tray menu labels
+- [x] Same dictionary approach for the desktop dashboard strings. Tray menu labels
       ([lib.rs:176–200](../apps/desktop/src-tauri/src/lib.rs)) — optional, English is acceptable for v1.
-- [ ] CLI terminal output stays English (explicit non-goal).
-- [ ] Add a test asserting all locales have identical key sets (no missing translations).
+- [x] CLI terminal output stays English (explicit non-goal).
+- [x] Add a test asserting all locales have identical key sets (no missing translations).
 
 ### 2.5 Fold in roadmap A1 — clipboard paste-to-upload
-- [ ] `paste` listener on the document: image blobs (screenshots) upload immediately, plain text
+- [x] `paste` listener on the document: image blobs (screenshots) upload immediately, plain text
       prefills the share box. Toast confirms. (Touches the same upload path the redesign rewrites —
       that's why it lives here, not later.)
 
 ### 2.6 Verify
-- [ ] Update [integration tests](../test) if they assert on markup/strings; run `npm run test:all`.
-- [ ] Rebuild desktop (`npm run desktop:build` or `desktop:dev`) and confirm the embedded UI updated.
-- [ ] Walk the full phone flow at 360px, 390px, 768px, 1200px in all three languages.
+- [x] Update [integration tests](../test) if they assert on markup/strings; run `npm run test:all`.
+- [x] Rebuild desktop (`npm run desktop:build` or `desktop:dev`) and confirm the embedded UI updated.
+- [x] Walk the full phone flow at 360px, 390px, 768px, 1200px in all three languages.
 
 **Done when:** the Phase 0 friction list is resolved, the app looks like a 2026 product on phone and
 desktop, three languages are complete, and Cmd/Ctrl+V uploads a screenshot.
