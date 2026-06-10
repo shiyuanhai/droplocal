@@ -14,6 +14,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, State,
 };
+use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
 const TRAY_ID: &str = "droplocal-tray";
@@ -182,6 +183,38 @@ fn emit_runtime_update(app: &AppHandle, status: &RuntimeStatus) {
     let _ = app.emit("droplocal://runtime-updated", status.clone());
 }
 
+/// Manual update check from the tray: install + relaunch when an update
+/// exists, otherwise do nothing. Failures are logged, never fatal — the
+/// updater only works on releases signed with the updater key.
+async fn check_for_updates(app: AppHandle) {
+    let updater = match app.updater() {
+        Ok(updater) => updater,
+        Err(error) => {
+            eprintln!("droplocal updater unavailable: {error}");
+            return;
+        }
+    };
+
+    match updater.check().await {
+        Ok(Some(update)) => {
+            eprintln!(
+                "droplocal update {} available, downloading…",
+                update.version
+            );
+            match update.download_and_install(|_, _| {}, || {}).await {
+                Ok(()) => {
+                    app.restart();
+                }
+                Err(error) => eprintln!("droplocal update failed: {error}"),
+            }
+        }
+        Ok(None) => {
+            eprintln!("droplocal is up to date");
+        }
+        Err(error) => eprintln!("droplocal update check failed: {error}"),
+    }
+}
+
 fn reveal_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -199,6 +232,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let copy_item = MenuItemBuilder::with_id("copy_url", "Copy URL").build(app)?;
     let toggle_item =
         MenuItemBuilder::with_id("toggle_server", "Start / Stop Server").build(app)?;
+    let update_item = MenuItemBuilder::with_id("check_updates", "Check for Updates").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "Quit DropLocal").build(app)?;
     let separator_top = PredefinedMenuItem::separator(app)?;
     let separator_bottom = PredefinedMenuItem::separator(app)?;
@@ -212,6 +246,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             &copy_item,
             &separator_bottom,
             &toggle_item,
+            &update_item,
             &quit_item,
         ])
         .build()?;
@@ -257,6 +292,11 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                         }
                     });
                 }
+                "check_updates" => {
+                    tauri::async_runtime::spawn(async move {
+                        check_for_updates(app_handle).await;
+                    });
+                }
                 "quit" => {
                     tauri::async_runtime::spawn(async move {
                         let _ = stop_server_inner(&app_handle).await;
@@ -284,6 +324,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let config_dir = app
                 .path()
