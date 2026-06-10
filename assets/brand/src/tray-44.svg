@@ -1,0 +1,9 @@
+<svg width="44" height="44" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="dl-tray-cut" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="black" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </mask>
+  </defs>
+  <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="#000000" mask="url(#dl-tray-cut)"/>
+</svg>
