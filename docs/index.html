@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DropLocal — Drop it local. Pick it up anywhere.</title>
+    <meta name="description" content="Share files, screenshots and notes between your own devices over Wi-Fi. No cloud, no accounts — one tiny server, every browser can join." />
+    <link rel="canonical" href="https://droplocal.app/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/logo.svg" />
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+    <link rel="alternate" hreflang="en" href="https://droplocal.app/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://droplocal.app/?lang=zh" />
+    <link rel="alternate" hreflang="ja" href="https://droplocal.app/?lang=ja" />
+    <link rel="alternate" hreflang="x-default" href="https://droplocal.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://droplocal.app/" />
+    <meta property="og:title" content="DropLocal — Drop it local. Pick it up anywhere." />
+    <meta property="og:description" content="Share files, screenshots and notes between your own devices over Wi-Fi. No cloud, no accounts." />
+    <meta property="og:image" content="https://droplocal.app/assets/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#4F6BF5" />
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --surface-2: #eef2f9;
+        --text: #0f172a;
+        --muted: #5b6b81;
+        --border: #e3e9f2;
+        --accent-a: #38bdf8;
+        --accent-b: #6366f1;
+        --accent: #4f6bf5;
+        --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 30px rgba(15, 23, 42, 0.07);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0b1120;
+          --surface: #121a2b;
+          --surface-2: #1a2438;
+          --text: #e6edf7;
+          --muted: #8da2bc;
+          --border: #243352;
+          --accent: #6d8bff;
+          --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 34px rgba(0, 0, 0, 0.4);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+          "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 10% -5%, rgba(56, 189, 248, 0.1), transparent 38%),
+          radial-gradient(circle at 95% 5%, rgba(99, 102, 241, 0.09), transparent 42%),
+          var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap {
+        max-width: 1020px;
+        margin: 0 auto;
+        padding: 0 22px;
+      }
+
+      /* header */
+      .site-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 0;
+      }
+
+      .site-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        color: var(--text);
+        text-decoration: none;
+      }
+
+      .head-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .lang-select {
+        appearance: none;
+        -webkit-appearance: none;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 7px 10px;
+        cursor: pointer;
+      }
+
+      .gh-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 7px 10px;
+        border-radius: 10px;
+      }
+
+      .gh-link:hover,
+      .lang-select:hover {
+        background: var(--surface-2);
+        color: var(--text);
+      }
+
+      /* hero */
+      .hero {
+        padding: 56px 0 30px;
+        text-align: center;
+      }
+
+      .hero h1 {
+        margin: 0 auto;
+        max-width: 720px;
+        font-size: clamp(1.9rem, 5.4vw, 3.1rem);
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+      }
+
+      .hero h1 .grad {
+        background: linear-gradient(120deg, var(--accent-a), var(--accent-b));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .hero .lede {
+        margin: 18px auto 0;
+        max-width: 640px;
+        color: var(--muted);
+        font-size: 1.05rem;
+      }
+
+      .cta-row {
+        margin-top: 28px;
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 13px;
+        padding: 13px 22px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--surface);
+        transition: transform 0.1s ease, opacity 0.15s ease, background 0.15s ease;
+      }
+
+      .btn:hover {
+        background: var(--surface-2);
+      }
+
+      .btn:active {
+        transform: scale(0.98);
+      }
+
+      .btn.primary {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+      }
+
+      .btn.primary:hover {
+        opacity: 0.93;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+      }
+
+      .npx-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 13px;
+        padding: 0 8px 0 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92rem;
+      }
+
+      .npx-box button {
+        border: none;
+        background: var(--surface-2);
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border-radius: 9px;
+        padding: 8px 12px;
+        margin: 7px 0;
+        cursor: pointer;
+      }
+
+      .npx-box button:hover {
+        color: var(--text);
+      }
+
+      .hero-note {
+        margin-top: 14px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      /* screenshot */
+      .shot {
+        margin: 44px auto 0;
+        max-width: 880px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .shot-bar {
+        display: flex;
+        gap: 6px;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-2);
+      }
+
+      .shot-bar span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border);
+      }
+
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* sections */
+      section {
+        padding: 56px 0 0;
+      }
+
+      .sec-title {
+        margin: 0 0 26px;
+        text-align: center;
+        font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+        letter-spacing: -0.02em;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .step {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 22px;
+        text-align: center;
+      }
+
+      .step-num {
+        display: inline-grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        margin-bottom: 12px;
+      }
+
+      .step h3 {
+        margin: 0 0 6px;
+        font-size: 1.02rem;
+      }
+
+      .step p,
+      .feature p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .step code,
+      .faq code {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 0.84em;
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .feature {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        padding: 20px;
+      }
+
+      .feature h3 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .feature h3 svg {
+        color: var(--accent);
+        flex: 0 0 auto;
+      }
+
+      /* faq */
+      .faq {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+
+      .faq details {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 16px 18px;
+        margin-bottom: 10px;
+      }
+
+      .faq summary {
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      .faq p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      /* footer */
+      footer {
+        margin-top: 64px;
+        padding: 26px 0 40px;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      footer a {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      footer a:hover {
+        color: var(--text);
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 760px) {
+        .steps,
+        .features {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .hero {
+          padding-top: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="site-head">
+        <a class="site-brand" href="/">
+          <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#lg)"/>
+            <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          DropLocal
+        </a>
+        <div class="head-actions">
+          <select class="lang-select" id="langSelect" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
+          <a class="gh-link" href="https://github.com/shiyuanhai/droplocal" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            GitHub
+          </a>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <h1><span data-i18n="hero.line1"></span> <span class="grad" data-i18n="hero.line2"></span></h1>
+          <p class="lede" data-i18n="hero.lede"></p>
+          <div class="cta-row">
+            <a class="btn primary" id="downloadBtn" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener" data-i18n="cta.mac"></a>
+            <span class="npx-box">
+              <span>npx droplocal</span>
+              <button type="button" id="copyNpx" data-i18n="cta.copy"></button>
+            </span>
+          </div>
+          <p class="hero-note" data-i18n="cta.note"></p>
+
+          <div class="shot">
+            <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+            <img src="/assets/screenshot-desktop.png" width="1100" height="720" alt="DropLocal web UI: connect QR card and a stream of shared files and notes" loading="lazy" />
+          </div>
+        </section>
+
+        <section>
+          <h2 class="sec-title" data-i18n="how.title"></h2>
+          <div class="steps">
+            <div class="step">
+              <span class="step-num">1</span>
+              <h3 data-i18n="how.1.title"></h3>
+              <p data-i18n="how.1.body"></p>
+            </div>
+            <div class="step">
+              <span class="step-num">2</span>
+              <h3 data-i18n="how.2.title"></h3>
+              <p data-i18n="how.2.body"></p>
+            </div>
+            <div class="step">
+              <span class="step-num">3</span>
+              <h3 data-i18n="how.3.title"></h3>
+              <p data-i18n="how.3.body"></p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="sec-title" data-i18n="feat.title"></h2>
+          <div class="features">
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 13a6.5 6.5 0 10-12.9-1A5 5 0 006 21.9h11a4.5 4.5 0 001-8.9z"/><path d="M4 4l16 17" /></svg><span data-i18n="feat.nocloud.title"></span></h3>
+              <p data-i18n="feat.nocloud.body"></p>
+            </div>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="4" width="13" height="10" rx="2"/><path d="M6 20h5M8.5 14v6"/><rect x="16" y="8" width="6" height="12" rx="2"/></svg><span data-i18n="feat.devices.title"></span></h3>
+              <p data-i18n="feat.devices.body"></p>
+            </div>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="17" r="1.6"/><path d="M5.5 12.5a9 9 0 0113 0M2 9a14 14 0 0120 0"/></svg><span data-i18n="feat.local.title"></span></h3>
+              <p data-i18n="feat.local.body"></p>
+            </div>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2.5" width="8" height="4" rx="1.4"/><path d="M16 4.5h2.5a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 20V6a1.5 1.5 0 011.5-1.5H8"/><path d="M9 13l2 2 4-4.5"/></svg><span data-i18n="feat.paste.title"></span></h3>
+              <p data-i18n="feat.paste.body"></p>
+            </div>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M5 10l7-7 7 7M19 14l-7 7-7-7"/></svg><span data-i18n="feat.sync.title"></span></h3>
+              <p data-i18n="feat.sync.body"></p>
+            </div>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg><span data-i18n="feat.oss.title"></span></h3>
+              <p data-i18n="feat.oss.body"></p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="sec-title" data-i18n="faq.title"></h2>
+          <div class="faq">
+            <details>
+              <summary data-i18n="faq.1.q"></summary>
+              <p data-i18n="faq.1.a"></p>
+            </details>
+            <details>
+              <summary data-i18n="faq.2.q"></summary>
+              <p data-i18n="faq.2.a"></p>
+            </details>
+            <details>
+              <summary data-i18n="faq.3.q"></summary>
+              <p data-i18n="faq.3.a"></p>
+            </details>
+            <details>
+              <summary data-i18n="faq.4.q"></summary>
+              <p data-i18n="faq.4.a"></p>
+            </details>
+          </div>
+        </section>
+      </main>
+
+      <footer>
+        <span data-i18n="footer.tag"></span>
+        ·
+        <a href="https://github.com/shiyuanhai/droplocal" rel="noopener">GitHub</a>
+        ·
+        <a href="https://github.com/shiyuanhai/droplocal/blob/main/LICENSE" rel="noopener">MIT</a>
+      </footer>
+    </div>
+
+    <script type="application/json" id="i18n-data">
+{
+  "en": {
+    "hero.line1": "Share between your devices.",
+    "hero.line2": "No cloud in between.",
+    "hero.lede": "DropLocal runs a tiny server on one device. Every other device on your Wi-Fi just opens a page in the browser — drop files, paste screenshots, send notes. Nothing leaves your network.",
+    "cta.mac": "Download for macOS",
+    "cta.copy": "Copy",
+    "cta.note": "Also for Windows & Linux on the releases page · CLI needs Node 18+",
+    "how.title": "How it works",
+    "how.1.title": "Start it",
+    "how.1.body": "Open the desktop app, or run npx droplocal in a terminal.",
+    "how.2.title": "Open it anywhere",
+    "how.2.body": "On the other device, scan the QR code or type droplocal.local in the browser. Nothing to install.",
+    "how.3.title": "Drop",
+    "how.3.body": "Files, screenshots and notes appear on every connected device instantly.",
+    "feat.title": "Why DropLocal",
+    "feat.nocloud.title": "No cloud, no accounts",
+    "feat.nocloud.body": "Your files travel one hop across your own Wi-Fi — never through someone else's server.",
+    "feat.devices.title": "Every device works",
+    "feat.devices.body": "Anything with a browser can join: iPhone, Android, Windows, Mac, Linux, a smart TV.",
+    "feat.local.title": "droplocal.local",
+    "feat.local.body": "A friendly address via Bonjour/mDNS instead of an IP — or just scan the QR code.",
+    "feat.paste.title": "Paste screenshots",
+    "feat.paste.body": "Cmd/Ctrl+V uploads what's on your clipboard straight into the stream.",
+    "feat.sync.title": "Live sync",
+    "feat.sync.body": "One shared stream over WebSocket — everyone sees new drops the moment they land.",
+    "feat.oss.title": "Open source",
+    "feat.oss.body": "MIT licensed. Read every line of what runs on your network.",
+    "faq.title": "Questions",
+    "faq.1.q": "Is my data on the internet?",
+    "faq.1.a": "No. DropLocal binds to your local network only. Devices must be on the same Wi-Fi / LAN, and everything is gone when you stop the server.",
+    "faq.2.q": "What do I install on my phone?",
+    "faq.2.a": "Nothing. The phone just opens a web page. You can add it to your home screen for an app-like feel.",
+    "faq.3.q": "How big can files be?",
+    "faq.3.a": "There is no artificial limit — files stream to disk on the host. Multi-gigabyte files are fine on a decent Wi-Fi.",
+    "faq.4.q": "Where do received files go?",
+    "faq.4.a": "The desktop app saves to Downloads/DropLocal (configurable). The CLI uses a temp folder by default, or any folder via --dir.",
+    "footer.tag": "Made for your home network"
+  },
+  "zh": {
+    "hero.line1": "在你的设备之间分享，",
+    "hero.line2": "无需经过云端。",
+    "hero.lede": "DropLocal 在一台设备上运行一个微型服务器，同一 Wi-Fi 下的其他设备只需在浏览器中打开一个页面——拖入文件、粘贴截图、发送文字。一切都不会离开你的网络。",
+    "cta.mac": "下载 macOS 版",
+    "cta.copy": "复制",
+    "cta.note": "Windows 和 Linux 版见发布页 · CLI 需要 Node 18+",
+    "how.title": "如何使用",
+    "how.1.title": "启动",
+    "how.1.body": "打开桌面应用，或在终端运行 npx droplocal。",
+    "how.2.title": "随处打开",
+    "how.2.body": "在另一台设备上扫描二维码，或在浏览器输入 droplocal.local。无需安装任何东西。",
+    "how.3.title": "放入",
+    "how.3.body": "文件、截图和文字会立刻出现在所有已连接的设备上。",
+    "feat.title": "为什么选 DropLocal",
+    "feat.nocloud.title": "无云端，无账号",
+    "feat.nocloud.body": "文件只在你自己的 Wi-Fi 内传输一跳——绝不经过别人的服务器。",
+    "feat.devices.title": "任何设备都能用",
+    "feat.devices.body": "有浏览器就能加入：iPhone、Android、Windows、Mac、Linux，甚至智能电视。",
+    "feat.local.title": "droplocal.local",
+    "feat.local.body": "通过 Bonjour/mDNS 获得友好地址，不用记 IP——或者直接扫码。",
+    "feat.paste.title": "粘贴截图",
+    "feat.paste.body": "Cmd/Ctrl+V 直接把剪贴板里的内容上传到共享流。",
+    "feat.sync.title": "实时同步",
+    "feat.sync.body": "一条基于 WebSocket 的共享流——新内容落地的瞬间所有人都能看到。",
+    "feat.oss.title": "开源",
+    "feat.oss.body": "MIT 许可。在你网络上运行的每一行代码都可以审查。",
+    "faq.title": "常见问题",
+    "faq.1.q": "我的数据会上互联网吗？",
+    "faq.1.a": "不会。DropLocal 只绑定本地网络。设备需在同一 Wi-Fi / 局域网内，服务器停止后一切即消失。",
+    "faq.2.q": "手机上要装什么？",
+    "faq.2.a": "什么都不用装。手机只是打开一个网页，还可以添加到主屏幕获得类似 App 的体验。",
+    "faq.3.q": "文件可以多大？",
+    "faq.3.a": "没有人为限制——文件以流式写入主机磁盘。在不错的 Wi-Fi 下传几个 GB 的文件没有问题。",
+    "faq.4.q": "收到的文件保存在哪里？",
+    "faq.4.a": "桌面应用保存到「下载/DropLocal」（可配置）。CLI 默认使用临时文件夹，也可通过 --dir 指定任意目录。",
+    "footer.tag": "为你的家庭网络而生"
+  },
+  "ja": {
+    "hero.line1": "デバイス間で共有。",
+    "hero.line2": "クラウドを介さずに。",
+    "hero.lede": "DropLocalは1台のデバイスで小さなサーバーを起動します。同じWi-Fi上の他のデバイスはブラウザでページを開くだけ——ファイルをドロップ、スクリーンショットを貼り付け、メモを送信。すべてがあなたのネットワークの中で完結します。",
+    "cta.mac": "macOS版をダウンロード",
+    "cta.copy": "コピー",
+    "cta.note": "Windows・Linux版はリリースページへ · CLIにはNode 18+が必要",
+    "how.title": "使い方",
+    "how.1.title": "起動する",
+    "how.1.body": "デスクトップアプリを開くか、ターミナルで npx droplocal を実行。",
+    "how.2.title": "どこでも開く",
+    "how.2.body": "別のデバイスでQRコードをスキャンするか、ブラウザに droplocal.local と入力。インストール不要。",
+    "how.3.title": "ドロップ",
+    "how.3.body": "ファイル・スクリーンショット・メモが、接続中のすべてのデバイスに即座に表示されます。",
+    "feat.title": "DropLocalの特長",
+    "feat.nocloud.title": "クラウドなし、アカウントなし",
+    "feat.nocloud.body": "ファイルは自分のWi-Fi内を1ホップ移動するだけ。他人のサーバーは経由しません。",
+    "feat.devices.title": "どんなデバイスでも",
+    "feat.devices.body": "ブラウザがあれば参加できます：iPhone、Android、Windows、Mac、Linux、スマートTVも。",
+    "feat.local.title": "droplocal.local",
+    "feat.local.body": "Bonjour/mDNSによる覚えやすいアドレス。IPを覚える必要なし——QRスキャンでもOK。",
+    "feat.paste.title": "スクリーンショットを貼り付け",
+    "feat.paste.body": "Cmd/Ctrl+Vでクリップボードの内容をそのままストリームへアップロード。",
+    "feat.sync.title": "リアルタイム同期",
+    "feat.sync.body": "WebSocketによる共有ストリーム。新しいドロップは瞬時に全員へ届きます。",
+    "feat.oss.title": "オープンソース",
+    "feat.oss.body": "MITライセンス。あなたのネットワークで動くコードをすべて確認できます。",
+    "faq.title": "よくある質問",
+    "faq.1.q": "データはインターネットに出ますか？",
+    "faq.1.a": "いいえ。DropLocalはローカルネットワークのみにバインドします。デバイスは同じWi-Fi／LAN上にある必要があり、サーバーを停止すればすべて消えます。",
+    "faq.2.q": "スマホに何をインストールすればいい？",
+    "faq.2.a": "何も必要ありません。スマホはWebページを開くだけ。ホーム画面に追加すればアプリのように使えます。",
+    "faq.3.q": "ファイルサイズの上限は？",
+    "faq.3.a": "人為的な制限はありません。ファイルはホストのディスクにストリーミング保存されます。良好なWi-Fiなら数GBのファイルも問題ありません。",
+    "faq.4.q": "受信したファイルはどこに保存されますか？",
+    "faq.4.a": "デスクトップアプリは「ダウンロード/DropLocal」に保存（変更可能）。CLIはデフォルトで一時フォルダ、--dirで任意のフォルダを指定できます。",
+    "footer.tag": "ホームネットワークのために"
+  }
+}
+    </script>
+    <script>
+      (function () {
+        "use strict";
+
+        var I18N = JSON.parse(document.getElementById("i18n-data").textContent);
+        var SUPPORTED = ["en", "zh", "ja"];
+        var select = document.getElementById("langSelect");
+
+        function detect() {
+          var fromQuery = new URLSearchParams(location.search).get("lang");
+          if (fromQuery && SUPPORTED.indexOf(fromQuery) !== -1) return fromQuery;
+          try {
+            var stored = localStorage.getItem("droplocal-lang");
+            if (stored && SUPPORTED.indexOf(stored) !== -1) return stored;
+          } catch (_e) {}
+          var nav = (navigator.language || "en").toLowerCase();
+          if (nav.indexOf("zh") === 0) return "zh";
+          if (nav.indexOf("ja") === 0) return "ja";
+          return "en";
+        }
+
+        function apply(lang) {
+          try {
+            localStorage.setItem("droplocal-lang", lang);
+          } catch (_e) {}
+          document.documentElement.lang = lang === "zh" ? "zh-Hans" : lang;
+          select.value = lang;
+          var table = I18N[lang] || I18N.en;
+          var nodes = document.querySelectorAll("[data-i18n]");
+          for (var i = 0; i < nodes.length; i += 1) {
+            var key = nodes[i].getAttribute("data-i18n");
+            nodes[i].textContent = table[key] || I18N.en[key] || key;
+          }
+        }
+
+        select.addEventListener("change", function () {
+          apply(select.value);
+        });
+
+        document.getElementById("copyNpx").addEventListener("click", function () {
+          var button = this;
+          var original = button.textContent;
+          function done(ok) {
+            button.textContent = ok ? "✓" : original;
+            setTimeout(function () {
+              button.textContent = original;
+            }, 1200);
+          }
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText("npx droplocal").then(
+              function () { done(true); },
+              function () { done(false); }
+            );
+          } else {
+            done(false);
+          }
+        });
+
+        apply(detect());
+      })();
+    </script>
+  </body>
+</html>
