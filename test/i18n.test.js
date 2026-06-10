@@ -18,8 +18,9 @@ function extractI18nDictionary(htmlPath) {
 
 const UI_HTML = path.join(__dirname, "..", "ui.html");
 const DESKTOP_HTML = path.join(__dirname, "..", "apps", "desktop", "src", "index.html");
+const LANDING_HTML = path.join(__dirname, "..", "docs", "index.html");
 
-for (const htmlPath of [UI_HTML, DESKTOP_HTML]) {
+for (const htmlPath of [UI_HTML, DESKTOP_HTML, LANDING_HTML]) {
   const label = path.relative(path.join(__dirname, ".."), htmlPath);
 
   test(`i18n dictionary in ${label} covers en/zh/ja with identical keys`, () => {

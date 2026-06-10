@@ -6,6 +6,8 @@
 
 <p align="center"><em>Drop it local. Pick it up anywhere.</em></p>
 
+<p align="center"><a href="https://droplocal.app">droplocal.app</a></p>
+
 DropLocal shares text snippets and files across devices on the same local network, with no accounts and no cloud.
 
 ## Distribution Targets
