@@ -21,6 +21,9 @@ DropLocal shares text snippets and files across devices on the same local networ
 - Per-file upload progress, copy/download/delete actions
 - English, 简体中文, and 日本語 UI (auto-detected, switchable)
 - Light/dark theme, mobile-first layout
+- **Friendly address via mDNS/Bonjour** — `http://droplocal.local` instead of an IP
+  (the QR code keeps using the IP so Android works too)
+- Automatic port: tries 80 first (portless URL), falls back to 3000+
 - LAN URL + terminal QR code (CLI)
 - Native tray controls + desktop dashboard (Desktop app)
 
@@ -38,6 +41,13 @@ droplocal --dir ./shared
 droplocal --help
 droplocal --version
 ```
+
+Without `-p`, DropLocal tries port 80 first (so the share URL is just
+`http://droplocal.local`) and falls back to 3000+.
+
+> **macOS note:** the first run may trigger a *Local Network* permission prompt.
+> Allow it — that's what lets other devices find `droplocal.local` via Bonjour.
+> Everything still works via the IP URL / QR code if you decline.
 
 ## Desktop App (Local Dev)
 

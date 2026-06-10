@@ -81,7 +81,24 @@ async fn open_share_url(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn copy_share_url(app: AppHandle) -> Result<(), String> {
-    let url = current_primary_url(&app).await?;
+    // Prefer the friendly mDNS address when available — it's what a human
+    // wants to pass along; the IP URL stays visible in the dashboard.
+    let state = app.state::<ManagedState>();
+    let url = {
+        let runtime = state.runtime.lock().await;
+        runtime
+            .as_ref()
+            .map(|entry| {
+                let snapshot = entry.snapshot();
+                if snapshot.friendly_url.is_empty() {
+                    snapshot.primary_url
+                } else {
+                    snapshot.friendly_url
+                }
+            })
+            .filter(|url| !url.is_empty())
+            .ok_or_else(|| "DropLocal server is not running".to_string())?
+    };
     let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
     clipboard.set_text(url).map_err(|error| error.to_string())
 }
