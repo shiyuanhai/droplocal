@@ -199,7 +199,11 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         ])
         .build()?;
 
+    let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../../icons/tray-icon.png"))?;
+
     TrayIconBuilder::with_id(TRAY_ID)
+        .icon(tray_icon)
+        .icon_as_template(true)
         .menu(&menu)
         .tooltip("DropLocal")
         .on_menu_event(|app, event| {
