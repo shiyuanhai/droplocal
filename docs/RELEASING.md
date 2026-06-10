@@ -103,6 +103,27 @@ npx droplocal@latest      # verify from any machine
    (downloads, installs, relaunches automatically).
 4. `npm publish` again for the CLI.
 
+## 8. Publish the landing page (droplocal.app)
+
+The site lives in [`docs/`](.) (`index.html`, `CNAME`, `.nojekyll` are all in place).
+
+1. GitHub → repo **Settings → Pages** → Source: *Deploy from a branch* →
+   Branch `main`, folder `/docs` → Save.
+2. At your domain registrar, add DNS records for **droplocal.app**:
+
+   | Type | Name | Value |
+   |---|---|---|
+   | A | @ | 185.199.108.153 |
+   | A | @ | 185.199.109.153 |
+   | A | @ | 185.199.110.153 |
+   | A | @ | 185.199.111.153 |
+   | CNAME | www | shiyuanhai.github.io |
+
+3. Back in **Settings → Pages**, set custom domain `droplocal.app` (the `CNAME`
+   file already matches), wait for the DNS check, then tick **Enforce HTTPS**.
+
+The site is plain static files — every push to `main` that touches `docs/` redeploys it.
+
 ## Known limitations / later
 
 - **Windows signing** is not set up (installs show SmartScreen warnings). Costs
