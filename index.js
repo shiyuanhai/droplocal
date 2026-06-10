@@ -19,6 +19,7 @@ const DEFAULT_UPLOAD_ROOT = path.join(os.tmpdir(), "droplocal");
 const UI_PATH = path.join(__dirname, "ui.html");
 const FAVICON_SVG_PATH = path.join(__dirname, "assets", "brand", "logo.svg");
 const TOUCH_ICON_PATH = path.join(__dirname, "assets", "brand", "apple-touch-icon.png");
+const QRCODE_VENDOR_PATH = path.join(__dirname, "assets", "vendor", "qrcode.js");
 
 function readOptionalAsset(assetPath) {
   try {
@@ -482,6 +483,25 @@ function createDropLocalApp(options = {}) {
         createTextResponder(res, 200, touchIcon, "image/png");
         return;
       }
+    }
+
+    if (method === "GET" && pathname === "/vendor/qrcode.js") {
+      const vendorScript = readOptionalAsset(QRCODE_VENDOR_PATH);
+      if (vendorScript) {
+        createTextResponder(res, 200, vendorScript, "application/javascript; charset=utf-8");
+        return;
+      }
+    }
+
+    if (method === "GET" && pathname === "/api/info") {
+      const address = server.address();
+      const port = address && typeof address === "object" ? address.port : 0;
+      createJsonResponder(res, 200, {
+        name: "DropLocal",
+        version: pkg.version,
+        urls: buildShareUrls(port)
+      });
+      return;
     }
 
     if (method === "GET" && pathname === "/api/snippets") {

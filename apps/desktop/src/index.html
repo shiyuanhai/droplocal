@@ -9,37 +9,52 @@
   <body>
     <main class="shell">
       <section class="hero card">
-        <div class="brand-line">
-          <div class="badge">DL</div>
-          <div>
-            <h1>DropLocal Desktop</h1>
-            <p class="sub">Run local sharing from your tray, copy URL, and scan QR instantly.</p>
+        <div class="hero-top">
+          <div class="brand-line">
+            <svg width="44" height="44" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <defs>
+                <linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
+                </linearGradient>
+              </defs>
+              <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#dg)"/>
+              <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            <div>
+              <h1>DropLocal</h1>
+              <p class="sub" data-i18n="hero.sub"></p>
+            </div>
           </div>
+          <select class="lang-select" id="langSelect" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
         </div>
         <div class="runtime-grid">
           <article class="metric">
-            <p class="metric-label">Server</p>
-            <p id="serverState" class="metric-value">Starting</p>
+            <p class="metric-label" data-i18n="metric.server"></p>
+            <p id="serverState" class="metric-value">…</p>
           </article>
           <article class="metric">
-            <p class="metric-label">Devices</p>
+            <p class="metric-label" data-i18n="metric.devices"></p>
             <p id="deviceCount" class="metric-value">0</p>
           </article>
           <article class="metric">
-            <p class="metric-label">Port</p>
+            <p class="metric-label" data-i18n="metric.port"></p>
             <p id="serverPort" class="metric-value">-</p>
           </article>
           <article class="metric">
-            <p class="metric-label">Uptime</p>
+            <p class="metric-label" data-i18n="metric.uptime"></p>
             <p id="uptime" class="metric-value">-</p>
           </article>
         </div>
         <div class="url-row">
-          <label for="primaryUrl">Share URL</label>
+          <label for="primaryUrl" data-i18n="url.label"></label>
           <div class="url-actions">
             <input id="primaryUrl" readonly />
-            <button id="copyUrlBtn" type="button" class="btn ghost">Copy URL</button>
-            <button id="openBrowserBtn" type="button" class="btn primary">Open in Browser</button>
+            <button id="copyUrlBtn" type="button" class="btn ghost" data-i18n="url.copy"></button>
+            <button id="openBrowserBtn" type="button" class="btn primary" data-i18n="url.open"></button>
           </div>
         </div>
       </section>
@@ -47,20 +62,20 @@
       <section class="panel-grid">
         <section class="card qrcode">
           <header>
-            <h2>Scan From Phone</h2>
-            <p>Point your camera at this code to open DropLocal on your LAN.</p>
+            <h2 data-i18n="qr.title"></h2>
+            <p data-i18n="qr.desc"></p>
           </header>
           <div id="qrCode" class="qr-frame"></div>
         </section>
 
         <section class="card controls">
           <header>
-            <h2>Runtime Controls</h2>
-            <p>Server starts automatically and can be controlled from the tray icon.</p>
+            <h2 data-i18n="controls.title"></h2>
+            <p data-i18n="controls.desc"></p>
           </header>
           <div class="button-grid">
-            <button id="toggleServerBtn" type="button" class="btn primary">Stop Server</button>
-            <button id="refreshBtn" type="button" class="btn ghost">Refresh Status</button>
+            <button id="toggleServerBtn" type="button" class="btn primary"></button>
+            <button id="refreshBtn" type="button" class="btn ghost" data-i18n="controls.refresh"></button>
           </div>
           <p id="runtimeMessage" class="hint"></p>
         </section>
@@ -68,37 +83,164 @@
 
       <section class="card settings">
         <header>
-          <h2>Settings</h2>
-          <p>Changes apply immediately after save by restarting the local server.</p>
+          <h2 data-i18n="settings.title"></h2>
+          <p data-i18n="settings.desc"></p>
         </header>
         <form id="settingsForm" class="settings-form">
           <label>
-            Port
+            <span data-i18n="settings.port"></span>
             <input id="portInput" name="port" type="number" min="0" max="65535" required />
           </label>
           <label>
-            File storage directory
+            <span data-i18n="settings.storageDir"></span>
             <input id="storageDirInput" name="storageDir" type="text" required />
           </label>
           <label class="check">
             <input id="showQrInput" name="showQrInTray" type="checkbox" />
-            Show QR section by default
+            <span data-i18n="settings.showQr"></span>
           </label>
           <label class="check">
             <input id="autoCleanInput" name="autoCleanOnQuit" type="checkbox" />
-            Auto-clean shared files when app quits
+            <span data-i18n="settings.autoClean"></span>
           </label>
           <label class="check">
             <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
-            Notify when a new device connects
+            <span data-i18n="settings.notify"></span>
           </label>
           <div class="settings-actions">
-            <button id="saveSettingsBtn" type="submit" class="btn primary">Save Settings</button>
+            <button id="saveSettingsBtn" type="submit" class="btn primary" data-i18n="settings.save"></button>
           </div>
         </form>
       </section>
     </main>
 
+    <script type="application/json" id="i18n-data">
+{
+  "en": {
+    "hero.sub": "Local sharing from your tray. No cloud, no accounts.",
+    "metric.server": "Server",
+    "metric.devices": "Devices",
+    "metric.port": "Port",
+    "metric.uptime": "Uptime",
+    "state.starting": "Starting",
+    "state.running": "Running",
+    "state.stopped": "Stopped",
+    "url.label": "Share URL",
+    "url.copy": "Copy URL",
+    "url.open": "Open in Browser",
+    "qr.title": "Scan from a phone",
+    "qr.desc": "Point the camera at this code to open DropLocal on this network.",
+    "qr.stopped": "Server is stopped.",
+    "qr.unavailable": "QR unavailable",
+    "controls.title": "Runtime controls",
+    "controls.desc": "The server starts automatically and can also be controlled from the tray icon.",
+    "controls.stop": "Stop Server",
+    "controls.start": "Start Server",
+    "controls.refresh": "Refresh Status",
+    "msg.copied": "Share URL copied to clipboard.",
+    "msg.opened": "Opened DropLocal in your default browser.",
+    "msg.started": "Server started.",
+    "msg.stopped": "Server stopped.",
+    "msg.saved": "Settings saved and server restarted.",
+    "msg.copyFailed": "Copy failed: {error}",
+    "msg.openFailed": "Open failed: {error}",
+    "msg.actionFailed": "Server action failed: {error}",
+    "msg.statusFailed": "Runtime check failed: {error}",
+    "msg.settingsLoadFailed": "Failed to load settings: {error}",
+    "msg.saveFailed": "Save failed: {error}",
+    "settings.title": "Settings",
+    "settings.desc": "Changes apply immediately after saving by restarting the local server.",
+    "settings.port": "Port",
+    "settings.storageDir": "File storage directory",
+    "settings.showQr": "Show QR section by default",
+    "settings.autoClean": "Auto-clean shared files when the app quits",
+    "settings.notify": "Notify when a new device connects",
+    "settings.save": "Save Settings"
+  },
+  "zh": {
+    "hero.sub": "从菜单栏开始本地分享。无云端，无账号。",
+    "metric.server": "服务器",
+    "metric.devices": "设备",
+    "metric.port": "端口",
+    "metric.uptime": "运行时间",
+    "state.starting": "启动中",
+    "state.running": "运行中",
+    "state.stopped": "已停止",
+    "url.label": "分享地址",
+    "url.copy": "复制地址",
+    "url.open": "在浏览器中打开",
+    "qr.title": "用手机扫码",
+    "qr.desc": "用相机对准二维码，即可在本网络中打开 DropLocal。",
+    "qr.stopped": "服务器已停止。",
+    "qr.unavailable": "二维码不可用",
+    "controls.title": "运行控制",
+    "controls.desc": "服务器会自动启动，也可以通过菜单栏图标控制。",
+    "controls.stop": "停止服务器",
+    "controls.start": "启动服务器",
+    "controls.refresh": "刷新状态",
+    "msg.copied": "分享地址已复制到剪贴板。",
+    "msg.opened": "已在默认浏览器中打开 DropLocal。",
+    "msg.started": "服务器已启动。",
+    "msg.stopped": "服务器已停止。",
+    "msg.saved": "设置已保存，服务器已重启。",
+    "msg.copyFailed": "复制失败：{error}",
+    "msg.openFailed": "打开失败：{error}",
+    "msg.actionFailed": "操作失败：{error}",
+    "msg.statusFailed": "状态检查失败：{error}",
+    "msg.settingsLoadFailed": "加载设置失败：{error}",
+    "msg.saveFailed": "保存失败：{error}",
+    "settings.title": "设置",
+    "settings.desc": "保存后立即生效（本地服务器会自动重启）。",
+    "settings.port": "端口",
+    "settings.storageDir": "文件存储目录",
+    "settings.showQr": "默认显示二维码区域",
+    "settings.autoClean": "退出时自动清理共享文件",
+    "settings.notify": "新设备连接时通知",
+    "settings.save": "保存设置"
+  },
+  "ja": {
+    "hero.sub": "メニューバーからローカル共有。クラウドなし、アカウントなし。",
+    "metric.server": "サーバー",
+    "metric.devices": "デバイス",
+    "metric.port": "ポート",
+    "metric.uptime": "稼働時間",
+    "state.starting": "起動中",
+    "state.running": "実行中",
+    "state.stopped": "停止",
+    "url.label": "共有アドレス",
+    "url.copy": "アドレスをコピー",
+    "url.open": "ブラウザで開く",
+    "qr.title": "スマホでスキャン",
+    "qr.desc": "カメラをこのコードに向けると、このネットワーク上のDropLocalが開きます。",
+    "qr.stopped": "サーバーは停止しています。",
+    "qr.unavailable": "QRコードを利用できません",
+    "controls.title": "サーバー操作",
+    "controls.desc": "サーバーは自動的に起動し、メニューバーのアイコンからも操作できます。",
+    "controls.stop": "サーバーを停止",
+    "controls.start": "サーバーを起動",
+    "controls.refresh": "状態を更新",
+    "msg.copied": "共有アドレスをコピーしました。",
+    "msg.opened": "既定のブラウザでDropLocalを開きました。",
+    "msg.started": "サーバーを起動しました。",
+    "msg.stopped": "サーバーを停止しました。",
+    "msg.saved": "設定を保存し、サーバーを再起動しました。",
+    "msg.copyFailed": "コピーに失敗しました：{error}",
+    "msg.openFailed": "開けませんでした：{error}",
+    "msg.actionFailed": "操作に失敗しました：{error}",
+    "msg.statusFailed": "状態の取得に失敗しました：{error}",
+    "msg.settingsLoadFailed": "設定の読み込みに失敗しました：{error}",
+    "msg.saveFailed": "保存に失敗しました：{error}",
+    "settings.title": "設定",
+    "settings.desc": "保存するとローカルサーバーが再起動し、すぐに反映されます。",
+    "settings.port": "ポート",
+    "settings.storageDir": "ファイル保存先フォルダ",
+    "settings.showQr": "QRコードを既定で表示",
+    "settings.autoClean": "終了時に共有ファイルを自動削除",
+    "settings.notify": "新しいデバイス接続時に通知",
+    "settings.save": "設定を保存"
+  }
+}
+    </script>
     <script type="module" src="./main.js"></script>
   </body>
 </html>

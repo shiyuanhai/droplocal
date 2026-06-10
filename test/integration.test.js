@@ -52,6 +52,31 @@ test.afterEach(async () => {
   await fsp.rm(uploadDir, { recursive: true, force: true });
 });
 
+test("info endpoint reports name, version and share urls", async () => {
+  const response = await fetch(`${baseUrl}/api/info`);
+  assert.equal(response.status, 200);
+  const info = await response.json();
+  assert.equal(info.name, "DropLocal");
+  assert.ok(info.version);
+  assert.ok(info.urls);
+  assert.ok(typeof info.urls.primary === "string" && info.urls.primary.startsWith("http"));
+  assert.ok(Array.isArray(info.urls.all));
+});
+
+test("ui shell and static assets are served", async () => {
+  const page = await fetch(baseUrl);
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes('id="i18n-data"'), "ui must embed the i18n dictionary");
+  assert.ok(html.includes("/vendor/qrcode.js"), "ui must load the QR vendor script");
+
+  const vendor = await fetch(`${baseUrl}/vendor/qrcode.js`);
+  assert.equal(vendor.status, 200);
+
+  const favicon = await fetch(`${baseUrl}/favicon.svg`);
+  assert.equal(favicon.status, 200);
+});
+
 test("snippets REST lifecycle", async () => {
   const empty = await fetch(`${baseUrl}/api/snippets`);
   assert.equal(empty.status, 200);
