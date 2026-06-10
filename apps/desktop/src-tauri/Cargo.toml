@@ -20,6 +20,7 @@ chrono = { version = "0.4.39", features = ["serde", "clock"] }
 dirs = "5.0.1"
 futures-util = "0.3.31"
 local-ip-address = "0.6.3"
+mdns-sd = "0.13"
 open = "5.3.2"
 qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 serde = { version = "1.0.217", features = ["derive"] }

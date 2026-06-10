@@ -6,6 +6,7 @@
     <title>DropLocal</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#F5F7FB" />
     <script>
       (function () {
@@ -318,6 +319,13 @@
         width: 30px;
         height: 30px;
         border-radius: 9px;
+      }
+
+      .connect-alt {
+        margin: 8px 0 0;
+        font-size: 0.74rem;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
       @media (max-width: 559px) {
@@ -705,6 +713,7 @@
             <code class="share-url" id="shareUrl">…</code>
             <button class="pill-btn" id="copyUrlBtn" type="button" data-i18n="connect.copy"></button>
           </div>
+          <p class="connect-alt" id="connectAlt" hidden></p>
         </div>
         <button class="icon-btn connect-close" id="connectClose" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -875,6 +884,7 @@
           connectClose: document.getElementById("connectClose"),
           qrBox: document.getElementById("qrBox"),
           shareUrl: document.getElementById("shareUrl"),
+          connectAlt: document.getElementById("connectAlt"),
           copyUrlBtn: document.getElementById("copyUrlBtn"),
           langSelect: document.getElementById("langSelect"),
           themeToggle: document.getElementById("themeToggle"),
@@ -1580,10 +1590,19 @@
               if (!info || !info.urls || !info.urls.primary) {
                 return;
               }
-              var url = isLoopbackHost(location.hostname) ? info.urls.primary : location.origin;
-              state.shareUrl = url;
-              refs.shareUrl.textContent = url.replace(/^http:\/\//, "");
-              renderQr(url);
+              var ipUrl = isLoopbackHost(location.hostname) ? info.urls.primary : location.origin;
+              var displayUrl = info.urls.friendly || ipUrl;
+              state.shareUrl = displayUrl;
+              refs.shareUrl.textContent = displayUrl.replace(/^http:\/\//, "");
+              // The QR always encodes the IP URL — Android browsers can't
+              // reliably resolve .local names.
+              renderQr(ipUrl);
+              if (info.urls.friendly && info.urls.friendly !== ipUrl) {
+                refs.connectAlt.textContent = ipUrl.replace(/^http:\/\//, "");
+                refs.connectAlt.hidden = false;
+              } else {
+                refs.connectAlt.hidden = true;
+              }
             })
             .catch(function () {});
         }

@@ -77,6 +77,21 @@ test("ui shell and static assets are served", async () => {
   assert.equal(favicon.status, 200);
 });
 
+test("web manifest and pwa icons are served", async () => {
+  const manifestResponse = await fetch(`${baseUrl}/manifest.webmanifest`);
+  assert.equal(manifestResponse.status, 200);
+  const manifest = await manifestResponse.json();
+  assert.equal(manifest.name, "DropLocal");
+  assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.icons.length, 2);
+
+  for (const icon of manifest.icons) {
+    const iconResponse = await fetch(`${baseUrl}${icon.src}`);
+    assert.equal(iconResponse.status, 200);
+    assert.equal(iconResponse.headers.get("content-type"), "image/png");
+  }
+});
+
 test("snippets REST lifecycle", async () => {
   const empty = await fetch(`${baseUrl}/api/snippets`);
   assert.equal(empty.status, 200);

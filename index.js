@@ -8,13 +8,17 @@ const os = require("node:os");
 const path = require("node:path");
 const { randomUUID } = require("node:crypto");
 const Busboy = require("busboy");
+const createMulticastDns = require("multicast-dns");
 const qrcode = require("qrcode-terminal");
 const { WebSocketServer, WebSocket } = require("ws");
 
 const pkg = require("./package.json");
 
 const DEFAULT_PORT = 3000;
+const AUTO_PORT_PRIMARY = 80;
 const MAX_PORT_RETRIES = 20;
+const MDNS_HOSTNAME_BASE = "droplocal";
+const MDNS_MAX_NAME_ATTEMPTS = 5;
 const DEFAULT_UPLOAD_ROOT = path.join(os.tmpdir(), "droplocal");
 const UI_PATH = path.join(__dirname, "ui.html");
 const FAVICON_SVG_PATH = path.join(__dirname, "assets", "brand", "logo.svg");
@@ -49,7 +53,8 @@ function parsePortValue(rawPort, flagName) {
 }
 
 function parseArgs(argv, env = process.env) {
-  let port = env.PORT ? parsePortValue(env.PORT, "PORT") : DEFAULT_PORT;
+  // port === null means "auto": try 80 first, then 3000 with upward scan.
+  let port = env.PORT ? parsePortValue(env.PORT, "PORT") : null;
   let dir = "";
   let help = false;
   let version = false;
@@ -106,7 +111,7 @@ function renderHelp() {
     "  droplocal [options]",
     "",
     "Options:",
-    "  -p, --port <number>   Port to listen on (default: 3000)",
+    "  -p, --port <number>   Port to listen on (default: auto — tries 80, then 3000+)",
     "      --dir <path>      Directory for uploaded files (default: system temp)",
     "  -v, --version         Show version",
     "  -h, --help            Show this help",
@@ -159,6 +164,104 @@ function getLocalNetworkAddresses() {
   });
 
   return addresses;
+}
+
+function probeMdnsHostname(mdns, hostname, timeoutMs = 350) {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    function finish(taken) {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      mdns.off("response", onResponse);
+      resolve(taken);
+    }
+
+    function onResponse(response) {
+      const records = [...(response.answers || []), ...(response.additionals || [])];
+      const taken = records.some(
+        (record) => record.type === "A" && String(record.name).toLowerCase() === hostname
+      );
+      if (taken) {
+        finish(true);
+      }
+    }
+
+    mdns.on("response", onResponse);
+    try {
+      mdns.query({ questions: [{ name: hostname, type: "A" }] });
+    } catch (_error) {
+      finish(true);
+    }
+    setTimeout(() => finish(false), timeoutMs);
+  });
+}
+
+async function startMdnsResponder(getAddresses) {
+  let mdns;
+  try {
+    mdns = createMulticastDns();
+  } catch (_error) {
+    return null;
+  }
+
+  // mDNS is best-effort: never let socket errors crash the server.
+  mdns.on("error", () => {});
+
+  let hostname = null;
+  for (let attempt = 1; attempt <= MDNS_MAX_NAME_ATTEMPTS; attempt += 1) {
+    const candidate =
+      attempt === 1 ? `${MDNS_HOSTNAME_BASE}.local` : `${MDNS_HOSTNAME_BASE}-${attempt}.local`;
+    const taken = await probeMdnsHostname(mdns, candidate);
+    if (!taken) {
+      hostname = candidate;
+      break;
+    }
+  }
+
+  if (!hostname) {
+    mdns.destroy();
+    return null;
+  }
+
+  function buildAnswers() {
+    return getAddresses().map((entry) => ({
+      name: hostname,
+      type: "A",
+      ttl: 120,
+      data: entry.address
+    }));
+  }
+
+  mdns.on("query", (query) => {
+    const questions = query.questions || [];
+    const asksForHost = questions.some(
+      (question) =>
+        (question.type === "A" || question.type === "ANY") &&
+        String(question.name).toLowerCase() === hostname
+    );
+    if (!asksForHost) {
+      return;
+    }
+    const answers = buildAnswers();
+    if (answers.length) {
+      try {
+        mdns.respond({ answers });
+      } catch (_error) {}
+    }
+  });
+
+  // Unsolicited announce so caches warm up immediately.
+  const announce = buildAnswers();
+  if (announce.length) {
+    try {
+      mdns.respond({ answers: announce });
+    } catch (_error) {}
+  }
+
+  return { mdns, hostname };
 }
 
 function sanitizeFileName(fileName) {
@@ -360,9 +463,25 @@ function createServerState(options = {}) {
     createdAt: Date.now(),
     uiHtml: options.uiHtml,
     lastPortFallbacks: 0,
-    useCustomDir
+    useCustomDir,
+    mdns: null,
+    friendlyUrl: ""
   };
 }
+
+const WEB_MANIFEST = JSON.stringify({
+  name: "DropLocal",
+  short_name: "DropLocal",
+  description: "Drop it local. Pick it up anywhere.",
+  start_url: "/",
+  display: "standalone",
+  background_color: "#F5F7FB",
+  theme_color: "#4F6BF5",
+  icons: [
+    { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
+  ]
+});
 
 function publicFileMetadata(file) {
   return {
@@ -493,13 +612,29 @@ function createDropLocalApp(options = {}) {
       }
     }
 
+    if (method === "GET" && pathname === "/manifest.webmanifest") {
+      createTextResponder(res, 200, WEB_MANIFEST, "application/manifest+json; charset=utf-8");
+      return;
+    }
+
+    if (method === "GET" && (pathname === "/icons/icon-192.png" || pathname === "/icons/icon-512.png")) {
+      const iconName = pathname.slice("/icons/".length);
+      const icon = readOptionalAsset(path.join(__dirname, "assets", "brand", iconName));
+      if (icon) {
+        createTextResponder(res, 200, icon, "image/png");
+        return;
+      }
+    }
+
     if (method === "GET" && pathname === "/api/info") {
       const address = server.address();
       const port = address && typeof address === "object" ? address.port : 0;
+      const urls = buildShareUrls(port);
+      urls.friendly = state.friendlyUrl || null;
       createJsonResponder(res, 200, {
         name: "DropLocal",
         version: pkg.version,
-        urls: buildShareUrls(port)
+        urls
       });
       return;
     }
@@ -648,12 +783,30 @@ function createDropLocalApp(options = {}) {
 
     await fsp.mkdir(state.uploadDir, { recursive: true });
 
-    const requestedPort = Number.isInteger(options.port) ? options.port : DEFAULT_PORT;
+    const requestedPort = Number.isInteger(options.port) ? options.port : null;
     let selectedPort = requestedPort;
     let fallbackCount = 0;
 
     if (requestedPort === 0) {
       selectedPort = await listen(server, 0);
+    } else if (requestedPort === null) {
+      // Auto mode: a portless URL (http://droplocal.local) needs port 80;
+      // fall back to the classic 3000+ scan when 80 is unavailable.
+      try {
+        selectedPort = await listen(server, AUTO_PORT_PRIMARY);
+      } catch (_error) {
+        for (let attempt = 0; attempt <= MAX_PORT_RETRIES; attempt += 1) {
+          try {
+            selectedPort = await listen(server, DEFAULT_PORT + attempt);
+            fallbackCount = attempt;
+            break;
+          } catch (error) {
+            if (error.code !== "EADDRINUSE" || attempt === MAX_PORT_RETRIES) {
+              throw error;
+            }
+          }
+        }
+      }
     } else {
       for (let attempt = 0; attempt <= MAX_PORT_RETRIES; attempt += 1) {
         try {
@@ -671,11 +824,27 @@ function createDropLocalApp(options = {}) {
     state.lastPortFallbacks = fallbackCount;
     running = true;
 
+    if (options.mdns) {
+      try {
+        const responder = await startMdnsResponder(getLocalNetworkAddresses);
+        if (responder) {
+          state.mdns = responder.mdns;
+          state.friendlyUrl =
+            selectedPort === 80
+              ? `http://${responder.hostname}`
+              : `http://${responder.hostname}:${selectedPort}`;
+        }
+      } catch (_error) {
+        // mDNS is best-effort; the IP URL always works.
+      }
+    }
+
     return {
       port: selectedPort,
-      requestedPort,
+      requestedPort: requestedPort === null ? selectedPort : requestedPort,
       fallbackCount,
       urls: buildShareUrls(selectedPort),
+      friendlyUrl: state.friendlyUrl || null,
       uploadDir: state.uploadDir
     };
   }
@@ -683,6 +852,14 @@ function createDropLocalApp(options = {}) {
   async function stop() {
     if (!running) {
       return;
+    }
+
+    if (state.mdns) {
+      try {
+        state.mdns.destroy();
+      } catch (_error) {}
+      state.mdns = null;
+      state.friendlyUrl = "";
     }
 
     for (const socket of sockets) {
@@ -791,7 +968,12 @@ function printStartupSummary(startInfo) {
     );
   }
 
-  process.stdout.write(`${ansi.bold("Share URL")}: ${ansi.cyan(primaryUrl)}\n`);
+  if (startInfo.friendlyUrl) {
+    process.stdout.write(`${ansi.bold("Share URL")}: ${ansi.cyan(startInfo.friendlyUrl)}\n`);
+    process.stdout.write(`${ansi.dim(`Also reachable at ${primaryUrl}`)}\n`);
+  } else {
+    process.stdout.write(`${ansi.bold("Share URL")}: ${ansi.cyan(primaryUrl)}\n`);
+  }
 
   if (startInfo.urls.interfaces.length > 1) {
     process.stdout.write(`${ansi.bold("Network Interfaces")}:\n`);
@@ -864,7 +1046,8 @@ async function runCli(argv = process.argv.slice(2), env = process.env) {
 
   const app = createDropLocalApp({
     port: args.port,
-    dir: args.dir
+    dir: args.dir,
+    mdns: true
   });
 
   try {
