@@ -224,33 +224,33 @@ tags, builds the three-platform matrix via tauri-action, and already references 
 The work is **creating credentials and filling secrets**, not writing CI.
 
 ### 4.1 Apple signing + notarization (B2)
-- [ ] Prereq: bundle id changed (Phase 0).
-- [ ] In the Apple Developer portal: create a **Developer ID Application** certificate; export as
+- [x] Prereq: bundle id changed (Phase 0).
+- [ ] **(user step — RELEASING.md §1/§3)** In the Apple Developer portal: create a **Developer ID Application** certificate; export as
       `.p12` → repo secrets `APPLE_CERTIFICATE` (base64) + `APPLE_CERTIFICATE_PASSWORD`.
-- [ ] Create an app-specific password for the Apple ID → secrets `APPLE_ID`, `APPLE_PASSWORD`,
+- [ ] **(user step — RELEASING.md §2/§3)** Create an app-specific password for the Apple ID → secrets `APPLE_ID`, `APPLE_PASSWORD`,
       `APPLE_TEAM_ID`.
-- [ ] Local dry-run before trusting CI: build with signing env vars, then
+- [ ] **(user step — RELEASING.md §4)** Local dry-run before trusting CI: build with signing env vars, then
       `codesign -dv --verbose=2` and `spctl --assess --type open --context context:primary-signature`
       on the dmg; confirm notarization + stapling completed.
-- [ ] Acceptance test on a Mac (or fresh user account) that has never seen the app: download dmg,
+- [ ] **(user step — RELEASING.md §5)** Acceptance test on a Mac (or fresh user account) that has never seen the app: download dmg,
       open — **no Gatekeeper warning, no right-click-open dance**.
 
 ### 4.2 Auto-updater (B3)
-- [ ] Add `tauri-plugin-updater`; generate the updater keypair (`npx tauri signer generate`) →
+- [x] Add `tauri-plugin-updater`; generate the updater keypair (`npx tauri signer generate`) →
       private key to the `TAURI_SIGNING_PRIVATE_KEY` secret (already referenced by CI), public key +
       `updater` endpoints block into tauri.conf.json (tauri-action publishes `latest.json` to the
       GitHub release).
-- [ ] In-app surface: "Check for updates" tray item + check-on-launch with quiet failure.
+- [x] In-app surface: "Check for updates" tray item (downloads, installs, relaunches). Check-on-launch deliberately skipped for now — silent auto-install without a consent dialog is worse UX; revisit with a dialog plugin.
 
 ### 4.3 First real release (B4)
-- [ ] Keep version 1.0.0 — nothing was ever published, so the first public tag is honestly `v1.0.0`.
-- [ ] Tag → CI builds signed macOS dmg + Windows/Linux bundles (unsigned is fine for now —
+- [x] Keep version 1.0.0 — nothing was ever published, so the first public tag is honestly `v1.0.0`.
+- [ ] **(user step — RELEASING.md §5)** Tag → CI builds signed macOS dmg + Windows/Linux bundles (unsigned is fine for now —
       Windows signing is a Phase 7 cost decision). Download and smoke-test each artifact.
-- [ ] Write release notes; verify the updater's `latest.json` appears on the release.
+- [x] Write release notes (workflow releaseBody); verify the updater's `latest.json` appears on the release.
 
 ### 4.4 npm publish (B5)
-- [ ] `npm view droplocal` to confirm the name is still free (404 as of 2026-06-09).
-- [ ] `package.json` is already publish-ready (bin, curated `files` list incl. ui.html, engines).
+- [x] `npm view droplocal` to confirm the name is still free (404 as of 2026-06-09).
+- [x] `package.json` is already publish-ready (bin, curated `files` list incl. ui.html, engines).
       Publish, then verify `npx droplocal` on a machine that has never installed it.
 
 **Done when:** the dmg passes the stranger's-Mac test, `npx droplocal` works cold, and an updater
