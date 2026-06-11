@@ -3,7 +3,22 @@
 Everything repo-side is wired: [release-desktop.yml](../.github/workflows/release-desktop.yml)
 builds signed bundles on every `v*` tag, the auto-updater is configured in
 [tauri.conf.json](../apps/desktop/src-tauri/tauri.conf.json), and the updater keypair exists.
-What remains needs **your** Apple/GitHub/npm credentials — roughly 30–45 minutes once.
+
+## Current status (2026-06-11)
+
+**All 8 GitHub secrets are configured and valid.** The Apple credentials
+(`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
+`APPLE_PASSWORD`, `APPLE_TEAM_ID`) were set 2026-03-05 and are confirmed good. The updater
+secrets were re-pointed on 2026-06-11 at `~/.tauri/droplocal-updater.key` — the key whose
+public half is committed in tauri.conf.json. (The older `~/.tauri/droplocal.key` from March
+is superseded: keep it or delete it, but never upload it again.)
+
+**Sections 0–3 below are reference for future rotation only.** What's actually left:
+
+- [ ] §4 — optional local signing dry run
+- [ ] §5 — tag `v1.0.0` and verify the dmg on a fresh Mac
+- [ ] §6 — `npm publish`
+- [ ] §8 — GitHub Pages + droplocal.app DNS
 
 ## 0. One-time: back up the updater key
 

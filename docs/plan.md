@@ -225,9 +225,9 @@ The work is **creating credentials and filling secrets**, not writing CI.
 
 ### 4.1 Apple signing + notarization (B2)
 - [x] Prereq: bundle id changed (Phase 0).
-- [ ] **(user step — RELEASING.md §1/§3)** In the Apple Developer portal: create a **Developer ID Application** certificate; export as
+- [x] **(done — secrets set 2026-03-05, confirmed valid 2026-06)** In the Apple Developer portal: create a **Developer ID Application** certificate; export as
       `.p12` → repo secrets `APPLE_CERTIFICATE` (base64) + `APPLE_CERTIFICATE_PASSWORD`.
-- [ ] **(user step — RELEASING.md §2/§3)** Create an app-specific password for the Apple ID → secrets `APPLE_ID`, `APPLE_PASSWORD`,
+- [x] **(done — secrets set 2026-03-05, confirmed valid 2026-06)** Create an app-specific password for the Apple ID → secrets `APPLE_ID`, `APPLE_PASSWORD`,
       `APPLE_TEAM_ID`.
 - [ ] **(user step — RELEASING.md §4)** Local dry-run before trusting CI: build with signing env vars, then
       `codesign -dv --verbose=2` and `spctl --assess --type open --context context:primary-signature`
