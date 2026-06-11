@@ -8,12 +8,26 @@
 
 <p align="center"><a href="https://droplocal.app">droplocal.app</a></p>
 
+<p align="center">
+  <a href="https://www.npmjs.com/package/droplocal"><img src="https://img.shields.io/npm/v/droplocal?color=4f6bf5&label=npm" alt="npm version" /></a>
+  <a href="https://github.com/shiyuanhai/droplocal/actions/workflows/ci.yml"><img src="https://github.com/shiyuanhai/droplocal/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license" /></a>
+  <a href="https://buymeacoffee.com/haihai"><img src="https://img.shields.io/badge/☕-buy%20me%20a%20coffee-ffdd00" alt="Buy me a coffee" /></a>
+</p>
+
 DropLocal shares text snippets and files across devices on the same local network, with no accounts and no cloud.
 
-## Distribution Targets
+## Install
 
-- CLI: `npx droplocal` or `npm install -g droplocal`
-- Desktop: native tray app via Tauri (macOS, Windows, Linux)
+**Desktop app** (macOS · Windows · Linux) — grab it from [droplocal.app](https://droplocal.app) or the [latest release](https://github.com/shiyuanhai/droplocal/releases/latest).
+
+**CLI** — nothing to install:
+
+```bash
+npx droplocal
+```
+
+(or `npm install -g droplocal` for a permanent `droplocal` command — needs Node 18+)
 
 ## Features
 
@@ -95,6 +109,7 @@ droplocal/
 ├── apps/desktop/                 # Tauri desktop app
 │   ├── src/                      # Desktop dashboard UI
 │   └── src-tauri/                # Rust backend + tray + bundling config
+├── landing/                      # droplocal.app landing page (Vercel)
 ├── docs/
 │   ├── droplocal-prd.md
 │   ├── droplocal-distribution-prd.md
@@ -131,11 +146,15 @@ Events:
 
 DropLocal assumes trusted LAN usage.
 
-- No auth
+- No account system — optional PIN gate (`--pin`)
 - No TLS by default
-- No account system
+- Binds to your local network only
 
 Do not expose DropLocal directly to the public internet.
+
+## Support
+
+If DropLocal saves you a trip across the room, you can [buy me a coffee ☕](https://buymeacoffee.com/haihai).
 
 ## License
 
