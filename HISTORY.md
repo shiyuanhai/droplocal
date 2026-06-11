@@ -2,23 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.1.0] - 2026-06-11
 
 ### Added
 
-- Contribution guide in `CONTRIBUTING.md`.
-- Tauri-based desktop app in `apps/desktop` with tray controls and runtime dashboard.
-- Rust-native desktop HTTP/WebSocket backend that serves the shared DropLocal web UI.
-- Desktop settings persistence for port, storage path, QR visibility, cleanup, and connect notifications.
-- GitHub Actions workflows for CI and tagged cross-platform desktop release publishing.
-- Release documentation for desktop signing and GitHub Releases distribution.
+- Multi-select → zip download: tap file icons to select several files and download
+  them as one archive (`/api/files.zip`), streamed with no size buffering.
+- Markdown rendering for notes: headings, lists, bold/italic, inline code, fenced
+  code blocks, and links (safe DOM-built subset).
 
 ### Changed
 
-- Improved mobile header layout to prevent icon compression and device-count wrapping.
-- Improved initial device count synchronization in the client.
-- Hardened shutdown cleanup for default temp directory removal.
-- Updated root docs and scripts to support both CLI and desktop distribution flows.
+- mDNS hostname shortened: `droplocal.local` → **`drop.local`**.
+- Desktop dashboard redesigned: single no-scroll screen with the QR + share link
+  front and center; settings moved into a modal; status toasts.
+- Release workflow restructured (draft → build matrix → publish) so all platforms'
+  assets and a merged cross-platform updater manifest land on every release.
+
+## [1.0.0-launch] - 2026-06-11
+
+First public release (tagged `v1.0.0`).
+
+### Added
+
+- Brand identity: logo, real app/tray icons, favicons.
+- Web UI overhaul: unified drop stream, connect card with QR, mobile-first layout,
+  light/dark themes, English/简体中文/日本語.
+- Clipboard paste-to-upload, per-file upload progress with cancel.
+- mDNS friendly address with automatic port 80, web app manifest.
+- Optional PIN protection, persistent drops (opt-out `--ephemeral`), auto-expiry.
+- Signed + notarized macOS builds, desktop auto-updater, cross-platform installers.
+- Tauri-based desktop app in `apps/desktop` with tray controls and runtime dashboard.
+- Rust-native desktop HTTP/WebSocket backend that serves the shared DropLocal web UI.
+- Desktop settings persistence for port, storage path, PIN, expiry, cleanup, and
+  connect notifications.
+- GitHub Actions workflows for CI and tagged cross-platform desktop release publishing.
+- Release documentation for desktop signing and GitHub Releases distribution.
 
 ## [1.0.0] - 2026-02-21
 
