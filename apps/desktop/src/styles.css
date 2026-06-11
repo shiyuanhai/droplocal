@@ -417,6 +417,12 @@ input {
   color: var(--muted);
 }
 
+/* `display: flex` above beats the UA stylesheet's [hidden] rule, so the
+   platform-gated rows need an explicit override (same as .modal-backdrop). */
+.settings-form label[hidden] {
+  display: none;
+}
+
 .settings-form input[type="number"],
 .settings-form input[type="text"] {
   border: 1px solid var(--border);
