@@ -344,6 +344,91 @@
         }
       }
 
+      /* ---------- Devices card ---------- */
+
+      button.status {
+        border: none;
+        background: transparent;
+        padding: 0;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      button.status:hover #statusText {
+        color: var(--text);
+      }
+
+      .devices-card {
+        margin: 0 16px 10px;
+        padding: 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .devices-card[hidden] {
+        display: none;
+      }
+
+      .devices-list {
+        list-style: none;
+        margin: 8px 0 12px;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+
+      .devices-list li {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 0.88rem;
+      }
+
+      .device-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--success);
+        flex: 0 0 auto;
+      }
+
+      .device-unnamed {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      .device-you {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--accent);
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+        border-radius: 999px;
+        padding: 1px 7px;
+      }
+
+      .device-rename {
+        display: flex;
+        gap: 8px;
+      }
+
+      .device-rename input {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        background: var(--surface-2);
+        padding: 8px 12px;
+        font-size: 0.86rem;
+        outline: none;
+      }
+
+      .device-rename input:focus {
+        border-color: var(--accent);
+      }
+
       /* ---------- Selection bar ---------- */
 
       .select-bar {
@@ -679,6 +764,117 @@
         padding: 48px 56px;
       }
 
+      /* ---------- thumbnails + lightbox ---------- */
+
+      .item-thumb-wrap {
+        position: relative;
+        flex: 0 0 auto;
+      }
+
+      .item-thumb {
+        display: block;
+        width: 56px;
+        height: 56px;
+        padding: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--surface-2);
+        cursor: zoom-in;
+      }
+
+      .item-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .thumb-select {
+        position: absolute;
+        top: -7px;
+        left: -7px;
+        width: 22px;
+        height: 22px;
+        display: grid;
+        place-items: center;
+        border: 1.5px solid var(--border);
+        border-radius: 50%;
+        background: var(--surface);
+        color: transparent;
+        cursor: pointer;
+        box-shadow: var(--shadow);
+      }
+
+      .thumb-select[aria-pressed="true"] {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        color: #fff;
+      }
+
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 22px;
+        background: rgba(5, 8, 16, 0.88);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+
+      .lightbox[hidden] {
+        display: none;
+      }
+
+      .lightbox img {
+        max-width: 94vw;
+        max-height: 78vh;
+        border-radius: 12px;
+        object-fit: contain;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+
+      .lightbox-close {
+        position: absolute;
+        top: calc(14px + env(safe-area-inset-top));
+        right: 14px;
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .lightbox-close:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .lightbox-caption {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 94vw;
+      }
+
+      .lightbox-name {
+        color: #e2e8f0;
+        font-size: 0.88rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .lightbox .pill-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        text-decoration: none;
+      }
+
       .pin-gate {
         position: fixed;
         inset: 0;
@@ -875,10 +1071,10 @@
           </svg>
           <div>
             <h1 class="brand-title">DropLocal</h1>
-            <div class="status" id="status" data-state="connecting">
+            <button class="status" id="status" type="button" data-state="connecting" aria-expanded="false">
               <span class="status-dot"></span>
               <span id="statusText"></span>
-            </div>
+            </button>
           </div>
         </section>
         <section class="top-actions">
@@ -889,6 +1085,10 @@
             <option value="en">EN</option>
             <option value="zh">中文</option>
             <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
           </select>
           <button class="icon-btn" id="themeToggle" type="button"></button>
         </section>
@@ -908,6 +1108,15 @@
         <button class="icon-btn connect-close" id="connectClose" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
         </button>
+      </section>
+
+      <section class="devices-card" id="devicesCard" hidden>
+        <h2 class="connect-title" data-i18n="devices.title"></h2>
+        <ul class="devices-list" id="devicesList"></ul>
+        <div class="device-rename">
+          <input id="deviceNameInput" maxlength="32" />
+          <button class="pill-btn accent" id="deviceNameSave" type="button" data-i18n="devices.save"></button>
+        </div>
       </section>
 
       <div class="select-bar" id="selectBar" hidden>
@@ -971,6 +1180,16 @@
         <p class="pin-error" id="pinError" hidden data-i18n="pin.wrong"></p>
       </form>
     </div>
+    <div class="lightbox" id="lightbox" hidden>
+      <button class="icon-btn lightbox-close" id="lightboxClose" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <img id="lightboxImg" alt="" />
+      <div class="lightbox-caption">
+        <span class="lightbox-name" id="lightboxName"></span>
+        <a class="pill-btn" id="lightboxDownload" href="#" data-i18n="item.download"></a>
+      </div>
+    </div>
     <div class="toast" id="toast" role="status"></div>
 
     <script src="/vendor/qrcode.js"></script>
@@ -1021,7 +1240,14 @@
     "sel.count": "{count} selected",
     "sel.zip": "Download .zip",
     "sel.all": "Select all",
-    "item.select": "Select file"
+    "item.select": "Select file",
+    "item.preview": "Preview",
+    "devices.title": "Connected devices",
+    "devices.unnamed": "Unnamed device",
+    "devices.you": "this device",
+    "devices.save": "Save",
+    "devices.saved": "Device name updated",
+    "toast.tooMany": "Folder too large — only the first {count} files were uploaded"
   },
   "zh": {
     "tagline": "本地一放，随处可取。",
@@ -1068,7 +1294,14 @@
     "sel.count": "已选 {count} 项",
     "sel.zip": "下载 .zip",
     "sel.all": "全选",
-    "item.select": "选择文件"
+    "item.select": "选择文件",
+    "item.preview": "预览",
+    "devices.title": "已连接的设备",
+    "devices.unnamed": "未命名设备",
+    "devices.you": "本机",
+    "devices.save": "保存",
+    "devices.saved": "设备名称已更新",
+    "toast.tooMany": "文件夹过大——只上传了前 {count} 个文件"
   },
   "ja": {
     "tagline": "ローカルにドロップ、どこでもピックアップ。",
@@ -1115,7 +1348,230 @@
     "sel.count": "{count} 件選択中",
     "sel.zip": ".zip をダウンロード",
     "sel.all": "すべて選択",
-    "item.select": "ファイルを選択"
+    "item.select": "ファイルを選択",
+    "item.preview": "プレビュー",
+    "devices.title": "接続中のデバイス",
+    "devices.unnamed": "名前のないデバイス",
+    "devices.you": "このデバイス",
+    "devices.save": "保存",
+    "devices.saved": "デバイス名を更新しました",
+    "toast.tooMany": "フォルダが大きすぎます — 最初の {count} 件のみアップロードしました"
+  },
+  "ko": {
+    "tagline": "내 기기 사이에서 바로 공유.",
+    "status.connecting": "연결 중…",
+    "status.live": "연결됨",
+    "status.offline": "오프라인 — 재연결 중",
+    "status.devices.one": "기기 1대",
+    "status.devices.other": "기기 {count}대",
+    "connect.title": "다른 기기 연결하기",
+    "connect.hint": "다른 기기의 카메라로 QR 코드를 스캔하거나 브라우저에 이 주소를 입력하세요. 두 기기가 같은 Wi-Fi/네트워크에 있어야 합니다.",
+    "connect.copy": "복사",
+    "connect.copied": "복사됨!",
+    "share.placeholder": "무엇이든 입력하거나 붙여넣기…",
+    "share.send": "드롭",
+    "share.attach": "파일 추가",
+    "share.hint.mac": "파일을 끌어다 놓기 · 스크린샷 붙여넣기 · ⌘ + Enter로 전송",
+    "share.hint.other": "파일을 끌어다 놓기 · 스크린샷 붙여넣기 · Ctrl + Enter로 전송",
+    "empty.title": "아직 아무것도 없어요",
+    "empty.body": "파일을 드롭하거나 스크린샷을 붙여넣거나 메모를 입력하면 연결된 모든 기기에 즉시 표시됩니다.",
+    "item.copy": "복사",
+    "item.download": "다운로드",
+    "item.delete": "삭제",
+    "item.uploading": "업로드 중…",
+    "item.more": "더 보기",
+    "item.less": "접기",
+    "drop.here": "여기에 드롭하면 업로드됩니다",
+    "toast.copied": "복사됨!",
+    "toast.copyFailed": "복사 실패 — 직접 선택해서 복사해 주세요",
+    "toast.uploadFailed": "업로드 실패: {name}",
+    "toast.sendFailed": "전송할 수 없습니다 — 연결을 확인하세요",
+    "toast.deleteFailed": "삭제할 수 없습니다",
+    "toast.screenshot": "스크린샷이 추가되었습니다",
+    "aria.theme": "다크 모드 전환",
+    "aria.lang": "언어",
+    "aria.connect": "연결 정보 표시",
+    "aria.close": "닫기",
+    "time.now": "방금",
+    "pin.title": "PIN 입력",
+    "pin.body": "이 DropLocal에는 PIN이 필요합니다. 서버를 시작한 기기에 표시되어 있습니다.",
+    "pin.placeholder": "PIN",
+    "pin.submit": "잠금 해제",
+    "pin.wrong": "PIN이 올바르지 않습니다 — 다시 시도하세요",
+    "item.cancel": "업로드 취소",
+    "sel.count": "{count}개 선택됨",
+    "sel.zip": ".zip 다운로드",
+    "sel.all": "모두 선택",
+    "item.select": "파일 선택",
+    "item.preview": "미리보기",
+    "devices.title": "연결된 기기",
+    "devices.unnamed": "이름 없는 기기",
+    "devices.you": "이 기기",
+    "devices.save": "저장",
+    "devices.saved": "기기 이름이 변경되었습니다",
+    "toast.tooMany": "폴더가 너무 큽니다 — 처음 {count}개 파일만 업로드했습니다"
+  },
+  "es": {
+    "tagline": "Compártelo en local. Recógelo donde quieras.",
+    "status.connecting": "Conectando…",
+    "status.live": "En línea",
+    "status.offline": "Sin conexión — reconectando",
+    "status.devices.one": "1 dispositivo",
+    "status.devices.other": "{count} dispositivos",
+    "connect.title": "Conectar otro dispositivo",
+    "connect.hint": "Escanea el código QR con la cámara del otro dispositivo o escribe esta dirección en su navegador. Ambos deben estar en la misma red Wi-Fi.",
+    "connect.copy": "Copiar",
+    "connect.copied": "¡Copiado!",
+    "share.placeholder": "Escribe o pega lo que quieras…",
+    "share.send": "Soltar",
+    "share.attach": "Adjuntar archivos",
+    "share.hint.mac": "Arrastra archivos aquí · pega capturas · ⌘ + Enter para enviar",
+    "share.hint.other": "Arrastra archivos aquí · pega capturas · Ctrl + Enter para enviar",
+    "empty.title": "Aún no hay nada",
+    "empty.body": "Suelta un archivo, pega una captura o escribe una nota: aparecerá al instante en todos los dispositivos conectados.",
+    "item.copy": "Copiar",
+    "item.download": "Descargar",
+    "item.delete": "Eliminar",
+    "item.uploading": "Subiendo…",
+    "item.more": "Ver más",
+    "item.less": "Ver menos",
+    "drop.here": "Suelta para subir",
+    "toast.copied": "¡Copiado!",
+    "toast.copyFailed": "No se pudo copiar — selecciónalo y cópialo manualmente",
+    "toast.uploadFailed": "Error al subir: {name}",
+    "toast.sendFailed": "No se pudo enviar — comprueba la conexión",
+    "toast.deleteFailed": "No se pudo eliminar",
+    "toast.screenshot": "Captura añadida",
+    "aria.theme": "Cambiar modo oscuro",
+    "aria.lang": "Idioma",
+    "aria.connect": "Mostrar información de conexión",
+    "aria.close": "Cerrar",
+    "time.now": "ahora mismo",
+    "pin.title": "Introduce el PIN",
+    "pin.body": "Este DropLocal requiere un PIN. Se muestra en el dispositivo que inició el servidor.",
+    "pin.placeholder": "PIN",
+    "pin.submit": "Desbloquear",
+    "pin.wrong": "PIN incorrecto — inténtalo de nuevo",
+    "item.cancel": "Cancelar subida",
+    "sel.count": "{count} seleccionados",
+    "sel.zip": "Descargar .zip",
+    "sel.all": "Seleccionar todo",
+    "item.select": "Seleccionar archivo",
+    "item.preview": "Vista previa",
+    "devices.title": "Dispositivos conectados",
+    "devices.unnamed": "Dispositivo sin nombre",
+    "devices.you": "este dispositivo",
+    "devices.save": "Guardar",
+    "devices.saved": "Nombre del dispositivo actualizado",
+    "toast.tooMany": "Carpeta demasiado grande — solo se subieron los primeros {count} archivos"
+  },
+  "de": {
+    "tagline": "Lokal ablegen. Überall abholen.",
+    "status.connecting": "Verbinde…",
+    "status.live": "Verbunden",
+    "status.offline": "Offline — verbinde neu",
+    "status.devices.one": "1 Gerät",
+    "status.devices.other": "{count} Geräte",
+    "connect.title": "Weiteres Gerät verbinden",
+    "connect.hint": "Scanne den QR-Code mit der Kamera des anderen Geräts oder gib diese Adresse in dessen Browser ein. Beide Geräte müssen im selben WLAN sein.",
+    "connect.copy": "Kopieren",
+    "connect.copied": "Kopiert!",
+    "share.placeholder": "Beliebigen Text eingeben oder einfügen…",
+    "share.send": "Ablegen",
+    "share.attach": "Dateien anhängen",
+    "share.hint.mac": "Dateien hierher ziehen · Screenshots einfügen · ⌘ + Enter zum Senden",
+    "share.hint.other": "Dateien hierher ziehen · Screenshots einfügen · Strg + Enter zum Senden",
+    "empty.title": "Noch nichts hier",
+    "empty.body": "Lege eine Datei ab, füge einen Screenshot ein oder schreibe eine Notiz — sie erscheint sofort auf allen verbundenen Geräten.",
+    "item.copy": "Kopieren",
+    "item.download": "Herunterladen",
+    "item.delete": "Löschen",
+    "item.uploading": "Wird hochgeladen…",
+    "item.more": "Mehr anzeigen",
+    "item.less": "Weniger anzeigen",
+    "drop.here": "Zum Hochladen loslassen",
+    "toast.copied": "Kopiert!",
+    "toast.copyFailed": "Kopieren fehlgeschlagen — bitte manuell markieren und kopieren",
+    "toast.uploadFailed": "Upload fehlgeschlagen: {name}",
+    "toast.sendFailed": "Senden fehlgeschlagen — Verbindung prüfen",
+    "toast.deleteFailed": "Löschen fehlgeschlagen",
+    "toast.screenshot": "Screenshot hinzugefügt",
+    "aria.theme": "Dunkelmodus umschalten",
+    "aria.lang": "Sprache",
+    "aria.connect": "Verbindungsinfo anzeigen",
+    "aria.close": "Schließen",
+    "time.now": "gerade eben",
+    "pin.title": "PIN eingeben",
+    "pin.body": "Dieses DropLocal erfordert eine PIN. Sie wird auf dem Gerät angezeigt, das den Server gestartet hat.",
+    "pin.placeholder": "PIN",
+    "pin.submit": "Entsperren",
+    "pin.wrong": "Falsche PIN — bitte erneut versuchen",
+    "item.cancel": "Upload abbrechen",
+    "sel.count": "{count} ausgewählt",
+    "sel.zip": ".zip herunterladen",
+    "sel.all": "Alle auswählen",
+    "item.select": "Datei auswählen",
+    "item.preview": "Vorschau",
+    "devices.title": "Verbundene Geräte",
+    "devices.unnamed": "Unbenanntes Gerät",
+    "devices.you": "dieses Gerät",
+    "devices.save": "Speichern",
+    "devices.saved": "Gerätename aktualisiert",
+    "toast.tooMany": "Ordner zu groß — nur die ersten {count} Dateien wurden hochgeladen"
+  },
+  "fr": {
+    "tagline": "Déposez en local. Récupérez partout.",
+    "status.connecting": "Connexion…",
+    "status.live": "Connecté",
+    "status.offline": "Hors ligne — reconnexion",
+    "status.devices.one": "1 appareil",
+    "status.devices.other": "{count} appareils",
+    "connect.title": "Connecter un autre appareil",
+    "connect.hint": "Scannez le code QR avec l'appareil photo de l'autre appareil, ou saisissez cette adresse dans son navigateur. Les deux appareils doivent être sur le même réseau Wi-Fi.",
+    "connect.copy": "Copier",
+    "connect.copied": "Copié !",
+    "share.placeholder": "Tapez ou collez n'importe quoi…",
+    "share.send": "Déposer",
+    "share.attach": "Joindre des fichiers",
+    "share.hint.mac": "Glissez des fichiers ici · collez des captures · ⌘ + Entrée pour envoyer",
+    "share.hint.other": "Glissez des fichiers ici · collez des captures · Ctrl + Entrée pour envoyer",
+    "empty.title": "Rien ici pour l'instant",
+    "empty.body": "Déposez un fichier, collez une capture d'écran ou tapez une note — tout apparaît instantanément sur chaque appareil connecté.",
+    "item.copy": "Copier",
+    "item.download": "Télécharger",
+    "item.delete": "Supprimer",
+    "item.uploading": "Envoi en cours…",
+    "item.more": "Voir plus",
+    "item.less": "Voir moins",
+    "drop.here": "Déposez pour envoyer",
+    "toast.copied": "Copié !",
+    "toast.copyFailed": "Échec de la copie — sélectionnez et copiez manuellement",
+    "toast.uploadFailed": "Échec de l'envoi : {name}",
+    "toast.sendFailed": "Envoi impossible — vérifiez la connexion",
+    "toast.deleteFailed": "Suppression impossible",
+    "toast.screenshot": "Capture d'écran ajoutée",
+    "aria.theme": "Basculer le mode sombre",
+    "aria.lang": "Langue",
+    "aria.connect": "Afficher les infos de connexion",
+    "aria.close": "Fermer",
+    "time.now": "à l'instant",
+    "pin.title": "Saisir le PIN",
+    "pin.body": "Ce DropLocal nécessite un PIN. Il s'affiche sur l'appareil qui a démarré le serveur.",
+    "pin.placeholder": "PIN",
+    "pin.submit": "Déverrouiller",
+    "pin.wrong": "PIN incorrect — réessayez",
+    "item.cancel": "Annuler l'envoi",
+    "sel.count": "{count} sélectionnés",
+    "sel.zip": "Télécharger le .zip",
+    "sel.all": "Tout sélectionner",
+    "item.select": "Sélectionner le fichier",
+    "item.preview": "Aperçu",
+    "devices.title": "Appareils connectés",
+    "devices.unnamed": "Appareil sans nom",
+    "devices.you": "cet appareil",
+    "devices.save": "Enregistrer",
+    "devices.saved": "Nom de l'appareil mis à jour",
+    "toast.tooMany": "Dossier trop volumineux — seuls les {count} premiers fichiers ont été envoyés"
   }
 }
     </script>
@@ -1124,7 +1580,7 @@
         "use strict";
 
         var I18N = JSON.parse(document.getElementById("i18n-data").textContent);
-        var SUPPORTED_LANGS = ["en", "zh", "ja"];
+        var SUPPORTED_LANGS = ["en", "zh", "ja", "ko", "es", "de", "fr"];
         var IS_MAC = /mac|iphone|ipad|ipod/i.test(navigator.platform || navigator.userAgent);
 
         var refs = {
@@ -1141,6 +1597,10 @@
           themeToggle: document.getElementById("themeToggle"),
           stream: document.getElementById("stream"),
           streamWrap: document.getElementById("streamWrap"),
+          devicesCard: document.getElementById("devicesCard"),
+          devicesList: document.getElementById("devicesList"),
+          deviceNameInput: document.getElementById("deviceNameInput"),
+          deviceNameSave: document.getElementById("deviceNameSave"),
           selectBar: document.getElementById("selectBar"),
           selectCount: document.getElementById("selectCount"),
           selectAllBtn: document.getElementById("selectAllBtn"),
@@ -1154,6 +1614,11 @@
           shareHint: document.getElementById("shareHint"),
           dropOverlay: document.getElementById("dropOverlay"),
           dropOverlayText: document.getElementById("dropOverlayText"),
+          lightbox: document.getElementById("lightbox"),
+          lightboxImg: document.getElementById("lightboxImg"),
+          lightboxName: document.getElementById("lightboxName"),
+          lightboxDownload: document.getElementById("lightboxDownload"),
+          lightboxClose: document.getElementById("lightboxClose"),
           pinGate: document.getElementById("pinGate"),
           pinForm: document.getElementById("pinForm"),
           pinInput: document.getElementById("pinInput"),
@@ -1173,8 +1638,84 @@
           toastTimer: 0,
           expanded: new Set(),
           selected: new Set(),
+          devices: [],
+          clientId: "",
           locked: false
         };
+
+        /* ---------- device identity ---------- */
+
+        function loadClientId() {
+          try {
+            var stored = localStorage.getItem("droplocal-client-id");
+            if (stored) {
+              return stored;
+            }
+            var fresh =
+              window.crypto && crypto.randomUUID
+                ? crypto.randomUUID()
+                : "c-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+            localStorage.setItem("droplocal-client-id", fresh);
+            return fresh;
+          } catch (_e) {
+            return "c-" + Math.random().toString(36).slice(2);
+          }
+        }
+
+        function defaultDeviceName() {
+          var ua = navigator.userAgent || "";
+          if (/iPhone/.test(ua)) return "iPhone";
+          if (/iPad/.test(ua)) return "iPad";
+          if (/Android/.test(ua)) return "Android";
+          if (/Macintosh/.test(ua)) return "Mac";
+          if (/Windows/.test(ua)) return "Windows PC";
+          if (/Linux/.test(ua)) return "Linux";
+          return "Device";
+        }
+
+        function deviceName() {
+          try {
+            return localStorage.getItem("droplocal-device-name") || defaultDeviceName();
+          } catch (_e) {
+            return defaultDeviceName();
+          }
+        }
+
+        function sendHello() {
+          if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+            state.ws.send(
+              JSON.stringify({ type: "hello", name: deviceName(), clientId: state.clientId })
+            );
+          }
+        }
+
+        function renderDevices() {
+          refs.devicesList.textContent = "";
+          state.devices.forEach(function (device) {
+            var li = document.createElement("li");
+            var dot = document.createElement("span");
+            dot.className = "device-dot";
+            li.appendChild(dot);
+
+            var label = document.createElement("span");
+            if (device.name) {
+              label.textContent = device.name;
+            } else {
+              label.textContent = t("devices.unnamed");
+              label.className = "device-unnamed";
+            }
+            li.appendChild(label);
+
+            if (device.clientId && device.clientId === state.clientId) {
+              var badge = document.createElement("span");
+              badge.className = "device-you";
+              badge.textContent = t("devices.you");
+              li.appendChild(badge);
+            }
+
+            refs.devicesList.appendChild(li);
+          });
+        }
 
         /* ---------- i18n ---------- */
 
@@ -1192,6 +1733,10 @@
           var nav = (navigator.language || "en").toLowerCase();
           if (nav.indexOf("zh") === 0) return "zh";
           if (nav.indexOf("ja") === 0) return "ja";
+          if (nav.indexOf("ko") === 0) return "ko";
+          if (nav.indexOf("es") === 0) return "es";
+          if (nav.indexOf("de") === 0) return "de";
+          if (nav.indexOf("fr") === 0) return "fr";
           return "en";
         }
 
@@ -1652,12 +2197,22 @@
           return li;
         }
 
-        function buildFileItem(item) {
-          var isSelected = state.selected.has(item.id);
-          var li = document.createElement("li");
-          li.className = "item" + (isSelected ? " selected" : "");
-          li.dataset.id = item.id;
+        function isImageFile(name) {
+          var ext = String(name || "").split(".").pop().toLowerCase();
+          // SVG excluded: rendering arbitrary uploaded SVG inline can run scripts.
+          return ["png", "jpg", "jpeg", "gif", "webp", "avif", "bmp"].indexOf(ext) !== -1;
+        }
 
+        function toggleSelected(id) {
+          if (state.selected.has(id)) {
+            state.selected.delete(id);
+          } else {
+            state.selected.add(id);
+          }
+          renderStream();
+        }
+
+        function buildSelectIcon(item, isSelected) {
           var icon = document.createElement("button");
           icon.type = "button";
           icon.className = "item-icon";
@@ -1666,13 +2221,72 @@
           icon.title = t("item.select");
           icon.innerHTML = isSelected ? ICONS.check : fileIcon(item.name);
           icon.addEventListener("click", function () {
-            if (state.selected.has(item.id)) {
-              state.selected.delete(item.id);
-            } else {
-              state.selected.add(item.id);
-            }
-            renderStream();
+            toggleSelected(item.id);
           });
+          return icon;
+        }
+
+        function buildThumb(item, isSelected) {
+          var wrap = document.createElement("div");
+          wrap.className = "item-thumb-wrap";
+
+          var thumb = document.createElement("button");
+          thumb.type = "button";
+          thumb.className = "item-thumb";
+          thumb.setAttribute("aria-label", t("item.preview"));
+          thumb.title = t("item.preview");
+
+          var img = document.createElement("img");
+          img.loading = "lazy";
+          img.alt = item.name;
+          img.src = "/api/files/" + encodeURIComponent(item.id) + "?inline=1";
+          img.addEventListener("error", function () {
+            wrap.replaceWith(buildSelectIcon(item, state.selected.has(item.id)));
+          });
+          thumb.appendChild(img);
+          thumb.addEventListener("click", function () {
+            openLightbox(item);
+          });
+
+          var select = document.createElement("button");
+          select.type = "button";
+          select.className = "thumb-select";
+          select.setAttribute("aria-pressed", String(isSelected));
+          select.setAttribute("aria-label", t("item.select"));
+          select.title = t("item.select");
+          select.innerHTML = ICONS.check;
+          select.addEventListener("click", function () {
+            toggleSelected(item.id);
+          });
+
+          wrap.appendChild(thumb);
+          wrap.appendChild(select);
+          return wrap;
+        }
+
+        function openLightbox(item) {
+          refs.lightboxImg.src = "/api/files/" + encodeURIComponent(item.id) + "?inline=1";
+          refs.lightboxImg.alt = item.name;
+          refs.lightboxName.textContent = item.name;
+          refs.lightboxDownload.href = "/api/files/" + encodeURIComponent(item.id);
+          refs.lightboxDownload.setAttribute("download", item.name);
+          refs.lightbox.hidden = false;
+        }
+
+        function closeLightbox() {
+          refs.lightbox.hidden = true;
+          refs.lightboxImg.src = "";
+        }
+
+        function buildFileItem(item) {
+          var isSelected = state.selected.has(item.id);
+          var li = document.createElement("li");
+          li.className = "item" + (isSelected ? " selected" : "");
+          li.dataset.id = item.id;
+
+          var icon = isImageFile(item.name)
+            ? buildThumb(item, isSelected)
+            : buildSelectIcon(item, isSelected);
 
           var main = document.createElement("div");
           main.className = "item-main";
@@ -2011,6 +2625,7 @@
             state.wsAttempts = 0;
             state.wsState = "live";
             renderStatus();
+            sendHello();
           });
 
           socket.addEventListener("message", function (event) {
@@ -2024,6 +2639,9 @@
             if (envelope.event === "device:count") {
               state.deviceCount = envelope.data.count;
               renderStatus();
+            } else if (envelope.event === "device:list") {
+              state.devices = envelope.data.devices || [];
+              renderDevices();
             } else if (envelope.event === "snippet:new") {
               addSnippet(envelope.data);
               renderStream();
@@ -2186,9 +2804,101 @@
             event.preventDefault();
             dragDepth = 0;
             refs.dropOverlay.hidden = true;
-            if (event.dataTransfer.files.length) {
-              uploadFiles(event.dataTransfer.files);
+            handleDroppedItems(event.dataTransfer);
+          });
+        }
+
+        var MAX_FILES_PER_DROP = 300;
+
+        // Folders drop as directory entries; walk them recursively so a
+        // dragged folder uploads every file inside (flattened names).
+        function readAllEntries(reader) {
+          return new Promise(function (resolve) {
+            var collected = [];
+            (function batch() {
+              reader.readEntries(
+                function (entries) {
+                  if (!entries.length) {
+                    resolve(collected);
+                    return;
+                  }
+                  collected = collected.concat(Array.prototype.slice.call(entries));
+                  batch();
+                },
+                function () {
+                  resolve(collected);
+                }
+              );
+            })();
+          });
+        }
+
+        function collectFilesFromEntry(entry, bucket) {
+          return new Promise(function (resolve) {
+            if (bucket.length >= MAX_FILES_PER_DROP) {
+              resolve();
+              return;
             }
+            if (entry.isFile) {
+              entry.file(
+                function (file) {
+                  bucket.push(file);
+                  resolve();
+                },
+                function () {
+                  resolve();
+                }
+              );
+            } else if (entry.isDirectory) {
+              readAllEntries(entry.createReader()).then(function (children) {
+                var chain = Promise.resolve();
+                children.forEach(function (child) {
+                  chain = chain.then(function () {
+                    return collectFilesFromEntry(child, bucket);
+                  });
+                });
+                chain.then(resolve);
+              });
+            } else {
+              resolve();
+            }
+          });
+        }
+
+        function handleDroppedItems(dataTransfer) {
+          var entries = [];
+          if (dataTransfer.items) {
+            for (var i = 0; i < dataTransfer.items.length; i += 1) {
+              var item = dataTransfer.items[i];
+              var entry =
+                typeof item.webkitGetAsEntry === "function" ? item.webkitGetAsEntry() : null;
+              if (entry) {
+                entries.push(entry);
+              }
+            }
+          }
+
+          if (!entries.length) {
+            if (dataTransfer.files.length) {
+              uploadFiles(dataTransfer.files);
+            }
+            return;
+          }
+
+          var bucket = [];
+          var chain = Promise.resolve();
+          entries.forEach(function (entry) {
+            chain = chain.then(function () {
+              return collectFilesFromEntry(entry, bucket);
+            });
+          });
+          chain.then(function () {
+            if (bucket.length >= MAX_FILES_PER_DROP) {
+              showToast(t("toast.tooMany", { count: MAX_FILES_PER_DROP }));
+            }
+            bucket.slice(0, MAX_FILES_PER_DROP).forEach(function (file) {
+              uploadFile(file);
+            });
           });
         }
 
@@ -2312,6 +3022,37 @@
             renderStream();
           });
 
+          refs.status.addEventListener("click", function () {
+            var open = refs.devicesCard.hidden;
+            refs.devicesCard.hidden = !open;
+            refs.status.setAttribute("aria-expanded", String(open));
+            if (open) {
+              refs.deviceNameInput.value = deviceName();
+              renderDevices();
+            }
+          });
+
+          refs.deviceNameSave.addEventListener("click", function () {
+            var name = refs.deviceNameInput.value.trim().slice(0, 32);
+            try {
+              localStorage.setItem("droplocal-device-name", name);
+            } catch (_e) {}
+            sendHello();
+            showToast(t("devices.saved"));
+          });
+
+          refs.lightboxClose.addEventListener("click", closeLightbox);
+          refs.lightbox.addEventListener("click", function (event) {
+            if (event.target === refs.lightbox) {
+              closeLightbox();
+            }
+          });
+          document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" && !refs.lightbox.hidden) {
+              closeLightbox();
+            }
+          });
+
           refs.zipBtn.addEventListener("click", function () {
             var ids = Array.from(state.selected);
             if (!ids.length) {
@@ -2332,6 +3073,7 @@
 
         /* ---------- init ---------- */
 
+        state.clientId = loadClientId();
         applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
         applyLang(detectLang());
         setupConnectCard();
