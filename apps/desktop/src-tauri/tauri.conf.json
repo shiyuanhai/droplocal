@@ -11,11 +11,11 @@
     "windows": [
       {
         "label": "main",
-        "title": "DropLocal Desktop",
-        "width": 980,
-        "height": 840,
-        "minWidth": 760,
-        "minHeight": 680,
+        "title": "DropLocal",
+        "width": 720,
+        "height": 620,
+        "minWidth": 640,
+        "minHeight": 560,
         "resizable": true,
         "center": true
       }

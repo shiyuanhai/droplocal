@@ -8,89 +8,90 @@
   </head>
   <body>
     <main class="shell">
-      <section class="hero card">
-        <div class="hero-top">
-          <div class="brand-line">
-            <svg width="44" height="44" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <defs>
-                <linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
-                </linearGradient>
-              </defs>
-              <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#dg)"/>
-              <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-            </svg>
-            <div>
-              <h1>DropLocal</h1>
-              <p class="sub" data-i18n="hero.sub"></p>
-            </div>
+      <header class="topbar">
+        <div class="brand">
+          <svg width="34" height="34" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="dg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#38BDF8"/><stop offset="1" stop-color="#6366F1"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4.5 C32 4.5 11.5 28 11.5 41 a20.5 20.5 0 0 0 41 0 C52.5 28 32 4.5 32 4.5 Z" fill="url(#dg)"/>
+            <path d="M32 27.5 v15 M23 36 L32 45 41 36" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+          <div class="brand-text">
+            <h1>DropLocal</h1>
+            <p class="sub" data-i18n="header.sub"></p>
           </div>
+        </div>
+        <div class="top-actions">
           <select class="lang-select" id="langSelect" aria-label="Language">
             <option value="en">EN</option>
             <option value="zh">中文</option>
             <option value="ja">日本語</option>
           </select>
+          <button class="icon-btn" id="settingsBtn" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </button>
         </div>
-        <div class="runtime-grid">
-          <article class="metric">
-            <p class="metric-label" data-i18n="metric.server"></p>
-            <p id="serverState" class="metric-value">…</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label" data-i18n="metric.devices"></p>
-            <p id="deviceCount" class="metric-value">0</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label" data-i18n="metric.port"></p>
-            <p id="serverPort" class="metric-value">-</p>
-          </article>
-          <article class="metric">
-            <p class="metric-label" data-i18n="metric.uptime"></p>
-            <p id="uptime" class="metric-value">-</p>
-          </article>
-        </div>
-        <div class="url-row">
-          <label for="primaryUrl" data-i18n="url.label"></label>
-          <div class="url-actions">
-            <input id="primaryUrl" readonly />
-            <button id="copyUrlBtn" type="button" class="btn ghost" data-i18n="url.copy"></button>
-            <button id="openBrowserBtn" type="button" class="btn primary" data-i18n="url.open"></button>
-          </div>
-        </div>
-      </section>
+      </header>
 
-      <section class="panel-grid">
-        <section class="card qrcode">
-          <header>
-            <h2 data-i18n="qr.title"></h2>
-            <p data-i18n="qr.desc"></p>
-          </header>
+      <section class="connect">
+        <div class="qr-panel">
           <div id="qrCode" class="qr-frame"></div>
-        </section>
-
-        <section class="card controls">
-          <header>
-            <h2 data-i18n="controls.title"></h2>
-            <p data-i18n="controls.desc"></p>
-          </header>
-          <div class="button-grid">
-            <button id="toggleServerBtn" type="button" class="btn primary"></button>
-            <button id="refreshBtn" type="button" class="btn ghost" data-i18n="controls.refresh"></button>
+        </div>
+        <div class="connect-body">
+          <div class="status-pill" id="statusPill" data-state="starting">
+            <span class="status-dot"></span>
+            <span id="statusWord"></span>
           </div>
-          <p id="runtimeMessage" class="hint"></p>
-        </section>
+          <p class="status-line" id="statusLine"></p>
+
+          <label class="url-label" for="primaryUrl" data-i18n="url.label"></label>
+          <div class="url-field">
+            <input id="primaryUrl" readonly />
+          </div>
+          <div class="url-actions">
+            <button id="copyUrlBtn" type="button" class="btn ghost">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              <span data-i18n="url.copy"></span>
+            </button>
+            <button id="openBrowserBtn" type="button" class="btn primary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
+              <span data-i18n="url.open"></span>
+            </button>
+          </div>
+          <p class="connect-hint" data-i18n="connect.scan"></p>
+        </div>
       </section>
 
-      <section class="card settings">
-        <header>
-          <h2 data-i18n="settings.title"></h2>
-          <p data-i18n="settings.desc"></p>
+      <section class="action-row">
+        <button id="toggleServerBtn" type="button" class="btn primary big"></button>
+        <button id="refreshBtn" type="button" class="icon-btn" aria-label="Refresh">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+        </button>
+      </section>
+    </main>
+
+    <div class="modal-backdrop" id="settingsModal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <header class="modal-head">
+          <h2 id="settingsTitle" data-i18n="settings.title"></h2>
+          <button class="icon-btn" id="settingsClose" type="button" aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
         </header>
         <form id="settingsForm" class="settings-form">
-          <label>
-            <span data-i18n="settings.port"></span>
-            <input id="portInput" name="port" type="number" min="0" max="65535" required />
-          </label>
+          <div class="field-grid">
+            <label>
+              <span data-i18n="settings.port"></span>
+              <input id="portInput" name="port" type="number" min="0" max="65535" required />
+            </label>
+            <label>
+              <span data-i18n="settings.expire"></span>
+              <input id="expireInput" name="expireMinutes" type="number" min="0" max="10080" />
+            </label>
+          </div>
           <label>
             <span data-i18n="settings.storageDir"></span>
             <input id="storageDirInput" name="storageDir" type="text" required />
@@ -98,14 +99,6 @@
           <label>
             <span data-i18n="settings.pin"></span>
             <input id="pinInput" name="pin" type="text" autocomplete="off" />
-          </label>
-          <label>
-            <span data-i18n="settings.expire"></span>
-            <input id="expireInput" name="expireMinutes" type="number" min="0" max="10080" />
-          </label>
-          <label class="check">
-            <input id="showQrInput" name="showQrInTray" type="checkbox" />
-            <span data-i18n="settings.showQr"></span>
           </label>
           <label class="check">
             <input id="autoCleanInput" name="autoCleanOnQuit" type="checkbox" />
@@ -115,84 +108,83 @@
             <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
             <span data-i18n="settings.notify"></span>
           </label>
-          <div class="settings-actions">
+          <input id="showQrInput" type="hidden" />
+          <p class="settings-desc" data-i18n="settings.desc"></p>
+          <div class="modal-actions">
+            <button type="button" class="btn ghost" id="settingsCancel" data-i18n="settings.cancel"></button>
             <button id="saveSettingsBtn" type="submit" class="btn primary" data-i18n="settings.save"></button>
           </div>
         </form>
-      </section>
-    </main>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
 
     <script type="application/json" id="i18n-data">
 {
   "en": {
-    "hero.sub": "Local sharing from your tray. No cloud, no accounts.",
-    "metric.server": "Server",
-    "metric.devices": "Devices",
-    "metric.port": "Port",
-    "metric.uptime": "Uptime",
-    "state.starting": "Starting",
-    "state.running": "Running",
-    "state.stopped": "Stopped",
-    "url.label": "Share URL",
-    "url.copy": "Copy URL",
-    "url.open": "Open in Browser",
-    "qr.title": "Scan from a phone",
-    "qr.desc": "Point the camera at this code to open DropLocal on this network.",
-    "qr.stopped": "Server is stopped.",
+    "header.sub": "Share to any device on your Wi-Fi.",
+    "status.starting": "Starting",
+    "status.running": "Running",
+    "status.stopped": "Stopped",
+    "stat.deviceOne": "1 device",
+    "stat.deviceOther": "{count} devices",
+    "stat.port": "port {port}",
+    "stat.uptime": "up {time}",
+    "stat.offline": "Not sharing right now",
+    "url.label": "Share link",
+    "url.copy": "Copy",
+    "url.open": "Open",
+    "connect.scan": "Scan the code with a phone camera, or share the link above.",
+    "qr.stopped": "Server is stopped",
     "qr.unavailable": "QR unavailable",
-    "controls.title": "Runtime controls",
-    "controls.desc": "The server starts automatically and can also be controlled from the tray icon.",
-    "controls.stop": "Stop Server",
-    "controls.start": "Start Server",
-    "controls.refresh": "Refresh Status",
-    "msg.copied": "Share URL copied to clipboard.",
-    "msg.opened": "Opened DropLocal in your default browser.",
-    "msg.started": "Server started.",
-    "msg.stopped": "Server stopped.",
-    "msg.saved": "Settings saved and server restarted.",
+    "control.start": "Start sharing",
+    "control.stop": "Stop sharing",
+    "msg.copied": "Link copied to clipboard",
+    "msg.opened": "Opened in your browser",
+    "msg.started": "Sharing started",
+    "msg.stopped": "Sharing stopped",
+    "msg.saved": "Settings saved",
     "msg.copyFailed": "Copy failed: {error}",
     "msg.openFailed": "Open failed: {error}",
-    "msg.actionFailed": "Server action failed: {error}",
-    "msg.statusFailed": "Runtime check failed: {error}",
-    "msg.settingsLoadFailed": "Failed to load settings: {error}",
+    "msg.actionFailed": "Action failed: {error}",
+    "msg.statusFailed": "Status check failed: {error}",
+    "msg.settingsLoadFailed": "Couldn't load settings: {error}",
     "msg.saveFailed": "Save failed: {error}",
     "settings.title": "Settings",
-    "settings.desc": "Changes apply immediately after saving by restarting the local server.",
+    "settings.desc": "Saving restarts the local server so changes take effect immediately.",
     "settings.port": "Port (0 = automatic)",
-    "settings.storageDir": "File storage directory",
-    "settings.showQr": "Show QR section by default",
-    "settings.autoClean": "Auto-clean shared files when the app quits",
+    "settings.storageDir": "Save received files to",
+    "settings.pin": "PIN to join (empty = none)",
+    "settings.expire": "Auto-delete after (minutes, 0 = never)",
+    "settings.autoClean": "Delete shared files when the app quits",
     "settings.notify": "Notify when a new device connects",
-    "settings.save": "Save Settings",
-    "settings.pin": "PIN for joining devices (empty = none)",
-    "settings.expire": "Auto-delete drops after minutes (0 = never)"
+    "settings.save": "Save",
+    "settings.cancel": "Cancel"
   },
   "zh": {
-    "hero.sub": "从菜单栏开始本地分享。无云端，无账号。",
-    "metric.server": "服务器",
-    "metric.devices": "设备",
-    "metric.port": "端口",
-    "metric.uptime": "运行时间",
-    "state.starting": "启动中",
-    "state.running": "运行中",
-    "state.stopped": "已停止",
-    "url.label": "分享地址",
-    "url.copy": "复制地址",
-    "url.open": "在浏览器中打开",
-    "qr.title": "用手机扫码",
-    "qr.desc": "用相机对准二维码，即可在本网络中打开 DropLocal。",
-    "qr.stopped": "服务器已停止。",
+    "header.sub": "分享到同一 Wi-Fi 下的任何设备。",
+    "status.starting": "启动中",
+    "status.running": "运行中",
+    "status.stopped": "已停止",
+    "stat.deviceOne": "1 台设备",
+    "stat.deviceOther": "{count} 台设备",
+    "stat.port": "端口 {port}",
+    "stat.uptime": "已运行 {time}",
+    "stat.offline": "当前未在分享",
+    "url.label": "分享链接",
+    "url.copy": "复制",
+    "url.open": "打开",
+    "connect.scan": "用手机相机扫描二维码，或分享上方链接。",
+    "qr.stopped": "服务器已停止",
     "qr.unavailable": "二维码不可用",
-    "controls.title": "运行控制",
-    "controls.desc": "服务器会自动启动，也可以通过菜单栏图标控制。",
-    "controls.stop": "停止服务器",
-    "controls.start": "启动服务器",
-    "controls.refresh": "刷新状态",
-    "msg.copied": "分享地址已复制到剪贴板。",
-    "msg.opened": "已在默认浏览器中打开 DropLocal。",
-    "msg.started": "服务器已启动。",
-    "msg.stopped": "服务器已停止。",
-    "msg.saved": "设置已保存，服务器已重启。",
+    "control.start": "开始分享",
+    "control.stop": "停止分享",
+    "msg.copied": "链接已复制到剪贴板",
+    "msg.opened": "已在浏览器中打开",
+    "msg.started": "已开始分享",
+    "msg.stopped": "已停止分享",
+    "msg.saved": "设置已保存",
     "msg.copyFailed": "复制失败：{error}",
     "msg.openFailed": "打开失败：{error}",
     "msg.actionFailed": "操作失败：{error}",
@@ -200,58 +192,55 @@
     "msg.settingsLoadFailed": "加载设置失败：{error}",
     "msg.saveFailed": "保存失败：{error}",
     "settings.title": "设置",
-    "settings.desc": "保存后立即生效（本地服务器会自动重启）。",
+    "settings.desc": "保存后会重启本地服务器，更改立即生效。",
     "settings.port": "端口（0 = 自动）",
-    "settings.storageDir": "文件存储目录",
-    "settings.showQr": "默认显示二维码区域",
-    "settings.autoClean": "退出时自动清理共享文件",
+    "settings.storageDir": "接收文件保存到",
+    "settings.pin": "加入所需 PIN（留空 = 不启用）",
+    "settings.expire": "自动删除时间（分钟，0 = 永不）",
+    "settings.autoClean": "退出应用时删除已分享的文件",
     "settings.notify": "新设备连接时通知",
-    "settings.save": "保存设置",
-    "settings.pin": "设备加入所需 PIN 码（留空 = 不启用）",
-    "settings.expire": "自动删除时间（分钟，0 = 永不）"
+    "settings.save": "保存",
+    "settings.cancel": "取消"
   },
   "ja": {
-    "hero.sub": "メニューバーからローカル共有。クラウドなし、アカウントなし。",
-    "metric.server": "サーバー",
-    "metric.devices": "デバイス",
-    "metric.port": "ポート",
-    "metric.uptime": "稼働時間",
-    "state.starting": "起動中",
-    "state.running": "実行中",
-    "state.stopped": "停止",
-    "url.label": "共有アドレス",
-    "url.copy": "アドレスをコピー",
-    "url.open": "ブラウザで開く",
-    "qr.title": "スマホでスキャン",
-    "qr.desc": "カメラをこのコードに向けると、このネットワーク上のDropLocalが開きます。",
-    "qr.stopped": "サーバーは停止しています。",
+    "header.sub": "同じ Wi-Fi 上のどのデバイスにも共有。",
+    "status.starting": "起動中",
+    "status.running": "実行中",
+    "status.stopped": "停止",
+    "stat.deviceOne": "1 台のデバイス",
+    "stat.deviceOther": "{count} 台のデバイス",
+    "stat.port": "ポート {port}",
+    "stat.uptime": "稼働 {time}",
+    "stat.offline": "現在共有していません",
+    "url.label": "共有リンク",
+    "url.copy": "コピー",
+    "url.open": "開く",
+    "connect.scan": "スマホのカメラでコードをスキャンするか、上のリンクを共有してください。",
+    "qr.stopped": "サーバーは停止中",
     "qr.unavailable": "QRコードを利用できません",
-    "controls.title": "サーバー操作",
-    "controls.desc": "サーバーは自動的に起動し、メニューバーのアイコンからも操作できます。",
-    "controls.stop": "サーバーを停止",
-    "controls.start": "サーバーを起動",
-    "controls.refresh": "状態を更新",
-    "msg.copied": "共有アドレスをコピーしました。",
-    "msg.opened": "既定のブラウザでDropLocalを開きました。",
-    "msg.started": "サーバーを起動しました。",
-    "msg.stopped": "サーバーを停止しました。",
-    "msg.saved": "設定を保存し、サーバーを再起動しました。",
-    "msg.copyFailed": "コピーに失敗しました：{error}",
-    "msg.openFailed": "開けませんでした：{error}",
-    "msg.actionFailed": "操作に失敗しました：{error}",
-    "msg.statusFailed": "状態の取得に失敗しました：{error}",
-    "msg.settingsLoadFailed": "設定の読み込みに失敗しました：{error}",
-    "msg.saveFailed": "保存に失敗しました：{error}",
+    "control.start": "共有を開始",
+    "control.stop": "共有を停止",
+    "msg.copied": "リンクをコピーしました",
+    "msg.opened": "ブラウザで開きました",
+    "msg.started": "共有を開始しました",
+    "msg.stopped": "共有を停止しました",
+    "msg.saved": "設定を保存しました",
+    "msg.copyFailed": "コピー失敗：{error}",
+    "msg.openFailed": "オープン失敗：{error}",
+    "msg.actionFailed": "操作失敗：{error}",
+    "msg.statusFailed": "状態確認失敗：{error}",
+    "msg.settingsLoadFailed": "設定の読み込み失敗：{error}",
+    "msg.saveFailed": "保存失敗：{error}",
     "settings.title": "設定",
-    "settings.desc": "保存するとローカルサーバーが再起動し、すぐに反映されます。",
+    "settings.desc": "保存するとローカルサーバーが再起動し、変更が即時反映されます。",
     "settings.port": "ポート（0 = 自動）",
-    "settings.storageDir": "ファイル保存先フォルダ",
-    "settings.showQr": "QRコードを既定で表示",
-    "settings.autoClean": "終了時に共有ファイルを自動削除",
+    "settings.storageDir": "受信ファイルの保存先",
+    "settings.pin": "参加用 PIN（空欄 = 無効）",
+    "settings.expire": "自動削除（分、0 = しない）",
+    "settings.autoClean": "アプリ終了時に共有ファイルを削除",
     "settings.notify": "新しいデバイス接続時に通知",
-    "settings.save": "設定を保存",
-    "settings.pin": "参加デバイス用PIN（空欄 = 無効）",
-    "settings.expire": "自動削除までの分数（0 = しない）"
+    "settings.save": "保存",
+    "settings.cancel": "キャンセル"
   }
 }
     </script>
