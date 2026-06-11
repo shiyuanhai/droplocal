@@ -9,8 +9,8 @@
     },
     {
       "name": "droplocal-site",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8088", "-d", "docs"],
+      "runtimeExecutable": "/usr/bin/python3",
+      "runtimeArgs": ["-m", "http.server", "8088", "-d", "/Users/yshi/Documents/dev/side/droplocal/landing"],
       "port": 8088
     }
   ]
