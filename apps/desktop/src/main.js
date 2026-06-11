@@ -11,17 +11,20 @@ const SUPPORTED_LANGS = ["en", "zh", "ja"];
 
 const refs = {
   langSelect: document.getElementById("langSelect"),
-  serverState: document.getElementById("serverState"),
-  deviceCount: document.getElementById("deviceCount"),
-  serverPort: document.getElementById("serverPort"),
-  uptime: document.getElementById("uptime"),
+  settingsBtn: document.getElementById("settingsBtn"),
+  statusPill: document.getElementById("statusPill"),
+  statusWord: document.getElementById("statusWord"),
+  statusLine: document.getElementById("statusLine"),
   primaryUrl: document.getElementById("primaryUrl"),
   copyUrlBtn: document.getElementById("copyUrlBtn"),
   openBrowserBtn: document.getElementById("openBrowserBtn"),
   qrCode: document.getElementById("qrCode"),
   toggleServerBtn: document.getElementById("toggleServerBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
-  runtimeMessage: document.getElementById("runtimeMessage"),
+  toast: document.getElementById("toast"),
+  settingsModal: document.getElementById("settingsModal"),
+  settingsClose: document.getElementById("settingsClose"),
+  settingsCancel: document.getElementById("settingsCancel"),
   settingsForm: document.getElementById("settingsForm"),
   portInput: document.getElementById("portInput"),
   storageDirInput: document.getElementById("storageDirInput"),
@@ -35,6 +38,7 @@ const refs = {
 const state = {
   runtime: null,
   pollTimer: null,
+  toastTimer: 0,
   lang: "en"
 };
 
@@ -77,20 +81,17 @@ function applyLang(lang) {
   if (state.runtime) {
     renderRuntime(state.runtime);
   } else {
-    refs.serverState.textContent = t("state.starting");
+    refs.statusWord.textContent = t("status.starting");
   }
 }
 
-function applyQrVisibility(showQr) {
-  const qrSection = document.querySelector(".qrcode");
-  if (!qrSection) {
-    return;
-  }
-  qrSection.style.display = showQr ? "" : "none";
-}
-
-function setRuntimeMessage(message) {
-  refs.runtimeMessage.textContent = message || "";
+function showToast(message) {
+  refs.toast.textContent = message;
+  refs.toast.classList.add("show");
+  window.clearTimeout(state.toastTimer);
+  state.toastTimer = window.setTimeout(() => {
+    refs.toast.classList.remove("show");
+  }, 2400);
 }
 
 function formatUptime(seconds) {
@@ -120,17 +121,32 @@ async function renderQr(url) {
 function renderRuntime(runtime) {
   state.runtime = runtime;
   const running = Boolean(runtime?.running);
-  const deviceCount = running ? runtime.connectedDevices : 0;
 
-  refs.serverState.textContent = running ? t("state.running") : t("state.stopped");
-  refs.deviceCount.textContent = String(deviceCount);
-  refs.serverPort.textContent = running ? String(runtime.port) : "-";
-  refs.uptime.textContent = running ? formatUptime(runtime.uptimeSeconds) : "-";
-  refs.primaryUrl.value = running ? runtime.friendlyUrl || runtime.primaryUrl : "";
+  if (running) {
+    const devices = runtime.connectedDevices === 1
+      ? t("stat.deviceOne")
+      : t("stat.deviceOther", { count: runtime.connectedDevices });
+    refs.statusPill.dataset.state = "running";
+    refs.statusWord.textContent = t("status.running");
+    refs.statusLine.textContent = [
+      devices,
+      t("stat.port", { port: runtime.port }),
+      t("stat.uptime", { time: formatUptime(runtime.uptimeSeconds) })
+    ].join("  ·  ");
+    refs.primaryUrl.value = runtime.friendlyUrl || runtime.primaryUrl;
+  } else {
+    refs.statusPill.dataset.state = "stopped";
+    refs.statusWord.textContent = t("status.stopped");
+    refs.statusLine.textContent = t("stat.offline");
+    refs.primaryUrl.value = "";
+  }
 
-  refs.toggleServerBtn.textContent = running ? t("controls.stop") : t("controls.start");
+  refs.toggleServerBtn.textContent = running ? t("control.stop") : t("control.start");
   refs.toggleServerBtn.classList.toggle("danger", running);
   refs.toggleServerBtn.classList.toggle("primary", !running);
+
+  refs.copyUrlBtn.disabled = !running;
+  refs.openBrowserBtn.disabled = !running;
 
   void renderQr(running ? runtime.primaryUrl : "");
 }
@@ -139,9 +155,8 @@ async function refreshRuntime() {
   try {
     const runtime = await invoke("get_runtime_status");
     renderRuntime(runtime);
-    setRuntimeMessage("");
   } catch (error) {
-    setRuntimeMessage(t("msg.statusFailed", { error: String(error) }));
+    showToast(t("msg.statusFailed", { error: String(error) }));
   }
 }
 
@@ -151,9 +166,9 @@ async function toggleServer() {
     const running = Boolean(state.runtime?.running);
     const runtime = running ? await invoke("stop_server") : await invoke("start_server");
     renderRuntime(runtime);
-    setRuntimeMessage(running ? t("msg.stopped") : t("msg.started"));
+    showToast(running ? t("msg.stopped") : t("msg.started"));
   } catch (error) {
-    setRuntimeMessage(t("msg.actionFailed", { error: String(error) }));
+    showToast(t("msg.actionFailed", { error: String(error) }));
   } finally {
     refs.toggleServerBtn.disabled = false;
   }
@@ -162,19 +177,30 @@ async function toggleServer() {
 async function copyUrl() {
   try {
     await invoke("copy_share_url");
-    setRuntimeMessage(t("msg.copied"));
+    showToast(t("msg.copied"));
   } catch (error) {
-    setRuntimeMessage(t("msg.copyFailed", { error: String(error) }));
+    showToast(t("msg.copyFailed", { error: String(error) }));
   }
 }
 
 async function openBrowser() {
   try {
     await invoke("open_share_url");
-    setRuntimeMessage(t("msg.opened"));
+    showToast(t("msg.opened"));
   } catch (error) {
-    setRuntimeMessage(t("msg.openFailed", { error: String(error) }));
+    showToast(t("msg.openFailed", { error: String(error) }));
   }
+}
+
+/* ---------- settings modal ---------- */
+
+function openSettings() {
+  refs.settingsModal.hidden = false;
+  refs.portInput.focus();
+}
+
+function closeSettings() {
+  refs.settingsModal.hidden = true;
 }
 
 async function loadSettings() {
@@ -184,12 +210,13 @@ async function loadSettings() {
     refs.storageDirInput.value = settings.storageDir;
     refs.pinInput.value = settings.pin || "";
     refs.expireInput.value = String(settings.expireMinutes || 0);
-    refs.showQrInput.checked = Boolean(settings.showQrInTray);
+    // Preserved verbatim — the dashboard always shows the QR now, so this
+    // setting is no longer surfaced as a checkbox but must round-trip.
+    refs.showQrInput.value = settings.showQrInTray ? "1" : "";
     refs.autoCleanInput.checked = Boolean(settings.autoCleanOnQuit);
     refs.notifyDeviceInput.checked = Boolean(settings.notifyOnDeviceConnect);
-    applyQrVisibility(refs.showQrInput.checked);
   } catch (error) {
-    setRuntimeMessage(t("msg.settingsLoadFailed", { error: String(error) }));
+    showToast(t("msg.settingsLoadFailed", { error: String(error) }));
   }
 }
 
@@ -201,21 +228,23 @@ async function saveSettings(event) {
     storageDir: refs.storageDirInput.value.trim(),
     pin: refs.pinInput.value.trim(),
     expireMinutes: Number.parseInt(refs.expireInput.value, 10) || 0,
-    showQrInTray: refs.showQrInput.checked,
+    showQrInTray: refs.showQrInput.value === "1",
     autoCleanOnQuit: refs.autoCleanInput.checked,
     notifyOnDeviceConnect: refs.notifyDeviceInput.checked
   };
 
-  refs.settingsForm.querySelector("button[type='submit']").disabled = true;
+  const submit = refs.settingsForm.querySelector("button[type='submit']");
+  submit.disabled = true;
   try {
     await invoke("save_settings", { settings: nextSettings });
     const runtime = await invoke("restart_server_with_settings");
     renderRuntime(runtime);
-    setRuntimeMessage(t("msg.saved"));
+    closeSettings();
+    showToast(t("msg.saved"));
   } catch (error) {
-    setRuntimeMessage(t("msg.saveFailed", { error: String(error) }));
+    showToast(t("msg.saveFailed", { error: String(error) }));
   } finally {
-    refs.settingsForm.querySelector("button[type='submit']").disabled = false;
+    submit.disabled = false;
   }
 }
 
@@ -223,7 +252,6 @@ function startRuntimePolling() {
   if (state.pollTimer) {
     window.clearInterval(state.pollTimer);
   }
-
   state.pollTimer = window.setInterval(() => {
     void refreshRuntime();
   }, 4000);
@@ -232,27 +260,26 @@ function startRuntimePolling() {
 async function initialize() {
   applyLang(detectLang());
 
-  refs.langSelect.addEventListener("change", () => {
-    applyLang(refs.langSelect.value);
+  refs.langSelect.addEventListener("change", () => applyLang(refs.langSelect.value));
+  refs.toggleServerBtn.addEventListener("click", () => void toggleServer());
+  refs.copyUrlBtn.addEventListener("click", () => void copyUrl());
+  refs.openBrowserBtn.addEventListener("click", () => void openBrowser());
+  refs.refreshBtn.addEventListener("click", () => void refreshRuntime());
+
+  refs.settingsBtn.addEventListener("click", openSettings);
+  refs.settingsClose.addEventListener("click", closeSettings);
+  refs.settingsCancel.addEventListener("click", closeSettings);
+  refs.settingsModal.addEventListener("click", (event) => {
+    if (event.target === refs.settingsModal) {
+      closeSettings();
+    }
   });
-  refs.toggleServerBtn.addEventListener("click", () => {
-    void toggleServer();
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !refs.settingsModal.hidden) {
+      closeSettings();
+    }
   });
-  refs.copyUrlBtn.addEventListener("click", () => {
-    void copyUrl();
-  });
-  refs.openBrowserBtn.addEventListener("click", () => {
-    void openBrowser();
-  });
-  refs.refreshBtn.addEventListener("click", () => {
-    void refreshRuntime();
-  });
-  refs.settingsForm.addEventListener("submit", (event) => {
-    void saveSettings(event);
-  });
-  refs.showQrInput.addEventListener("change", () => {
-    applyQrVisibility(refs.showQrInput.checked);
-  });
+  refs.settingsForm.addEventListener("submit", (event) => void saveSettings(event));
 
   if (listen) {
     await listen("droplocal://runtime-updated", (event) => {
