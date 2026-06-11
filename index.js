@@ -324,6 +324,108 @@ async function startMdnsResponder(getAddresses) {
   return { mdns, hostname };
 }
 
+/* ---------- streaming zip (store method, data descriptors) ---------- */
+
+const CRC32_TABLE = (() => {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n += 1) {
+    let c = n;
+    for (let k = 0; k < 8; k += 1) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    }
+    table[n] = c >>> 0;
+  }
+  return table;
+})();
+
+function crc32Update(crc, chunk) {
+  let value = crc;
+  for (let i = 0; i < chunk.length; i += 1) {
+    value = CRC32_TABLE[(value ^ chunk[i]) & 0xff] ^ (value >>> 8);
+  }
+  return value >>> 0;
+}
+
+function dosDateTime(isoString) {
+  const date = new Date(isoString);
+  const safe = Number.isFinite(date.getTime()) ? date : new Date();
+  const dosTime =
+    (safe.getHours() << 11) | (safe.getMinutes() << 5) | Math.floor(safe.getSeconds() / 2);
+  const dosDate =
+    ((Math.max(safe.getFullYear(), 1980) - 1980) << 9) |
+    ((safe.getMonth() + 1) << 5) |
+    safe.getDate();
+  return { dosTime, dosDate };
+}
+
+function zipLocalHeader(name, dosTime, dosDate) {
+  const nameBytes = Buffer.from(name, "utf8");
+  const header = Buffer.alloc(30 + nameBytes.length);
+  header.writeUInt32LE(0x04034b50, 0);
+  header.writeUInt16LE(20, 4); // version needed
+  header.writeUInt16LE(0x0808, 6); // data descriptor + UTF-8 names
+  header.writeUInt16LE(0, 8); // store
+  header.writeUInt16LE(dosTime, 10);
+  header.writeUInt16LE(dosDate, 12);
+  // crc + sizes live in the data descriptor
+  header.writeUInt16LE(nameBytes.length, 26);
+  nameBytes.copy(header, 30);
+  return header;
+}
+
+function zipDataDescriptor(crc, size) {
+  const descriptor = Buffer.alloc(16);
+  descriptor.writeUInt32LE(0x08074b50, 0);
+  descriptor.writeUInt32LE(crc, 4);
+  descriptor.writeUInt32LE(size, 8);
+  descriptor.writeUInt32LE(size, 12);
+  return descriptor;
+}
+
+function zipCentralDirectory(entries, offset) {
+  const parts = [];
+  for (const entry of entries) {
+    const nameBytes = Buffer.from(entry.name, "utf8");
+    const record = Buffer.alloc(46 + nameBytes.length);
+    record.writeUInt32LE(0x02014b50, 0);
+    record.writeUInt16LE(20, 4); // version made by
+    record.writeUInt16LE(20, 6); // version needed
+    record.writeUInt16LE(0x0808, 8);
+    record.writeUInt16LE(0, 10); // store
+    record.writeUInt16LE(entry.dosTime, 12);
+    record.writeUInt16LE(entry.dosDate, 14);
+    record.writeUInt32LE(entry.crc, 16);
+    record.writeUInt32LE(entry.size, 20);
+    record.writeUInt32LE(entry.size, 24);
+    record.writeUInt16LE(nameBytes.length, 28);
+    record.writeUInt32LE(entry.offset, 42);
+    nameBytes.copy(record, 46);
+    parts.push(record);
+  }
+
+  const directory = Buffer.concat(parts);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(directory.length, 12);
+  end.writeUInt32LE(offset, 16);
+  return Buffer.concat([directory, end]);
+}
+
+function uniqueZipName(name, used) {
+  let candidate = name;
+  let counter = 1;
+  while (used.has(candidate)) {
+    const dot = name.lastIndexOf(".");
+    candidate =
+      dot > 0 ? `${name.slice(0, dot)} (${counter})${name.slice(dot)}` : `${name} (${counter})`;
+    counter += 1;
+  }
+  used.add(candidate);
+  return candidate;
+}
+
 function sanitizeFileName(fileName) {
   const base = path.basename(String(fileName || ""));
   const stripped = base
@@ -919,6 +1021,80 @@ function createDropLocalApp(options = {}) {
         createJsonResponder(res, 201, publicFileMetadata(uploadedFiles[0]));
       } else {
         createJsonResponder(res, 201, uploadedFiles.map((file) => publicFileMetadata(file)));
+      }
+      return;
+    }
+
+    if (method === "GET" && pathname === "/api/files.zip") {
+      const requestedIds = String(parsedUrl.searchParams.get("ids") || "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      const selected = [];
+      for (const id of requestedIds) {
+        const file = state.files.find((entry) => entry.id === id);
+        if (!file) {
+          continue;
+        }
+        let stats;
+        try {
+          stats = await fsp.stat(file.path);
+        } catch (_error) {
+          continue;
+        }
+        if (stats.size >= 0xffffffff) {
+          createJsonResponder(res, 413, { error: "File too large for zip (4 GB limit)" });
+          return;
+        }
+        selected.push(file);
+      }
+
+      if (!selected.length) {
+        createJsonResponder(res, 404, { error: "No matching files" });
+        return;
+      }
+
+      res.writeHead(200, {
+        "content-type": "application/zip",
+        "content-disposition": contentDisposition(`droplocal-${selected.length}-files.zip`)
+      });
+
+      const write = (buffer) =>
+        new Promise((resolve, reject) => {
+          res.write(buffer, (error) => (error ? reject(error) : resolve()));
+        });
+
+      try {
+        const entries = [];
+        const usedNames = new Set();
+        let offset = 0;
+
+        for (const file of selected) {
+          const name = uniqueZipName(file.name, usedNames);
+          const { dosTime, dosDate } = dosDateTime(file.timestamp);
+          const header = zipLocalHeader(name, dosTime, dosDate);
+          await write(header);
+
+          let crc = 0xffffffff;
+          let size = 0;
+          for await (const chunk of fs.createReadStream(file.path)) {
+            crc = crc32Update(crc, chunk);
+            size += chunk.length;
+            await write(chunk);
+          }
+          crc = (crc ^ 0xffffffff) >>> 0;
+
+          await write(zipDataDescriptor(crc, size));
+          entries.push({ name, crc, size, dosTime, dosDate, offset });
+          offset += header.length + size + 16;
+        }
+
+        await write(zipCentralDirectory(entries, offset));
+        res.end();
+      } catch (_error) {
+        // Mid-stream failure: the headers are gone; just drop the socket.
+        res.destroy();
       }
       return;
     }
