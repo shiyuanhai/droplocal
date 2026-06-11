@@ -23,7 +23,7 @@ const LANDING_HTML = path.join(__dirname, "..", "landing", "index.html");
 for (const htmlPath of [UI_HTML, DESKTOP_HTML, LANDING_HTML]) {
   const label = path.relative(path.join(__dirname, ".."), htmlPath);
 
-  test(`i18n dictionary in ${label} covers en/zh/ja with identical keys`, () => {
+  test(`i18n dictionary in ${label} covers ${REQUIRED_LANGS.join("/")} with identical keys`, () => {
     const dictionary = extractI18nDictionary(htmlPath);
 
     for (const lang of REQUIRED_LANGS) {
