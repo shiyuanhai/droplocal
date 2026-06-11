@@ -11,7 +11,7 @@
 Take a code-complete project to a **polished, branded, multilingual, signed, published product**:
 
 - A stranger's Mac opens the `.dmg` with no Gatekeeper warning.
-- A phone joins by scanning a QR or typing `droplocal.local` — never an IP address.
+- A phone joins by scanning a QR or typing `drop.local` — never an IP address.
 - The UI looks modern, works one-handed on a phone, and speaks English (default), 简体中文, 日本語.
 - `https://droplocal.app` is live, mobile-friendly, and links real downloads + `npx droplocal`.
 
@@ -57,7 +57,7 @@ Cheap decisions that everything downstream builds on. Make them once, in writing
       HTML mockups of the redesigned main screen and *choose one* before Phase 2 starts.
 - [x] **Port strategy** (feeds Phase 3): today the default is 3000 with +20 scan ([index.js:16,612](../index.js)).
       Decide: desktop app tries **port 80 first** (modern macOS allows unprivileged bind to <1024;
-      Windows too; Linux needs `setcap`, fall back) → the share URL becomes `http://droplocal.local/`
+      Windows too; Linux needs `setcap`, fall back) → the share URL becomes `http://drop.local/`
       with no port at all. Fallback chain: 80 → 3000 → scan.
 - [x] **Landing host**: GitHub Pages vs Cloudflare Pages for droplocal.app. Recommendation:
       Cloudflare Pages (painless apex domain + redirects + headers); GH Pages is fine if the domain's
@@ -91,7 +91,7 @@ Cheap decisions that everything downstream builds on. Make them once, in writing
   follows system preference (existing mechanism kept).
 - **Port strategy**: when no port is explicitly configured, both servers try **80 → 3000 → scan
   upward**; an explicit `--port`/settings value skips the chain. With mDNS (Phase 3) the happy-path
-  URL becomes `http://droplocal.local/`. Implemented in Phase 3.
+  URL becomes `http://drop.local/`. Implemented in Phase 3.
 - **Landing host**: **GitHub Pages from `main:/docs`** (repo is public, zero extra infra) with
   `index.html` + `.nojekyll` + `CNAME`. Enabling Pages + apex DNS records are user-side steps,
   documented in Phase 5.
@@ -186,19 +186,19 @@ desktop, three languages are complete, and Cmd/Ctrl+V uploads a screenshot.
 
 Covers "don't remember IP addresses" (roadmap A2) and the honest version of B1 (PWA).
 
-### 3.1 `droplocal.local` via mDNS/Bonjour (A2)
-- [x] **CLI (Node)**: answer mDNS A-queries for `droplocal.local` and advertise `_http._tcp`
+### 3.1 `drop.local` via mDNS/Bonjour (A2)
+- [x] **CLI (Node)**: answer mDNS A-queries for `drop.local` and advertise `_http._tcp`
       (e.g. `multicast-dns` for the A-record answer — it's dependency-light and gives full control;
       `bonjour-service` for service advertising if wanted).
 - [x] **Desktop (Rust)**: same via the `mdns-sd` crate, registered alongside server start in
       [server.rs](../apps/desktop/src-tauri/src/server.rs).
-- [x] Hostname conflict handling: if `droplocal.local` is taken (second instance on the LAN),
-      advertise `droplocal-2.local`, surface whichever name won. (Implemented on the CLI via an A-query probe; the desktop app registers the fixed name through mdns-sd and relies on its built-in conflict handling.)
+- [x] Hostname conflict handling: if `drop.local` is taken (second instance on the LAN),
+      advertise `drop-2.local`, surface whichever name won. (Implemented on the CLI via an A-query probe; the desktop app registers the fixed name through mdns-sd and relies on its built-in conflict handling.)
 - [x] Show the friendly URL **everywhere the IP appears today**: terminal banner + QR
       ([index.js:759](../index.js)), web UI connect card (new in 2.1), tray "Copy URL", desktop dashboard.
       Decision flip during implementation: the QR always encodes the IP URL (Android cannot reliably resolve .local); the friendly URL is what humans read and type.
 - [x] Implement the Phase 0 port strategy (try 80 → fall back) so the URL can be just
-      `http://droplocal.local/`.
+      `http://drop.local/`.
 - [x] Reality check & document: `.local` works natively on macOS/iOS/Windows 10+; Android browsers
       are unreliable → **QR stays the headline path for Android**, and the IP URL remains displayed
       as fallback.
@@ -211,7 +211,7 @@ Covers "don't remember IP addresses" (roadmap A2) and the honest version of B1 (
       deferred to Phase 7 (HTTPS-on-LAN research). Don't burn time on it here.
 
 **Done when:** fresh Mac + iPhone test passes — second device joins by QR or by typing
-`droplocal.local`, and nobody sees an IP address.
+`drop.local`, and nobody sees an IP address.
 
 ---
 
@@ -374,7 +374,7 @@ Deferred: **A3** — multi-select zip download (next session).
 
 - [ ] `npx droplocal` works on a clean machine.
 - [ ] The dmg opens clean on a Mac that's never seen it (signed + notarized + stapled).
-- [ ] A phone joins via QR or `droplocal.local` — no IPs typed, ever.
+- [ ] A phone joins via QR or `drop.local` — no IPs typed, ever.
 - [ ] UI is modern, mobile-first, and complete in en/zh-Hans/ja.
 - [ ] `https://droplocal.app` is live, mobile-friendly, three languages, real download links.
 - [ ] The auto-updater is wired so release #2 reaches release #1's users automatically.

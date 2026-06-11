@@ -40,7 +40,7 @@ Effort: S = ~half day, M = ~1–2 days, L = several days+. Value = impact on the
 | ID | Feature | Value | Effort |
 |---|---|---|---|
 | A1 | Clipboard image / screenshot paste — `Cmd/Ctrl+V` to upload directly | High | S |
-| A2 | mDNS/Bonjour auto-discovery + friendly address (`droplocal.local`), no typing IPs | High | M |
+| A2 | mDNS/Bonjour auto-discovery + friendly address (`drop.local`), no typing IPs | High | M |
 | A3 | Multi-file / folder zip download | Medium | M |
 | A4 | File expiration / auto-cleanup on a timer | Low | S |
 | A5 | Upload progress / large-file resilience | Medium | M |

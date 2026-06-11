@@ -17,7 +17,7 @@ const pkg = require("./package.json");
 const DEFAULT_PORT = 3000;
 const AUTO_PORT_PRIMARY = 80;
 const MAX_PORT_RETRIES = 20;
-const MDNS_HOSTNAME_BASE = "droplocal";
+const MDNS_HOSTNAME_BASE = "drop";
 const MDNS_MAX_NAME_ATTEMPTS = 5;
 const AUTH_COOKIE = "droplocal_auth";
 const INDEX_FILE_NAME = ".droplocal.json";
@@ -1021,7 +1021,7 @@ function createDropLocalApp(options = {}) {
     if (requestedPort === 0) {
       selectedPort = await listen(server, 0);
     } else if (requestedPort === null) {
-      // Auto mode: a portless URL (http://droplocal.local) needs port 80;
+      // Auto mode: a portless URL (http://drop.local) needs port 80;
       // fall back to the classic 3000+ scan when 80 is unavailable.
       try {
         selectedPort = await listen(server, AUTO_PORT_PRIMARY);

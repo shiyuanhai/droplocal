@@ -36,7 +36,7 @@ use uuid::Uuid;
 const MAX_PORT_RETRIES: u16 = 20;
 const AUTO_PORT_PRIMARY: u16 = 80;
 const AUTO_PORT_FALLBACK: u16 = 3000;
-const MDNS_HOSTNAME: &str = "droplocal.local";
+const MDNS_HOSTNAME: &str = "drop.local";
 const AUTH_COOKIE: &str = "droplocal_auth";
 const INDEX_FILE_NAME: &str = ".droplocal.json";
 const EXPIRY_SWEEP_INTERVAL_SECS: u64 = 30;
@@ -605,7 +605,7 @@ async fn sweep_expired(state: &Arc<ServerState>) {
 }
 
 /// Best-effort mDNS registration so the server is reachable as
-/// `http://droplocal.local`. Returns `None` when registration fails —
+/// `http://drop.local`. Returns `None` when registration fails —
 /// the IP URL keeps working either way.
 fn register_mdns(port: u16) -> Option<mdns_sd::ServiceDaemon> {
     let daemon = mdns_sd::ServiceDaemon::new().ok()?;
@@ -627,7 +627,7 @@ fn register_mdns(port: u16) -> Option<mdns_sd::ServiceDaemon> {
 
 async fn bind_listener(requested_port: u16) -> anyhow::Result<TcpListener> {
     if requested_port == 0 {
-        // Auto mode: port 80 gives a portless URL (http://droplocal.local);
+        // Auto mode: port 80 gives a portless URL (http://drop.local);
         // fall back to the classic 3000+ scan, then an ephemeral port.
         if let Ok(listener) =
             TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], AUTO_PORT_PRIMARY))).await
