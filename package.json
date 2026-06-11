@@ -41,6 +41,14 @@
     "websocket"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shiyuanhai/droplocal.git"
+  },
+  "homepage": "https://droplocal.app",
+  "bugs": {
+    "url": "https://github.com/shiyuanhai/droplocal/issues"
+  },
   "dependencies": {
     "busboy": "^1.6.0",
     "multicast-dns": "^7.2.5",
