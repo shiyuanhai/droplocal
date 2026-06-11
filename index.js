@@ -688,7 +688,25 @@ function createDropLocalApp(options = {}) {
     state.uiHtml = fs.readFileSync(UI_PATH, "utf8");
   }
 
-  const sockets = new Set();
+  // socket → { id, clientId, name } for the presence list
+  const sockets = new Map();
+
+  function sanitizeDeviceName(raw) {
+    return String(raw || "")
+      .replace(/[\u0000-\u001f\u007f]/g, "")
+      .trim()
+      .slice(0, 32);
+  }
+
+  function deviceList() {
+    const devices = [];
+    for (const [socket, info] of sockets) {
+      if (socket.readyState === WebSocket.OPEN) {
+        devices.push({ id: info.id, clientId: info.clientId, name: info.name });
+      }
+    }
+    return devices;
+  }
   const server = http.createServer((req, res) => {
     handleRequest(req, res).catch((error) => {
       const statusCode = Number.isInteger(error.statusCode) ? error.statusCode : 500;
@@ -702,7 +720,7 @@ function createDropLocalApp(options = {}) {
 
   function connectedDeviceCount() {
     let count = 0;
-    for (const socket of sockets) {
+    for (const socket of sockets.keys()) {
       if (socket.readyState === WebSocket.OPEN) {
         count += 1;
       }
@@ -712,7 +730,7 @@ function createDropLocalApp(options = {}) {
 
   function broadcast(event, data) {
     const payload = JSON.stringify({ event, data });
-    for (const socket of sockets) {
+    for (const socket of sockets.keys()) {
       if (socket.readyState === WebSocket.OPEN) {
         socket.send(payload);
       }
@@ -721,6 +739,7 @@ function createDropLocalApp(options = {}) {
 
   function broadcastDeviceCount() {
     broadcast("device:count", { count: connectedDeviceCount() });
+    broadcast("device:list", { devices: deviceList() });
   }
 
   function isAuthorized(req) {
@@ -843,7 +862,7 @@ function createDropLocalApp(options = {}) {
   }
 
   wss.on("connection", (wsSocket) => {
-    sockets.add(wsSocket);
+    sockets.set(wsSocket, { id: randomUUID(), clientId: "", name: "" });
     // Send an initial device count on next tick so clients that attach listeners
     // in their "open" callback still receive a count event.
     setImmediate(() => {
@@ -854,9 +873,29 @@ function createDropLocalApp(options = {}) {
             data: { count: connectedDeviceCount() }
           })
         );
+        wsSocket.send(
+          JSON.stringify({ event: "device:list", data: { devices: deviceList() } })
+        );
       }
     });
     broadcastDeviceCount();
+
+    wsSocket.on("message", (raw) => {
+      let message;
+      try {
+        message = JSON.parse(raw.toString());
+      } catch (_error) {
+        return;
+      }
+      if (message && message.type === "hello") {
+        const info = sockets.get(wsSocket);
+        if (info) {
+          info.name = sanitizeDeviceName(message.name);
+          info.clientId = sanitizeDeviceName(message.clientId);
+          broadcast("device:list", { devices: deviceList() });
+        }
+      }
+    });
 
     wsSocket.on("close", () => {
       sockets.delete(wsSocket);
@@ -1127,10 +1166,11 @@ function createDropLocalApp(options = {}) {
         }
       });
 
+      const inline = parsedUrl.searchParams.get("inline") === "1";
       res.writeHead(200, {
         "content-type": file.mimeType || "application/octet-stream",
         "content-length": stats.size,
-        "content-disposition": contentDisposition(file.name)
+        "content-disposition": inline ? "inline" : contentDisposition(file.name)
       });
       stream.pipe(res);
       return;
@@ -1270,7 +1310,7 @@ function createDropLocalApp(options = {}) {
       state.friendlyUrl = "";
     }
 
-    for (const socket of sockets) {
+    for (const socket of sockets.keys()) {
       socket.terminate();
     }
     sockets.clear();
