@@ -322,8 +322,13 @@ Landed in the phase-6 branch:
 - **A4 — expiration**: `--expire <minutes>` / desktop setting; 30 s sweep broadcasts deletions.
 - **C2 — Rust tests**: HTTP integration tests (lifecycle, PIN, persistence) — `cargo test` now 7.
 
-Partial: **A7** — URLs in notes are linkified; markdown/syntax highlighting still open.
-Deferred: **A3** — multi-select zip download (next session).
+**v2 follow-up (2026-06-11): the backlog is now 100% done.**
+- **A3 — multi-select zip download**: tap file icons to select, "Download .zip" streams a
+  store-mode zip (hand-rolled, data descriptors, no deps, no memory buffering) from both
+  servers at `/api/files.zip?ids=…`; verified byte-identical extraction with real `unzip`.
+- **A7 — markdown preview**: notes render a safe subset (headings, lists, bold/italic,
+  inline code, fenced code blocks, links) built via DOM — never innerHTML. Token-level
+  syntax coloring deliberately skipped (low value, big vendored dep).
 
 ## Phase 7 — Reassess (after living with all the above)
 

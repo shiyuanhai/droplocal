@@ -239,6 +239,21 @@ struct AuthPayload {
     pin: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct ZipQuery {
+    #[serde(default)]
+    ids: String,
+}
+
+struct ZipEntry {
+    name: String,
+    crc: u32,
+    size: u32,
+    dos_time: u16,
+    dos_date: u16,
+    offset: u32,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct FileMeta {
     id: String,
@@ -378,6 +393,7 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .route("/api/snippets", get(list_snippets).post(create_snippet))
         .route("/api/snippets/{id}", delete(delete_snippet))
         .route("/api/files", get(list_files).post(upload_files))
+        .route("/api/files.zip", get(download_zip))
         .route("/api/files/{id}", get(download_file).delete(delete_file))
         .route("/api/status", get(status))
         .route("/ws", get(ws_upgrade))
@@ -971,6 +987,226 @@ async fn download_file(
     Ok((StatusCode::OK, headers, body).into_response())
 }
 
+/* ---------- streaming zip (store method, data descriptors) ---------- */
+
+fn crc32_update(crc: u32, chunk: &[u8]) -> u32 {
+    static TABLE: std::sync::OnceLock<[u32; 256]> = std::sync::OnceLock::new();
+    let table = TABLE.get_or_init(|| {
+        let mut table = [0u32; 256];
+        for (n, slot) in table.iter_mut().enumerate() {
+            let mut c = n as u32;
+            for _ in 0..8 {
+                c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+            }
+            *slot = c;
+        }
+        table
+    });
+
+    let mut value = crc;
+    for &byte in chunk {
+        value = table[((value ^ u32::from(byte)) & 0xFF) as usize] ^ (value >> 8);
+    }
+    value
+}
+
+fn dos_date_time(timestamp: &str) -> (u16, u16) {
+    use chrono::{Datelike, Timelike};
+    let parsed = chrono::DateTime::parse_from_rfc3339(timestamp)
+        .map(|value| value.with_timezone(&Utc))
+        .unwrap_or_else(|_| Utc::now());
+    let dos_time = ((parsed.hour() as u16) << 11)
+        | ((parsed.minute() as u16) << 5)
+        | (parsed.second() as u16 / 2);
+    let dos_date = (((parsed.year().max(1980) - 1980) as u16) << 9)
+        | ((parsed.month() as u16) << 5)
+        | parsed.day() as u16;
+    (dos_time, dos_date)
+}
+
+fn zip_local_header(name: &str, dos_time: u16, dos_date: u16) -> Vec<u8> {
+    let name_bytes = name.as_bytes();
+    let mut header = Vec::with_capacity(30 + name_bytes.len());
+    header.extend_from_slice(&0x0403_4b50u32.to_le_bytes());
+    header.extend_from_slice(&20u16.to_le_bytes()); // version needed
+    header.extend_from_slice(&0x0808u16.to_le_bytes()); // data descriptor + UTF-8
+    header.extend_from_slice(&0u16.to_le_bytes()); // store
+    header.extend_from_slice(&dos_time.to_le_bytes());
+    header.extend_from_slice(&dos_date.to_le_bytes());
+    header.extend_from_slice(&[0u8; 12]); // crc + sizes live in the descriptor
+    header.extend_from_slice(&(name_bytes.len() as u16).to_le_bytes());
+    header.extend_from_slice(&0u16.to_le_bytes()); // extra len
+    header.extend_from_slice(name_bytes);
+    header
+}
+
+fn zip_data_descriptor(crc: u32, size: u32) -> Vec<u8> {
+    let mut descriptor = Vec::with_capacity(16);
+    descriptor.extend_from_slice(&0x0807_4b50u32.to_le_bytes());
+    descriptor.extend_from_slice(&crc.to_le_bytes());
+    descriptor.extend_from_slice(&size.to_le_bytes());
+    descriptor.extend_from_slice(&size.to_le_bytes());
+    descriptor
+}
+
+fn zip_central_directory(entries: &[ZipEntry], offset: u32) -> Vec<u8> {
+    let mut directory = Vec::new();
+    for entry in entries {
+        let name_bytes = entry.name.as_bytes();
+        directory.extend_from_slice(&0x0201_4b50u32.to_le_bytes());
+        directory.extend_from_slice(&20u16.to_le_bytes()); // version made by
+        directory.extend_from_slice(&20u16.to_le_bytes()); // version needed
+        directory.extend_from_slice(&0x0808u16.to_le_bytes());
+        directory.extend_from_slice(&0u16.to_le_bytes()); // store
+        directory.extend_from_slice(&entry.dos_time.to_le_bytes());
+        directory.extend_from_slice(&entry.dos_date.to_le_bytes());
+        directory.extend_from_slice(&entry.crc.to_le_bytes());
+        directory.extend_from_slice(&entry.size.to_le_bytes());
+        directory.extend_from_slice(&entry.size.to_le_bytes());
+        directory.extend_from_slice(&(name_bytes.len() as u16).to_le_bytes());
+        directory.extend_from_slice(&[0u8; 12]); // extra/comment/disk/attrs
+        directory.extend_from_slice(&entry.offset.to_le_bytes());
+        directory.extend_from_slice(name_bytes);
+    }
+
+    let mut end = Vec::with_capacity(22);
+    end.extend_from_slice(&0x0605_4b50u32.to_le_bytes());
+    end.extend_from_slice(&[0u8; 4]); // disk numbers
+    end.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+    end.extend_from_slice(&(entries.len() as u16).to_le_bytes());
+    end.extend_from_slice(&(directory.len() as u32).to_le_bytes());
+    end.extend_from_slice(&offset.to_le_bytes());
+    end.extend_from_slice(&0u16.to_le_bytes()); // comment len
+
+    directory.extend_from_slice(&end);
+    directory
+}
+
+fn unique_zip_name(name: &str, used: &mut std::collections::HashSet<String>) -> String {
+    let mut candidate = name.to_string();
+    let mut counter = 1;
+    while used.contains(&candidate) {
+        candidate = match name.rfind('.') {
+            Some(dot) if dot > 0 => format!("{} ({}){}", &name[..dot], counter, &name[dot..]),
+            _ => format!("{name} ({counter})"),
+        };
+        counter += 1;
+    }
+    used.insert(candidate.clone());
+    candidate
+}
+
+async fn write_zip(
+    mut writer: tokio::io::DuplexStream,
+    files: Vec<StoredFile>,
+) -> std::io::Result<()> {
+    use tokio::io::AsyncReadExt;
+
+    let mut entries: Vec<ZipEntry> = Vec::new();
+    let mut used_names = std::collections::HashSet::new();
+    let mut offset: u32 = 0;
+
+    for stored in files {
+        let name = unique_zip_name(&stored.meta.name, &mut used_names);
+        let (dos_time, dos_date) = dos_date_time(&stored.meta.timestamp);
+        let header = zip_local_header(&name, dos_time, dos_date);
+        writer.write_all(&header).await?;
+
+        let mut file = fs::File::open(&stored.path).await?;
+        let mut crc: u32 = 0xFFFF_FFFF;
+        let mut size: u32 = 0;
+        let mut buffer = vec![0u8; 64 * 1024];
+        loop {
+            let read = file.read(&mut buffer).await?;
+            if read == 0 {
+                break;
+            }
+            crc = crc32_update(crc, &buffer[..read]);
+            size = size.saturating_add(read as u32);
+            writer.write_all(&buffer[..read]).await?;
+        }
+        let crc = crc ^ 0xFFFF_FFFF;
+
+        writer.write_all(&zip_data_descriptor(crc, size)).await?;
+        entries.push(ZipEntry {
+            name,
+            crc,
+            size,
+            dos_time,
+            dos_date,
+            offset,
+        });
+        offset = offset
+            .wrapping_add(header.len() as u32)
+            .wrapping_add(size)
+            .wrapping_add(16);
+    }
+
+    writer
+        .write_all(&zip_central_directory(&entries, offset))
+        .await?;
+    writer.shutdown().await
+}
+
+async fn download_zip(
+    State(state): State<Arc<ServerState>>,
+    axum::extract::Query(query): axum::extract::Query<ZipQuery>,
+) -> ApiResult<Response> {
+    let requested: Vec<String> = query
+        .ids
+        .split(',')
+        .map(|id| id.trim().to_string())
+        .filter(|id| !id.is_empty())
+        .collect();
+
+    let mut selected = Vec::new();
+    {
+        let files = state.files.read().await;
+        for id in &requested {
+            if let Some(stored) = files.iter().find(|entry| entry.meta.id == *id) {
+                selected.push(stored.clone());
+            }
+        }
+    }
+
+    let mut checked = Vec::new();
+    for stored in selected {
+        match fs::metadata(&stored.path).await {
+            Ok(meta) if meta.len() >= u64::from(u32::MAX) => {
+                return Err(ApiError::new(
+                    StatusCode::PAYLOAD_TOO_LARGE,
+                    "File too large for zip (4 GB limit)",
+                ));
+            }
+            Ok(_) => checked.push(stored),
+            Err(_) => continue,
+        }
+    }
+
+    if checked.is_empty() {
+        return Err(ApiError::new(StatusCode::NOT_FOUND, "No matching files"));
+    }
+
+    let file_count = checked.len();
+    let (writer, reader) = tokio::io::duplex(64 * 1024);
+    tokio::spawn(async move {
+        let _ = write_zip(writer, checked).await;
+    });
+
+    let mut headers = HeaderMap::new();
+    headers.insert("content-type", HeaderValue::from_static("application/zip"));
+    headers.insert(
+        "content-disposition",
+        HeaderValue::from_str(&content_disposition(&format!(
+            "droplocal-{file_count}-files.zip"
+        )))
+        .unwrap_or_else(|_| HeaderValue::from_static("attachment")),
+    );
+
+    let body = Body::from_stream(ReaderStream::new(reader));
+    Ok((StatusCode::OK, headers, body).into_response())
+}
+
 async fn delete_file(
     State(state): State<Arc<ServerState>>,
     AxumPath(id): AxumPath<String>,
@@ -1201,6 +1437,63 @@ mod tests {
             .await
             .expect("delete file");
         assert_eq!(deleted.status(), reqwest::StatusCode::OK);
+
+        runtime.stop().await.expect("stop");
+    }
+
+    #[tokio::test]
+    async fn zip_download_bundles_files() {
+        let dir = temp_dir("zip");
+        let mut runtime = start(test_config(&dir, "", true)).await.expect("start");
+        let base = format!("http://127.0.0.1:{}", runtime.snapshot().port);
+        let client = reqwest::Client::new();
+
+        let mut ids = Vec::new();
+        for (name, body) in [("first.txt", "zip me first"), ("second.txt", "zip me second")] {
+            let part = reqwest::multipart::Part::bytes(body.as_bytes().to_vec())
+                .file_name(name)
+                .mime_str("text/plain")
+                .expect("part");
+            let uploaded: Value = client
+                .post(format!("{base}/api/files"))
+                .multipart(reqwest::multipart::Form::new().part("file", part))
+                .send()
+                .await
+                .expect("upload")
+                .json()
+                .await
+                .expect("json");
+            ids.push(uploaded["id"].as_str().unwrap().to_string());
+        }
+
+        let response = client
+            .get(format!("{base}/api/files.zip?ids={}", ids.join(",")))
+            .send()
+            .await
+            .expect("zip request");
+        assert_eq!(response.status(), reqwest::StatusCode::OK);
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            "application/zip"
+        );
+
+        let bytes = response.bytes().await.expect("zip body");
+        assert_eq!(&bytes[0..4], b"PK\x03\x04", "local header magic");
+        assert!(
+            bytes.windows(4).any(|window| window == b"PK\x05\x06"),
+            "end of central directory present"
+        );
+        assert!(
+            bytes.windows(9).any(|window| window == b"first.txt"),
+            "contains first name"
+        );
+
+        let missing = client
+            .get(format!("{base}/api/files.zip?ids=nope"))
+            .send()
+            .await
+            .expect("missing request");
+        assert_eq!(missing.status(), reqwest::StatusCode::NOT_FOUND);
 
         runtime.stop().await.expect("stop");
     }
