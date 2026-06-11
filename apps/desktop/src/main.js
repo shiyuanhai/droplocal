@@ -32,8 +32,14 @@ const refs = {
   expireInput: document.getElementById("expireInput"),
   showQrInput: document.getElementById("showQrInput"),
   autoCleanInput: document.getElementById("autoCleanInput"),
-  notifyDeviceInput: document.getElementById("notifyDeviceInput")
+  notifyDeviceInput: document.getElementById("notifyDeviceInput"),
+  autostartInput: document.getElementById("autostartInput"),
+  dockIconRow: document.getElementById("dockIconRow"),
+  dockIconInput: document.getElementById("dockIconInput")
 };
+
+// The Dock-icon toggle only means something on macOS.
+const IS_MAC = navigator.userAgent.includes("Mac");
 
 const state = {
   runtime: null,
@@ -215,6 +221,8 @@ async function loadSettings() {
     refs.showQrInput.value = settings.showQrInTray ? "1" : "";
     refs.autoCleanInput.checked = Boolean(settings.autoCleanOnQuit);
     refs.notifyDeviceInput.checked = Boolean(settings.notifyOnDeviceConnect);
+    refs.autostartInput.checked = Boolean(settings.launchAtLogin);
+    refs.dockIconInput.checked = Boolean(settings.showDockIcon);
   } catch (error) {
     showToast(t("msg.settingsLoadFailed", { error: String(error) }));
   }
@@ -230,7 +238,9 @@ async function saveSettings(event) {
     expireMinutes: Number.parseInt(refs.expireInput.value, 10) || 0,
     showQrInTray: refs.showQrInput.value === "1",
     autoCleanOnQuit: refs.autoCleanInput.checked,
-    notifyOnDeviceConnect: refs.notifyDeviceInput.checked
+    notifyOnDeviceConnect: refs.notifyDeviceInput.checked,
+    launchAtLogin: refs.autostartInput.checked,
+    showDockIcon: refs.dockIconInput.checked
   };
 
   const submit = refs.settingsForm.querySelector("button[type='submit']");
@@ -259,6 +269,7 @@ function startRuntimePolling() {
 
 async function initialize() {
   applyLang(detectLang());
+  refs.dockIconRow.hidden = !IS_MAC;
 
   refs.langSelect.addEventListener("change", () => applyLang(refs.langSelect.value));
   refs.toggleServerBtn.addEventListener("click", () => void toggleServer());
