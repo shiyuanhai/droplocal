@@ -25,7 +25,7 @@
     <meta name="twitter:title" content="DropLocal — Share files between your devices. No cloud in between." />
     <meta name="twitter:description" content="Share files, screenshots and notes between your own devices over Wi-Fi. No cloud, no accounts." />
     <meta name="twitter:image" content="https://droplocal.app/assets/og-image.png" />
-    <meta name="theme-color" content="#faf9f7" />
+    <meta name="theme-color" content="#f5f7fb" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -41,23 +41,19 @@
       "downloadUrl": "https://github.com/shiyuanhai/droplocal/releases/latest"
     }
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
     <link rel="preload" as="image" href="/assets/screenshot-desktop.webp" fetchpriority="high" />
     <style>
       :root {
-        --bg: #faf9f7;
-        --ink: #1a1916;
-        --muted: #5f5c55;
-        --faint: #8a867c;
-        --line: #e7e4dd;
-        --line-strong: #d8d4ca;
-        --card: #ffffff;
-        --accent: #4453e6;
-        --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-        --font-serif: "Instrument Serif", "Songti SC", "Hiragino Mincho ProN", Georgia, serif;
-        --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --surface-2: #eef2f9;
+        --text: #0f172a;
+        --muted: #5b6b81;
+        --border: #e3e9f2;
+        --accent-a: #38bdf8;
+        --accent-b: #6366f1;
+        --accent: #4f6bf5;
+        --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 10px 30px rgba(15, 23, 42, 0.07);
       }
 
       * { box-sizing: border-box; }
@@ -70,489 +66,471 @@
 
       body {
         margin: 0;
-        background: var(--bg);
-        color: var(--ink);
-        font-family: var(--font-sans);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+          "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
         font-size: 16px;
-        line-height: 1.65;
+        line-height: 1.6;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 10% -5%, rgba(56, 189, 248, 0.1), transparent 38%),
+          radial-gradient(circle at 95% 5%, rgba(99, 102, 241, 0.09), transparent 42%),
+          var(--bg);
         -webkit-font-smoothing: antialiased;
-        text-rendering: optimizeLegibility;
       }
 
-      ::selection { background: rgba(68, 83, 230, 0.14); }
-
-      a { color: inherit; text-decoration: none; }
+      ::selection { background: rgba(99, 102, 241, 0.18); }
 
       .wrap {
-        max-width: 1024px;
+        max-width: 1020px;
         margin: 0 auto;
-        padding: 0 28px;
+        padding: 0 22px;
       }
 
-      /* ---------- Nav ---------- */
-      .nav {
-        position: sticky;
-        top: 0;
-        z-index: 50;
-        background: rgba(250, 249, 247, 0.92);
-        border-bottom: 1px solid var(--line);
-      }
-      .nav-inner {
-        max-width: 1024px;
-        margin: 0 auto;
-        padding: 15px 28px;
+      /* header */
+      .site-head {
         display: flex;
         align-items: center;
-        gap: 30px;
+        justify-content: space-between;
+        padding: 18px 0;
       }
-      .brand {
+      .site-brand {
         display: flex;
         align-items: center;
-        gap: 9px;
-        font-weight: 600;
-        font-size: 16px;
-        letter-spacing: -0.02em;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        letter-spacing: -0.01em;
+        color: var(--text);
+        text-decoration: none;
       }
-      .brand img { width: 24px; height: 24px; }
-      .nav-links {
+      .site-brand img { width: 28px; height: 28px; }
+      .head-actions {
         display: flex;
-        gap: 26px;
-        font-size: 14px;
-        color: var(--muted);
-      }
-      .nav-links a { transition: color 0.15s; }
-      .nav-links a:hover { color: var(--ink); }
-      .nav-spacer { flex: 1; }
-      .nav-gh {
-        display: inline-flex;
         align-items: center;
-        gap: 7px;
-        font-size: 14px;
-        color: var(--muted);
-        transition: color 0.15s;
+        gap: 10px;
       }
-      .nav-gh:hover { color: var(--ink); }
       .lang-select {
         appearance: none;
         -webkit-appearance: none;
-        background: transparent url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="%238a867c" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>') no-repeat right 10px center;
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: transparent;
         color: var(--muted);
-        font: 500 13px var(--font-sans);
-        padding: 6px 28px 6px 12px;
-        border-radius: 8px;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 7px 10px;
         cursor: pointer;
-        transition: border-color 0.15s, color 0.15s;
       }
-      .lang-select:hover { border-color: var(--faint); color: var(--ink); }
-      .lang-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-      @media (max-width: 720px) {
-        .nav-links { display: none; }
+      .gh-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 7px 10px;
+        border-radius: 10px;
+      }
+      .gh-link:hover,
+      .lang-select:hover {
+        background: var(--surface-2);
+        color: var(--text);
       }
 
-      /* ---------- Hero ---------- */
+      /* hero */
       .hero {
-        padding: 108px 0 0;
+        padding: 56px 0 30px;
         text-align: center;
       }
       .pill {
         display: inline-block;
-        font: 500 13px var(--font-sans);
+        font-size: 0.78rem;
+        font-weight: 600;
         color: var(--muted);
-        border: 1px solid var(--line-strong);
+        border: 1px solid var(--border);
+        background: var(--surface);
         border-radius: 999px;
         padding: 5px 14px;
-        margin-bottom: 34px;
-        transition: color 0.15s, border-color 0.15s;
+        margin-bottom: 22px;
+        text-decoration: none;
       }
-      a.pill:hover { color: var(--ink); border-color: var(--faint); }
-      h1 {
-        font-family: var(--font-sans);
-        font-size: clamp(42px, 6.6vw, 72px);
-        line-height: 1.04;
-        letter-spacing: -0.045em;
-        font-weight: 600;
-        margin: 0 auto 26px;
-        max-width: 16ch;
+      a.pill:hover { color: var(--text); }
+      .hero h1 {
+        margin: 0 auto;
+        max-width: 720px;
+        font-size: clamp(1.9rem, 5.4vw, 3.1rem);
+        line-height: 1.15;
+        letter-spacing: -0.025em;
       }
-      h1 em {
-        font-family: var(--font-serif);
-        font-weight: 400;
-        font-style: italic;
-        letter-spacing: -0.01em;
+      .hero h1 .grad {
+        background: linear-gradient(120deg, var(--accent-a), var(--accent-b));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
       }
-      .lede {
-        max-width: 52ch;
-        margin: 0 auto 40px;
+      .hero .lede {
+        margin: 18px auto 0;
+        max-width: 640px;
         color: var(--muted);
-        font-size: clamp(16px, 2vw, 18.5px);
-        line-height: 1.6;
+        font-size: 1.05rem;
       }
-
       .cta-row {
+        margin-top: 28px;
         display: flex;
-        flex-wrap: wrap;
         justify-content: center;
-        align-items: center;
+        align-items: stretch;
         gap: 12px;
-        margin-bottom: 16px;
+        flex-wrap: wrap;
       }
-      .btn-primary {
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        border-radius: 13px;
+        padding: 13px 22px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        text-decoration: none;
+        border: 1px solid var(--border);
+        color: var(--text);
+        background: var(--surface);
+        cursor: pointer;
+        transition: transform 0.1s ease, opacity 0.15s ease, background 0.15s ease;
+      }
+      .btn:hover { background: var(--surface-2); }
+      .btn:active { transform: scale(0.98); }
+      .btn.primary {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(99, 102, 241, 0.3);
+      }
+      .btn.primary:hover {
+        opacity: 0.93;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+      }
+      .btn .sub {
+        font-weight: 500;
+        font-size: 0.78rem;
+        opacity: 0.75;
+      }
+      .npx-box {
         display: inline-flex;
         align-items: center;
         gap: 10px;
-        font: 500 15px var(--font-sans);
-        color: #fff;
-        background: var(--ink);
-        padding: 13px 24px;
-        border-radius: 11px;
-        cursor: pointer;
-        transition: transform 0.15s, box-shadow 0.15s;
-        box-shadow: 0 1px 2px rgba(26, 25, 22, 0.18);
+        border: 1px solid var(--border);
+        background: var(--surface);
+        border-radius: 13px;
+        padding: 0 8px 0 16px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.92rem;
       }
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(26, 25, 22, 0.22);
-      }
-      .btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-      .btn-primary .sub {
-        font-weight: 400;
-        font-size: 12.5px;
-        opacity: 0.62;
-        margin-left: 2px;
-      }
-      .npx-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 11px;
-        font: 500 13.5px var(--font-mono);
-        color: var(--muted);
-        background: var(--card);
-        border: 1px solid var(--line-strong);
-        border-radius: 11px;
-        padding: 13px 16px;
-        transition: border-color 0.15s;
-      }
-      .npx-pill:hover { border-color: var(--faint); }
-      .npx-pill .dollar { color: var(--faint); user-select: none; }
-      .npx-pill code { color: var(--ink); font-family: inherit; }
-      .copy-btn {
-        display: inline-flex;
-        align-items: center;
-        background: none;
+      .npx-box button {
         border: none;
-        padding: 4px;
-        margin: -4px;
-        color: var(--faint);
-        cursor: pointer;
-        transition: color 0.15s;
-      }
-      .copy-btn:hover { color: var(--ink); }
-      .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-
-      .hero-note {
-        font-size: 13.5px;
-        color: var(--faint);
-        margin: 0;
-      }
-      .hero-note a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); transition: color 0.15s; }
-      .hero-note a:hover { color: var(--ink); }
-
-      .shot {
-        margin: 72px auto 0;
-        max-width: 920px;
-        border: 1px solid var(--line);
-        border-radius: 14px;
-        overflow: hidden;
-        background: var(--card);
-        box-shadow: 0 1px 2px rgba(26, 25, 22, 0.04), 0 24px 60px -24px rgba(26, 25, 22, 0.18);
-      }
-      .shot img { display: block; width: 100%; height: auto; }
-
-      /* ---------- Sections (editorial) ---------- */
-      section { padding: 104px 0 0; }
-      .rule {
-        border-top: 1px solid var(--line);
-        padding-top: 26px;
-      }
-      .kicker {
-        font: 500 13px var(--font-sans);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--faint);
-        margin: 0 0 14px;
-      }
-      .sec-title {
-        font-size: clamp(28px, 4vw, 40px);
-        letter-spacing: -0.035em;
-        font-weight: 600;
-        line-height: 1.12;
-        margin: 0 0 12px;
-        max-width: 22ch;
-      }
-      .sec-title em {
-        font-family: var(--font-serif);
-        font-weight: 400;
-        font-style: italic;
-      }
-      .sec-sub {
+        background: var(--surface-2);
         color: var(--muted);
-        max-width: 54ch;
-        margin: 0 0 52px;
-        font-size: 16.5px;
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        border-radius: 9px;
+        padding: 8px 12px;
+        margin: 7px 0;
+        cursor: pointer;
+      }
+      .npx-box button:hover { color: var(--text); }
+      .hero-note {
+        margin-top: 14px;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .hero-note a { color: var(--accent); font-weight: 600; text-decoration: none; }
+      .hero-note a:hover { text-decoration: underline; }
+
+      /* screenshot */
+      .shot {
+        margin: 44px auto 0;
+        max-width: 880px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .shot-bar {
+        display: flex;
+        gap: 6px;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface-2);
+      }
+      .shot-bar span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--border);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
       }
 
-      /* how — numbered editorial columns */
+      /* sections */
+      section { padding: 56px 0 0; }
+      .sec-title {
+        margin: 0 0 26px;
+        text-align: center;
+        font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+        letter-spacing: -0.02em;
+      }
+
       .steps {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 44px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
       }
       .step {
-        border-top: 1px solid var(--line-strong);
-        padding-top: 20px;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        padding: 22px;
+        text-align: center;
       }
-      .step .num {
-        font-family: var(--font-serif);
-        font-style: italic;
-        font-size: 17px;
-        color: var(--faint);
-        display: block;
-        margin-bottom: 10px;
+      .step-num {
+        display: inline-grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-weight: 800;
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        margin-bottom: 12px;
       }
-      .step h3 {
-        font-size: 17px;
-        font-weight: 600;
-        letter-spacing: -0.015em;
-        margin: 0 0 7px;
-      }
-      .step p { margin: 0; color: var(--muted); font-size: 14.5px; }
-      .step code {
-        font: 500 0.9em var(--font-mono);
-        color: var(--ink);
-        background: rgba(26, 25, 22, 0.05);
-        padding: 1px 6px;
-        border-radius: 5px;
-      }
-      @media (max-width: 720px) {
-        .steps { grid-template-columns: 1fr; gap: 28px; }
-      }
-
-      /* features — plain two-column list, hairlines, no cards */
-      .feats {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        column-gap: 64px;
-      }
-      .feat {
-        display: grid;
-        grid-template-columns: 168px 1fr;
-        gap: 20px;
-        padding: 22px 0;
-        border-top: 1px solid var(--line);
-      }
-      .feat h3 {
-        font-size: 15px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
+      .step h3 { margin: 0 0 6px; font-size: 1.02rem; }
+      .step p,
+      .feature p {
         margin: 0;
+        color: var(--muted);
+        font-size: 0.88rem;
       }
-      .feat p { margin: 0; color: var(--muted); font-size: 14.5px; }
-      @media (max-width: 860px) {
-        .feats { grid-template-columns: 1fr; }
-      }
-      @media (max-width: 520px) {
-        .feat { grid-template-columns: 1fr; gap: 4px; }
+      .step code,
+      .faq code {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 0.84em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
-      /* download — table rows */
-      .dl-rows { border-top: 1px solid var(--line-strong); }
-      .dl-row {
+      .features {
         display: grid;
-        grid-template-columns: 200px 1fr auto;
-        align-items: center;
-        gap: 24px;
-        padding: 22px 0;
-        border-bottom: 1px solid var(--line);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
       }
-      .dl-row .os {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        font-size: 16px;
-        font-weight: 600;
-        letter-spacing: -0.015em;
+      .feature {
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        padding: 20px;
       }
-      .dl-row .os svg { color: var(--ink); flex: none; }
-      .dl-row .meta {
-        font: 400 13px var(--font-mono);
-        color: var(--faint);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .dl-row .links {
+      .feature h3 {
+        margin: 0 0 6px;
+        font-size: 0.98rem;
         display: flex;
         align-items: center;
         gap: 8px;
       }
+      .feature h3 svg { color: var(--accent); flex: 0 0 auto; }
+
+      /* download */
+      .dl-card {
+        max-width: 720px;
+        margin: 0 auto;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .dl-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px 22px;
+        flex-wrap: wrap;
+      }
+      .dl-row + .dl-row { border-top: 1px solid var(--border); }
+      .dl-row .os {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 0.98rem;
+        min-width: 118px;
+      }
+      .dl-row .os svg { color: var(--text); flex: 0 0 auto; }
+      .dl-row .meta {
+        flex: 1;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.76rem;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+      }
+      .dl-links { display: flex; gap: 8px; }
       .dl-btn {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
-        font: 500 13.5px var(--font-sans);
-        color: var(--ink);
-        border: 1px solid var(--line-strong);
-        background: var(--card);
+        gap: 6px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--accent);
+        background: var(--surface-2);
+        border: 1px solid var(--border);
         border-radius: 9px;
-        padding: 8px 14px;
-        cursor: pointer;
-        transition: border-color 0.15s, box-shadow 0.15s;
+        padding: 7px 13px;
+        text-decoration: none;
+        transition: background 0.15s ease, color 0.15s ease;
       }
-      .dl-btn:hover { border-color: var(--faint); box-shadow: 0 2px 8px rgba(26, 25, 22, 0.07); }
-      .dl-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      .dl-btn.alt {
-        font-family: var(--font-mono);
-        font-size: 12.5px;
+      .dl-btn:hover { background: rgba(79, 107, 245, 0.12); }
+      .dl-foot {
+        margin: 18px auto 0;
+        max-width: 720px;
+        text-align: center;
+        font-size: 0.82rem;
         color: var(--muted);
       }
-      .dl-foot {
-        margin-top: 24px;
-        font-size: 13.5px;
-        color: var(--faint);
+      .dl-foot a { color: var(--accent); font-weight: 600; text-decoration: none; }
+      .dl-foot a:hover { text-decoration: underline; }
+      .dl-foot code {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1px 6px;
+        font-size: 0.84em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
-      .dl-foot a { color: var(--muted); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--line-strong); transition: color 0.15s; }
-      .dl-foot a:hover { color: var(--ink); }
-      .dl-foot code { font: 500 12.5px var(--font-mono); color: var(--ink); }
-      @media (max-width: 760px) {
-        .dl-row { grid-template-columns: 1fr; gap: 10px; }
-        .dl-row .meta { white-space: normal; }
+      @media (max-width: 600px) {
+        .dl-row { padding: 16px 18px; }
+        .dl-row .meta { display: none; }
+        .dl-links { margin-left: auto; }
       }
 
       /* faq */
-      .faq { max-width: 680px; border-top: 1px solid var(--line-strong); }
-      .faq details { border-bottom: 1px solid var(--line); }
+      .faq {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .faq details {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: var(--surface);
+        padding: 16px 18px;
+        margin-bottom: 10px;
+      }
       .faq summary {
-        list-style: none;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
         cursor: pointer;
-        padding: 19px 2px;
-        font-size: 15.5px;
-        font-weight: 500;
-        letter-spacing: -0.01em;
-        transition: color 0.15s;
+        font-weight: 700;
+        font-size: 0.95rem;
       }
-      .faq summary::-webkit-details-marker { display: none; }
-      .faq summary::after {
-        content: "+";
-        font: 300 19px var(--font-sans);
-        color: var(--faint);
-        transition: transform 0.2s;
-        flex: none;
-      }
-      .faq details[open] summary::after { transform: rotate(45deg); }
-      .faq summary:hover { color: var(--accent); }
       .faq p {
-        margin: 0;
-        padding: 0 2px 20px;
+        margin: 10px 0 0;
         color: var(--muted);
-        font-size: 14.5px;
-        max-width: 60ch;
+        font-size: 0.9rem;
       }
 
       /* footer */
       footer {
-        margin-top: 110px;
-        border-top: 1px solid var(--line);
-        padding: 30px 0 46px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px 26px;
-        font-size: 13.5px;
-        color: var(--faint);
+        margin-top: 64px;
+        padding: 26px 0 40px;
+        border-top: 1px solid var(--border);
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
       }
-      footer .spacer { flex: 1; }
-      footer a { color: var(--muted); transition: color 0.15s; }
-      footer a:hover { color: var(--ink); }
+      footer a { color: var(--muted); font-weight: 600; }
+      footer a:hover { color: var(--text); }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+
+      @media (max-width: 760px) {
+        .steps,
+        .features {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .hero { padding-top: 36px; }
+      }
     </style>
   </head>
   <body>
-    <nav class="nav">
-      <div class="nav-inner">
-        <a class="brand" href="#">
-          <img src="/assets/logo.svg" alt="" width="24" height="24" />
+    <div class="wrap">
+      <header class="site-head">
+        <a class="site-brand" href="/">
+          <img src="/assets/logo.svg" alt="" width="28" height="28" />
           DropLocal
         </a>
-        <div class="nav-links">
-          <a href="#how" data-i18n="nav.how"></a>
-          <a href="#features" data-i18n="nav.features"></a>
-          <a href="#download" data-i18n="nav.download"></a>
-          <a href="#faq">FAQ</a>
-        </div>
-        <div class="nav-spacer"></div>
-        <a class="nav-gh" href="https://github.com/shiyuanhai/droplocal" rel="noopener" aria-label="GitHub repository">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-2.15c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.73-1.53-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.78 1.05.78 2.12v3.14c0 .3.2.66.8.55A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
-          GitHub
-        </a>
-        <select class="lang-select" id="langSelect" aria-label="Language">
-          <option value="en">English</option>
-          <option value="zh">中文</option>
-          <option value="ja">日本語</option>
-        </select>
-      </div>
-    </nav>
-
-    <div class="wrap">
-      <header class="hero">
-        <a class="pill" id="versionBadge" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">Open source · MIT</a>
-        <h1><span data-i18n="hero.line1"></span> <em data-i18n="hero.line2"></em></h1>
-        <p class="lede" data-i18n="hero.lede"></p>
-
-        <div class="cta-row">
-          <a class="btn-primary" id="heroCta" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">
-            <span id="heroCtaLabel"></span>
-            <span class="sub" id="heroCtaSub"></span>
+        <div class="head-actions">
+          <a class="gh-link" href="https://github.com/shiyuanhai/droplocal" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-2.15c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.73-1.53-2.55-.29-5.23-1.28-5.23-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.25 5.67.41.35.78 1.05.78 2.12v3.14c0 .3.2.66.8.55A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+            GitHub
           </a>
-          <span class="npx-pill">
-            <span class="dollar" aria-hidden="true">$</span>
-            <code>npx droplocal</code>
-            <button type="button" class="copy-btn" id="copyNpx" aria-label="Copy command">
-              <svg id="copyIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-          </span>
-        </div>
-        <p class="hero-note"><span data-i18n="hero.note"></span> <a href="#download" data-i18n="hero.allplatforms"></a></p>
-
-        <div class="shot">
-          <img src="/assets/screenshot-desktop.webp" alt="DropLocal desktop app showing a shared drop stream and a QR code to connect another device" width="1600" height="1047" fetchpriority="high" />
+          <select class="lang-select" id="langSelect" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
         </div>
       </header>
 
       <main>
-        <section id="how">
-          <div class="rule">
-            <p class="kicker" data-i18n="how.eyebrow"></p>
-            <h2 class="sec-title" data-i18n-html="how.title"></h2>
-            <p class="sec-sub" data-i18n="how.sub"></p>
+        <header class="hero">
+          <a class="pill" id="versionBadge" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">Open source · MIT</a>
+          <h1><span data-i18n="hero.line1"></span> <span class="grad" data-i18n="hero.line2"></span></h1>
+          <p class="lede" data-i18n="hero.lede"></p>
+          <div class="cta-row">
+            <a class="btn primary" id="heroCta" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">
+              <span id="heroCtaLabel"></span>
+              <span class="sub" id="heroCtaSub"></span>
+            </a>
+            <span class="npx-box">
+              <code>npx droplocal</code>
+              <button type="button" id="copyNpx" data-i18n="cta.copy"></button>
+            </span>
           </div>
+          <p class="hero-note"><span data-i18n="hero.note"></span> <a href="#download" data-i18n="hero.allplatforms"></a></p>
+
+          <figure class="shot" style="margin-left:auto;margin-right:auto">
+            <div class="shot-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+            <img src="/assets/screenshot-desktop.webp" alt="DropLocal app showing a shared drop stream and a QR code to connect another device at drop.local" width="2200" height="1440" fetchpriority="high" />
+          </figure>
+        </header>
+
+        <section id="how">
+          <h2 class="sec-title" data-i18n="how.title"></h2>
           <div class="steps">
             <div class="step">
-              <span class="num">01</span>
+              <span class="step-num" aria-hidden="true">1</span>
               <h3 data-i18n="how.1.title"></h3>
               <p data-i18n="how.1.body"></p>
             </div>
             <div class="step">
-              <span class="num">02</span>
+              <span class="step-num" aria-hidden="true">2</span>
               <h3 data-i18n="how.2.title"></h3>
               <p data-i18n="how.2.body"></p>
             </div>
             <div class="step">
-              <span class="num">03</span>
+              <span class="step-num" aria-hidden="true">3</span>
               <h3 data-i18n="how.3.title"></h3>
               <p data-i18n="how.3.body"></p>
             </div>
@@ -560,86 +538,78 @@
         </section>
 
         <section id="features">
-          <div class="rule">
-            <p class="kicker" data-i18n="feat.eyebrow"></p>
-            <h2 class="sec-title" data-i18n-html="feat.title"></h2>
-            <p class="sec-sub" data-i18n="feat.sub"></p>
-          </div>
-          <div class="feats">
-            <div class="feat">
-              <h3 data-i18n="feat.nocloud.title"></h3>
+          <h2 class="sec-title" data-i18n="feat.title"></h2>
+          <div class="features">
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 13a6.5 6.5 0 10-12.9-1A5 5 0 006 21.9h11a4.5 4.5 0 001-8.9z"/><path d="M4 4l16 17" /></svg><span data-i18n="feat.nocloud.title"></span></h3>
               <p data-i18n="feat.nocloud.body"></p>
             </div>
-            <div class="feat">
-              <h3 data-i18n="feat.devices.title"></h3>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="4" width="13" height="10" rx="2"/><path d="M6 20h5M8.5 14v6"/><rect x="16" y="8" width="6" height="12" rx="2"/></svg><span data-i18n="feat.devices.title"></span></h3>
               <p data-i18n="feat.devices.body"></p>
             </div>
-            <div class="feat">
-              <h3>drop.local</h3>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="17" r="1.6"/><path d="M5.5 12.5a9 9 0 0113 0M2 9a14 14 0 0120 0"/></svg><span>drop.local</span></h3>
               <p data-i18n="feat.local.body"></p>
             </div>
-            <div class="feat">
-              <h3 data-i18n="feat.paste.title"></h3>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2.5" width="8" height="4" rx="1.4"/><path d="M16 4.5h2.5a1.5 1.5 0 011.5 1.5v14a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 20V6a1.5 1.5 0 011.5-1.5H8"/><path d="M9 13l2 2 4-4.5"/></svg><span data-i18n="feat.paste.title"></span></h3>
               <p data-i18n="feat.paste.body"></p>
             </div>
-            <div class="feat">
-              <h3 data-i18n="feat.sync.title"></h3>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M5 10l7-7 7 7M19 14l-7 7-7-7"/></svg><span data-i18n="feat.sync.title"></span></h3>
               <p data-i18n="feat.sync.body"></p>
             </div>
-            <div class="feat">
-              <h3 data-i18n="feat.oss.title"></h3>
+            <div class="feature">
+              <h3><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/></svg><span data-i18n="feat.oss.title"></span></h3>
               <p data-i18n="feat.oss.body"></p>
             </div>
           </div>
         </section>
 
         <section id="download">
-          <div class="rule">
-            <p class="kicker" data-i18n="dl.eyebrow"></p>
-            <h2 class="sec-title" data-i18n-html="dl.title"></h2>
-            <p class="sec-sub" data-i18n="dl.sub"></p>
-          </div>
-          <div class="dl-rows">
-            <div class="dl-row" data-os="mac">
+          <h2 class="sec-title" data-i18n="dl.title"></h2>
+          <div class="dl-card">
+            <div class="dl-row">
               <span class="os">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
                 macOS
               </span>
               <span class="meta" data-meta="dmg">Apple Silicon · .dmg</span>
-              <span class="links">
+              <span class="dl-links">
                 <a class="dl-btn" data-asset="dmg" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
                   .dmg
                 </a>
               </span>
             </div>
-            <div class="dl-row" data-os="win">
+            <div class="dl-row">
               <span class="os">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.55l7.36-1V11H3V5.55zM3 18.45V13h7.36v6.45L3 18.45zM11.64 4.4L21 3v8h-9.36V4.4zM21 13v8l-9.36-1.4V13H21z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.55l7.36-1V11H3V5.55zM3 18.45V13h7.36v6.45L3 18.45zM11.64 4.4L21 3v8h-9.36V4.4zM21 13v8l-9.36-1.4V13H21z"/></svg>
                 Windows
               </span>
               <span class="meta" data-meta="exe">x64 · .exe / .msi</span>
-              <span class="links">
+              <span class="dl-links">
                 <a class="dl-btn" data-asset="exe" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
                   .exe
                 </a>
-                <a class="dl-btn alt" data-asset="msi" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.msi</a>
+                <a class="dl-btn" data-asset="msi" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.msi</a>
               </span>
             </div>
-            <div class="dl-row" data-os="linux">
+            <div class="dl-row">
               <span class="os">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
                 Linux
               </span>
               <span class="meta" data-meta="appimage">x86_64 · AppImage / deb / rpm</span>
-              <span class="links">
+              <span class="dl-links">
                 <a class="dl-btn" data-asset="appimage" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M6 11l6 6 6-6M4 21h16"/></svg>
                   .AppImage
                 </a>
-                <a class="dl-btn alt" data-asset="deb" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.deb</a>
-                <a class="dl-btn alt" data-asset="rpm" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.rpm</a>
+                <a class="dl-btn" data-asset="deb" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.deb</a>
+                <a class="dl-btn" data-asset="rpm" href="https://github.com/shiyuanhai/droplocal/releases/latest" rel="noopener">.rpm</a>
               </span>
             </div>
           </div>
@@ -650,11 +620,8 @@
         </section>
 
         <section id="faq">
-          <div class="rule">
-            <p class="kicker">FAQ</p>
-            <h2 class="sec-title" data-i18n="faq.title"></h2>
-          </div>
-          <div class="faq" style="margin-top: 40px">
+          <h2 class="sec-title" data-i18n="faq.title"></h2>
+          <div class="faq">
             <details>
               <summary data-i18n="faq.1.q"></summary>
               <p data-i18n="faq.1.a"></p>
@@ -677,23 +644,22 @@
 
       <footer>
         <span data-i18n="footer.tag"></span>
-        <span class="spacer"></span>
+        ·
         <a href="https://github.com/shiyuanhai/droplocal" rel="noopener">GitHub</a>
-        <a href="https://github.com/shiyuanhai/droplocal/blob/main/LICENSE" rel="noopener">MIT License</a>
+        ·
+        <a href="https://github.com/shiyuanhai/droplocal/blob/main/LICENSE" rel="noopener">MIT</a>
       </footer>
     </div>
 
     <script type="application/json" id="i18n-data">
 {
   "en": {
-    "nav.how": "How it works",
-    "nav.features": "Features",
-    "nav.download": "Download",
     "hero.line1": "Share between your devices.",
     "hero.line2": "No cloud in between.",
     "hero.lede": "DropLocal runs a tiny server on one device. Every other device on your Wi-Fi just opens a page in the browser — drop files, paste screenshots, send notes. Nothing leaves your network.",
     "hero.note": "Free & open source · No account needed ·",
-    "hero.allplatforms": "All platforms",
+    "hero.allplatforms": "All platforms ↓",
+    "cta.copy": "Copy",
     "cta.mac": "Download for macOS",
     "cta.win": "Download for Windows",
     "cta.linux": "Download for Linux",
@@ -702,18 +668,14 @@
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
     "cta.sub.generic": "",
-    "how.eyebrow": "How it works",
-    "how.title": "Three steps. <em>Zero setup</em> on other devices.",
-    "how.sub": "One device hosts. Everything else — phones, tablets, TVs, other computers — joins from the browser.",
+    "how.title": "How it works",
     "how.1.title": "Start it",
     "how.1.body": "Open the desktop app, or run npx droplocal in a terminal.",
     "how.2.title": "Open it anywhere",
     "how.2.body": "On the other device, scan the QR code or type drop.local in the browser. Nothing to install.",
     "how.3.title": "Drop",
     "how.3.body": "Files, screenshots and notes appear on every connected device instantly.",
-    "feat.eyebrow": "Features",
-    "feat.title": "Built for devices that sit <em>next to each other.</em>",
-    "feat.sub": "On the same Wi-Fi, sharing shouldn't require a server on another continent.",
+    "feat.title": "Why DropLocal",
     "feat.nocloud.title": "No cloud, no accounts",
     "feat.nocloud.body": "Your files travel one hop across your own Wi-Fi — never through someone else's server.",
     "feat.devices.title": "Every device works",
@@ -725,9 +687,7 @@
     "feat.sync.body": "One shared stream over WebSocket — everyone sees new drops the moment they land.",
     "feat.oss.title": "Open source",
     "feat.oss.body": "MIT licensed. Read every line of what runs on your network.",
-    "dl.eyebrow": "Download",
-    "dl.title": "Get DropLocal for <em>your desktop.</em>",
-    "dl.sub": "Phones and tablets don't need anything — they join from the browser.",
+    "dl.title": "Download",
     "dl.cli": "Prefer the terminal? Node 18+ and",
     "dl.all": "All releases & checksums",
     "faq.title": "Questions",
@@ -742,14 +702,12 @@
     "footer.tag": "Made for your home network"
   },
   "zh": {
-    "nav.how": "如何使用",
-    "nav.features": "功能",
-    "nav.download": "下载",
     "hero.line1": "在你的设备之间分享，",
     "hero.line2": "无需经过云端。",
     "hero.lede": "DropLocal 在一台设备上运行一个微型服务器，同一 Wi-Fi 下的其他设备只需在浏览器中打开一个页面——拖入文件、粘贴截图、发送文字。一切都不会离开你的网络。",
     "hero.note": "免费开源 · 无需账号 ·",
-    "hero.allplatforms": "全部平台",
+    "hero.allplatforms": "全部平台 ↓",
+    "cta.copy": "复制",
     "cta.mac": "下载 macOS 版",
     "cta.win": "下载 Windows 版",
     "cta.linux": "下载 Linux 版",
@@ -758,18 +716,14 @@
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
     "cta.sub.generic": "",
-    "how.eyebrow": "如何使用",
-    "how.title": "三步开始，其他设备<em>零配置</em>。",
-    "how.sub": "一台设备做主机，其余的——手机、平板、电视、其他电脑——用浏览器即可加入。",
+    "how.title": "如何使用",
     "how.1.title": "启动",
     "how.1.body": "打开桌面应用，或在终端运行 npx droplocal。",
     "how.2.title": "随处打开",
     "how.2.body": "在另一台设备上扫描二维码，或在浏览器输入 drop.local。无需安装任何东西。",
     "how.3.title": "放入",
     "how.3.body": "文件、截图和文字会立刻出现在所有已连接的设备上。",
-    "feat.eyebrow": "功能",
-    "feat.title": "为<em>近在咫尺</em>的设备而设计。",
-    "feat.sub": "同一个 Wi-Fi 下的分享，不该绕道另一个大洲的服务器。",
+    "feat.title": "为什么选 DropLocal",
     "feat.nocloud.title": "无云端，无账号",
     "feat.nocloud.body": "文件只在你自己的 Wi-Fi 内传输一跳——绝不经过别人的服务器。",
     "feat.devices.title": "任何设备都能用",
@@ -781,9 +735,7 @@
     "feat.sync.body": "一条基于 WebSocket 的共享流——新内容落地的瞬间所有人都能看到。",
     "feat.oss.title": "开源",
     "feat.oss.body": "MIT 许可。在你网络上运行的每一行代码都可以审查。",
-    "dl.eyebrow": "下载",
-    "dl.title": "获取 <em>DropLocal</em> 桌面版。",
-    "dl.sub": "手机和平板无需安装——浏览器直接加入。",
+    "dl.title": "下载",
     "dl.cli": "偏好终端？Node 18+ 加上",
     "dl.all": "全部版本与校验和",
     "faq.title": "常见问题",
@@ -798,14 +750,12 @@
     "footer.tag": "为你的家庭网络而生"
   },
   "ja": {
-    "nav.how": "使い方",
-    "nav.features": "特長",
-    "nav.download": "ダウンロード",
     "hero.line1": "デバイス間で共有。",
     "hero.line2": "クラウドを介さずに。",
     "hero.lede": "DropLocalは1台のデバイスで小さなサーバーを起動します。同じWi-Fi上の他のデバイスはブラウザでページを開くだけ——ファイルをドロップ、スクリーンショットを貼り付け、メモを送信。すべてがあなたのネットワークの中で完結します。",
     "hero.note": "無料・オープンソース · アカウント不要 ·",
-    "hero.allplatforms": "全プラットフォーム",
+    "hero.allplatforms": "全プラットフォーム ↓",
+    "cta.copy": "コピー",
     "cta.mac": "macOS版をダウンロード",
     "cta.win": "Windows版をダウンロード",
     "cta.linux": "Linux版をダウンロード",
@@ -814,18 +764,14 @@
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
     "cta.sub.generic": "",
-    "how.eyebrow": "使い方",
-    "how.title": "3ステップ。他のデバイスは<em>設定ゼロ</em>。",
-    "how.sub": "1台がホストに。残りのスマホ・タブレット・TV・PCはブラウザから参加するだけ。",
+    "how.title": "使い方",
     "how.1.title": "起動する",
     "how.1.body": "デスクトップアプリを開くか、ターミナルで npx droplocal を実行。",
     "how.2.title": "どこでも開く",
     "how.2.body": "別のデバイスでQRコードをスキャンするか、ブラウザに drop.local と入力。インストール不要。",
     "how.3.title": "ドロップ",
     "how.3.body": "ファイル・スクリーンショット・メモが、接続中のすべてのデバイスに即座に表示されます。",
-    "feat.eyebrow": "特長",
-    "feat.title": "<em>すぐ隣にある</em>デバイスのために。",
-    "feat.sub": "同じWi-Fiの中での共有に、大陸の向こうのサーバーは要りません。",
+    "feat.title": "DropLocalの特長",
     "feat.nocloud.title": "クラウドなし、アカウントなし",
     "feat.nocloud.body": "ファイルは自分のWi-Fi内を1ホップ移動するだけ。他人のサーバーは経由しません。",
     "feat.devices.title": "どんなデバイスでも",
@@ -837,9 +783,7 @@
     "feat.sync.body": "WebSocketによる共有ストリーム。新しいドロップは瞬時に全員へ届きます。",
     "feat.oss.title": "オープンソース",
     "feat.oss.body": "MITライセンス。あなたのネットワークで動くコードをすべて確認できます。",
-    "dl.eyebrow": "ダウンロード",
-    "dl.title": "デスクトップ版<em>DropLocal</em>を入手。",
-    "dl.sub": "スマホ・タブレットはブラウザから参加するだけです。",
+    "dl.title": "ダウンロード",
     "dl.cli": "ターミナル派なら Node 18+ と",
     "dl.all": "全リリースとチェックサム",
     "faq.title": "よくある質問",
@@ -865,7 +809,6 @@
         var select = document.getElementById("langSelect");
         var currentLang = "en";
 
-        /* ---------- i18n ---------- */
         function detectLang() {
           var fromQuery = new URLSearchParams(location.search).get("lang");
           if (fromQuery && SUPPORTED.indexOf(fromQuery) !== -1) return fromQuery;
@@ -888,8 +831,6 @@
           return table[key] || I18N.en[key] || key;
         }
 
-        /* i18n-html values are trusted literals from this file's own JSON
-           (only <em> markup) — never user input. */
         function applyLang(lang) {
           currentLang = lang;
           try { localStorage.setItem("droplocal-lang", lang); } catch (_e) {}
@@ -899,16 +840,11 @@
           for (var i = 0; i < nodes.length; i += 1) {
             nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
           }
-          var htmlNodes = document.querySelectorAll("[data-i18n-html]");
-          for (var j = 0; j < htmlNodes.length; j += 1) {
-            htmlNodes[j].innerHTML = t(htmlNodes[j].getAttribute("data-i18n-html"));
-          }
           applyHeroCta();
         }
 
         select.addEventListener("change", function () { applyLang(select.value); });
 
-        /* ---------- OS detection ---------- */
         function detectOS() {
           var ua = navigator.userAgent || "";
           var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || "";
@@ -933,7 +869,6 @@
           }
         }
 
-        /* ---------- Latest release links via GitHub API ---------- */
         var ASSET_PATTERNS = {
           dmg: /aarch64\.dmg$/i,
           exe: /setup\.exe$/i,
@@ -978,16 +913,21 @@
             .catch(function () { /* keep releases-page fallback links */ });
         }
 
-        /* ---------- copy npx ---------- */
         var copyBtn = document.getElementById("copyNpx");
-        var COPY_SVG = copyBtn.innerHTML;
-        var CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>';
         copyBtn.addEventListener("click", function () {
-          if (!navigator.clipboard) return;
-          navigator.clipboard.writeText("npx droplocal").then(function () {
-            copyBtn.innerHTML = CHECK_SVG;
-            setTimeout(function () { copyBtn.innerHTML = COPY_SVG; }, 1400);
-          });
+          var original = copyBtn.textContent;
+          function done(ok) {
+            copyBtn.textContent = ok ? "✓" : original;
+            setTimeout(function () { copyBtn.textContent = original; }, 1200);
+          }
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText("npx droplocal").then(
+              function () { done(true); },
+              function () { done(false); }
+            );
+          } else {
+            done(false);
+          }
         });
 
         applyLang(detectLang());
