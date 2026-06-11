@@ -116,6 +116,14 @@
             <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
             <span data-i18n="settings.notify"></span>
           </label>
+          <label class="check">
+            <input id="autostartInput" name="launchAtLogin" type="checkbox" />
+            <span data-i18n="settings.autostart"></span>
+          </label>
+          <label class="check" id="dockIconRow" hidden>
+            <input id="dockIconInput" name="showDockIcon" type="checkbox" />
+            <span data-i18n="settings.dockIcon"></span>
+          </label>
           <input id="showQrInput" type="hidden" />
           <p class="settings-desc" data-i18n="settings.desc"></p>
           <div class="modal-actions">
@@ -167,6 +175,8 @@
     "settings.expire": "Auto-delete after (minutes, 0 = never)",
     "settings.autoClean": "Delete shared files when the app quits",
     "settings.notify": "Notify when a new device connects",
+    "settings.autostart": "Launch at login",
+    "settings.dockIcon": "Show Dock icon",
     "settings.save": "Save",
     "settings.cancel": "Cancel",
     "settings.notifyDrop": "Notify when something is dropped"
@@ -208,6 +218,8 @@
     "settings.expire": "自动删除时间（分钟，0 = 永不）",
     "settings.autoClean": "退出应用时删除已分享的文件",
     "settings.notify": "新设备连接时通知",
+    "settings.autostart": "登录时自动启动",
+    "settings.dockIcon": "在 Dock 中显示图标",
     "settings.save": "保存",
     "settings.cancel": "取消",
     "settings.notifyDrop": "收到新内容时通知"
@@ -249,6 +261,8 @@
     "settings.expire": "自動削除（分、0 = しない）",
     "settings.autoClean": "アプリ終了時に共有ファイルを削除",
     "settings.notify": "新しいデバイス接続時に通知",
+    "settings.autostart": "ログイン時に自動起動",
+    "settings.dockIcon": "Dock にアイコンを表示",
     "settings.save": "保存",
     "settings.cancel": "キャンセル",
     "settings.notifyDrop": "新しいドロップを通知"
@@ -291,6 +305,8 @@
     "settings.autoClean": "앱 종료 시 공유 파일 삭제",
     "settings.notifyDrop": "새 드롭 알림",
     "settings.notify": "새 기기 연결 시 알림",
+    "settings.autostart": "로그인 시 자동 시작",
+    "settings.dockIcon": "Dock 아이콘 표시",
     "settings.save": "저장",
     "settings.cancel": "취소"
   },
@@ -332,6 +348,8 @@
     "settings.autoClean": "Eliminar archivos compartidos al salir",
     "settings.notifyDrop": "Notificar cuando llegue algo",
     "settings.notify": "Notificar cuando se conecte un dispositivo",
+    "settings.autostart": "Abrir al iniciar sesión",
+    "settings.dockIcon": "Mostrar icono en el Dock",
     "settings.save": "Guardar",
     "settings.cancel": "Cancelar"
   },
@@ -373,6 +391,8 @@
     "settings.autoClean": "Geteilte Dateien beim Beenden löschen",
     "settings.notifyDrop": "Bei neuen Drops benachrichtigen",
     "settings.notify": "Bei neuen Geräten benachrichtigen",
+    "settings.autostart": "Beim Anmelden starten",
+    "settings.dockIcon": "Dock-Symbol anzeigen",
     "settings.save": "Speichern",
     "settings.cancel": "Abbrechen"
   },
@@ -414,6 +434,8 @@
     "settings.autoClean": "Supprimer les fichiers partagés à la fermeture",
     "settings.notifyDrop": "Notifier les nouveaux dépôts",
     "settings.notify": "Notifier les nouveaux appareils",
+    "settings.autostart": "Lancer à la connexion",
+    "settings.dockIcon": "Afficher l'icône dans le Dock",
     "settings.save": "Enregistrer",
     "settings.cancel": "Annuler"
   }

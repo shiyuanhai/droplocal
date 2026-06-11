@@ -15,6 +15,12 @@ pub struct DesktopSettings {
     pub pin: String,
     #[serde(default)]
     pub expire_minutes: u32,
+    /// macOS only: show the Dock icon (Regular activation policy). Off by
+    /// default — DropLocal lives in the menu bar.
+    #[serde(default)]
+    pub show_dock_icon: bool,
+    #[serde(default)]
+    pub launch_at_login: bool,
 }
 
 impl Default for DesktopSettings {
@@ -33,6 +39,8 @@ impl Default for DesktopSettings {
             notify_on_new_drop: true,
             pin: String::new(),
             expire_minutes: 0,
+            show_dock_icon: false,
+            launch_at_login: false,
         }
     }
 }
@@ -109,5 +117,20 @@ mod tests {
 
         let path = settings.resolved_storage_dir();
         assert!(path.ends_with("droplocal"));
+    }
+
+    #[test]
+    fn settings_parse_pre_1_2_file() {
+        // A settings.json written by <= 1.1.x has no menu-bar fields.
+        let raw = r#"{
+            "port": 0,
+            "storageDir": "~/Downloads/DropLocal",
+            "showQrInTray": true,
+            "autoCleanOnQuit": false,
+            "notifyOnDeviceConnect": false
+        }"#;
+        let parsed: DesktopSettings = serde_json::from_str(raw).expect("parse old settings");
+        assert!(!parsed.show_dock_icon);
+        assert!(!parsed.launch_at_login);
     }
 }

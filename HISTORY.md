@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-06-11
+
+### Changed
+
+- The desktop app is now **menu-bar-first** on macOS and Windows: no Dock icon
+  on macOS by default (Settings → "Show Dock icon" brings it back), and the
+  dashboard opens automatically only on the very first launch — afterwards the
+  app starts silently in the menu bar / tray. On Linux the window keeps its
+  classic behavior (not every desktop shows a tray).
+- Closing the dashboard window now hides it while the server keeps running;
+  quitting lives in the tray menu (macOS/Windows).
+- The tray menu shows live status ("Running — drop.local" / "Stopped") and the
+  start/stop label follows the server state.
+- Relaunching the app (Spotlight, Finder, a second double-click) now reveals
+  the running instance's dashboard instead of doing nothing or starting a
+  duplicate.
+
+### Added
+
+- "Launch at login" setting (macOS, Windows, Linux).
+
 ## [1.2.0] - 2026-06-11
 
 ### Added

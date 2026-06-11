@@ -10,10 +10,11 @@ use qrcode::QrCode;
 use server::{RuntimeStatus, ServerConfig, ServerRuntime};
 use settings::{load_or_default, save as save_settings_file, DesktopSettings};
 use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Emitter, Manager, State,
+    menu::{MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem},
+    tray::TrayIconBuilder,
+    AppHandle, Emitter, Manager, State, WindowEvent, Wry,
 };
+use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
@@ -25,6 +26,12 @@ struct ManagedState {
     settings_path: PathBuf,
     settings: Mutex<DesktopSettings>,
     runtime: Mutex<Option<ServerRuntime>>,
+}
+
+/// Tray menu items whose labels track the server state.
+struct TrayHandles {
+    status: MenuItem<Wry>,
+    toggle: MenuItem<Wry>,
 }
 
 #[tauri::command]
@@ -61,6 +68,7 @@ async fn get_settings(state: State<'_, ManagedState>) -> Result<DesktopSettings,
 
 #[tauri::command]
 async fn save_settings(
+    app: AppHandle,
     state: State<'_, ManagedState>,
     settings: DesktopSettings,
 ) -> Result<(), String> {
@@ -73,7 +81,10 @@ async fn save_settings(
 
     save_settings_file(&state.settings_path, &validated)
         .await
-        .map_err(|error| error.to_string())
+        .map_err(|error| error.to_string())?;
+
+    apply_system_integration(&app, &validated);
+    Ok(())
 }
 
 #[tauri::command]
@@ -130,13 +141,16 @@ async fn current_primary_url(app: &AppHandle) -> Result<String, String> {
 async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
     let state = app.state::<ManagedState>();
 
-    {
+    // Snapshot under the lock, emit after releasing it — emit_runtime_update
+    // blocks on a main-thread dispatch (tray text), and the Exit handler
+    // locks this mutex from the main thread.
+    let existing_snapshot = {
         let existing = state.runtime.lock().await;
-        if let Some(runtime) = existing.as_ref() {
-            let snapshot = runtime.snapshot();
-            emit_runtime_update(app, &snapshot);
-            return Ok(snapshot);
-        }
+        existing.as_ref().map(|runtime| runtime.snapshot())
+    };
+    if let Some(snapshot) = existing_snapshot {
+        emit_runtime_update(app, &snapshot);
+        return Ok(snapshot);
     }
 
     let settings = { state.settings.lock().await.clone() };
@@ -188,6 +202,86 @@ async fn stop_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
 
 fn emit_runtime_update(app: &AppHandle, status: &RuntimeStatus) {
     let _ = app.emit("droplocal://runtime-updated", status.clone());
+
+    if let Some(handles) = app.try_state::<TrayHandles>() {
+        let _ = handles.status.set_text(tray_status_text(status));
+        let _ = handles.toggle.set_text(if status.running {
+            "Stop Server"
+        } else {
+            "Start Server"
+        });
+    }
+}
+
+fn tray_status_text(status: &RuntimeStatus) -> String {
+    if !status.running {
+        return "Stopped".to_string();
+    }
+
+    let url = if status.friendly_url.is_empty() {
+        &status.primary_url
+    } else {
+        &status.friendly_url
+    };
+    let host = url
+        .trim_start_matches("http://")
+        .trim_start_matches("https://")
+        .trim_end_matches('/');
+
+    if host.is_empty() {
+        "Running".to_string()
+    } else {
+        format!("Running — {host}")
+    }
+}
+
+/// Sync OS-level presentation with the saved settings: Dock icon visibility
+/// (macOS activation policy) and the login item. Both are best-effort —
+/// failures are logged, never surfaced as save errors.
+fn apply_system_integration(app: &AppHandle, settings: &DesktopSettings) {
+    #[cfg(target_os = "macos")]
+    {
+        let policy = if settings.show_dock_icon {
+            tauri::ActivationPolicy::Regular
+        } else {
+            tauri::ActivationPolicy::Accessory
+        };
+        if let Err(error) = app.set_activation_policy(policy) {
+            eprintln!("droplocal: failed to set activation policy: {error}");
+        }
+    }
+
+    let autolaunch = app.autolaunch();
+    let result = if settings.launch_at_login {
+        // enable() idempotently rewrites the login item with the current
+        // executable path, healing stale entries (dev builds, app moves) —
+        // so it runs on every launch, not only on state mismatch. Never
+        // record a Gatekeeper-translocated or DMG path: it dies on reboot.
+        let translocated = std::env::current_exe().is_ok_and(|exe| {
+            let exe = exe.to_string_lossy().to_string();
+            exe.contains("/AppTranslocation/") || exe.starts_with("/Volumes/")
+        });
+        if translocated {
+            eprintln!(
+                "droplocal: skipping launch-at-login registration from a temporary path; move DropLocal to /Applications first"
+            );
+            Ok(())
+        } else {
+            autolaunch.enable()
+        }
+    } else {
+        match autolaunch.is_enabled() {
+            Ok(true) => autolaunch.disable(),
+            Ok(false) => Ok(()),
+            Err(error) => {
+                eprintln!("droplocal: failed to query launch-at-login: {error}");
+                Ok(())
+            }
+        }
+    };
+    if let Err(error) = result {
+        eprintln!("droplocal: failed to update launch-at-login: {error}");
+    }
 }
 
 /// Update check with a consent dialog. Runs on launch (quiet when already
@@ -317,14 +411,13 @@ fn reveal_main_window(app: &AppHandle) {
 }
 
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
-    let status_item = MenuItemBuilder::with_id("status", "DropLocal status is in dashboard")
+    let status_item = MenuItemBuilder::with_id("status", "Starting…")
         .enabled(false)
         .build(app)?;
     let show_item = MenuItemBuilder::with_id("show_window", "Open Dashboard").build(app)?;
     let open_item = MenuItemBuilder::with_id("open_browser", "Open in Browser").build(app)?;
     let copy_item = MenuItemBuilder::with_id("copy_url", "Copy URL").build(app)?;
-    let toggle_item =
-        MenuItemBuilder::with_id("toggle_server", "Start / Stop Server").build(app)?;
+    let toggle_item = MenuItemBuilder::with_id("toggle_server", "Start Server").build(app)?;
     let update_item = MenuItemBuilder::with_id("check_updates", "Check for Updates").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "Quit DropLocal").build(app)?;
     let separator_top = PredefinedMenuItem::separator(app)?;
@@ -343,6 +436,11 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             &quit_item,
         ])
         .build()?;
+
+    app.manage(TrayHandles {
+        status: status_item.clone(),
+        toggle: toggle_item.clone(),
+    });
 
     let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../../icons/tray-icon.png"))?;
 
@@ -399,16 +497,6 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 _ => {}
             }
         })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                reveal_main_window(tray.app_handle());
-            }
-        })
         .build(app)?;
 
     Ok(())
@@ -416,26 +504,60 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut app = tauri::Builder::default()
+        // Must be the first plugin so a second launch exits before doing
+        // any work; it reveals the running instance's dashboard instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            reveal_main_window(app);
+        }))
+        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .on_window_event(|window, event| {
+            // Menu-bar app: closing the dashboard hides it, the server keeps
+            // running. Quitting lives in the tray menu. Linux is exempt —
+            // stock GNOME has no tray host, so the tray icon may not exist
+            // and closing the window must remain a real quit.
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                #[cfg(not(target_os = "linux"))]
+                {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                #[cfg(target_os = "linux")]
+                let _ = (window, api);
+            }
+        })
         .setup(|app| {
             let config_dir = app
                 .path()
                 .app_config_dir()
                 .context("unable to locate app config directory")?;
             let settings_path = config_dir.join("settings.json");
+            // load_or_default writes the file when it's missing, so a missing
+            // file here means this is the very first launch.
+            let first_run = !settings_path.exists();
             let settings = tauri::async_runtime::block_on(load_or_default(&settings_path))
                 .unwrap_or_else(|_| DesktopSettings::default());
 
             app.manage(ManagedState {
                 settings_path,
-                settings: Mutex::new(settings),
+                settings: Mutex::new(settings.clone()),
                 runtime: Mutex::new(None),
             });
 
             create_tray(app.handle())?;
+            apply_system_integration(app.handle(), &settings);
+
+            // Onboarding: show the dashboard (QR + share link) on the very
+            // first launch; later launches start silently in the menu bar.
+            // On Linux the window always shows — the tray is the only other
+            // affordance and not every desktop displays one.
+            if first_run || cfg!(target_os = "linux") {
+                reveal_main_window(app.handle());
+            }
 
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -465,6 +587,58 @@ pub fn run() {
             start_server,
             stop_server
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running DropLocal desktop");
+        .build(tauri::generate_context!())
+        .expect("error while building DropLocal desktop");
+
+    // Seed the activation policy before the event loop starts: the setup
+    // hook runs after AppKit applies the default Regular policy, so setting
+    // Accessory only there makes the Dock icon flash on every launch.
+    #[cfg(target_os = "macos")]
+    {
+        let show_dock = app
+            .path()
+            .app_config_dir()
+            .ok()
+            .map(|dir| dir.join("settings.json"))
+            .and_then(|path| std::fs::read_to_string(path).ok())
+            .and_then(|raw| serde_json::from_str::<DesktopSettings>(&raw).ok())
+            .map(|settings| settings.show_dock_icon)
+            .unwrap_or(false);
+        if !show_dock {
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        }
+    }
+
+    app.run(|app, event| match event {
+        // Tray app: keep the event loop alive when the last window closes
+        // (code is None). Programmatic exits — tray Quit, updater restart —
+        // carry Some(code) and pass through. On Linux the window is the
+        // primary surface, so closing it quits as before.
+        #[cfg(not(target_os = "linux"))]
+        tauri::RunEvent::ExitRequested { code: None, api, .. } => {
+            api.prevent_exit();
+        }
+        // macOS: relaunching the app (Finder/Spotlight/Launchpad/Dock) while
+        // the window is hidden delivers a reopen event — show the dashboard.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => {
+            reveal_main_window(app);
+        }
+        // Cmd+Q / NSApp `terminate:` skips ExitRequested entirely on macOS;
+        // Exit is the only hook that still fires there, so stop the server
+        // (mDNS unregister, auto-clean) here. Idempotent with the tray Quit
+        // path, which already stopped it.
+        tauri::RunEvent::Exit => {
+            let state = app.state::<ManagedState>();
+            let runtime =
+                tauri::async_runtime::block_on(async { state.runtime.lock().await.take() });
+            if let Some(mut runtime) = runtime {
+                let _ = tauri::async_runtime::block_on(runtime.stop());
+            }
+        }
+        _ => {}
+    });
 }
