@@ -23,6 +23,8 @@ DropLocal shares text snippets and files across devices on the same local networ
 - Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
 - **Connect card in the web UI**: QR code + address so any device can onboard the next one
 - Per-file upload progress, copy/download/delete actions
+- **Multi-select → .zip**: tap file icons to select several, download as one archive
+- **Markdown notes**: headings, lists, bold, links, and code blocks render properly
 - English, 简体中文, and 日本語 UI (auto-detected, switchable)
 - Light/dark theme, mobile-first layout
 - **Friendly address via mDNS/Bonjour** — `http://drop.local` instead of an IP
