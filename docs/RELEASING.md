@@ -64,7 +64,10 @@ gh secret set APPLE_PASSWORD                       # the app-specific password
 gh secret set APPLE_TEAM_ID                        # e.g. ABCDE12345
 
 gh secret set TAURI_SIGNING_PRIVATE_KEY < ~/.tauri/droplocal-updater.key
-gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body ""   # key has no password
+gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --body "$(cat ~/.tauri/droplocal-updater.key.password)"
+# The key IS password-protected (a passwordless key + empty-string secret made
+# tauri fail with "Wrong password for that key" on CI). The password lives in
+# ~/.tauri/droplocal-updater.key.password — back up both files together.
 ```
 
 ## 4. (Optional but recommended) local signing dry run
