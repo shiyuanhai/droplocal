@@ -14,6 +14,8 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, State,
 };
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
@@ -153,6 +155,8 @@ async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
         .map_err(|error| format!("failed to start server: {error}"))?;
     let snapshot = runtime.snapshot();
 
+    spawn_notification_listener(app.clone(), &runtime);
+
     {
         let mut slot = state.runtime.lock().await;
         *slot = Some(runtime);
@@ -186,10 +190,10 @@ fn emit_runtime_update(app: &AppHandle, status: &RuntimeStatus) {
     let _ = app.emit("droplocal://runtime-updated", status.clone());
 }
 
-/// Manual update check from the tray: install + relaunch when an update
-/// exists, otherwise do nothing. Failures are logged, never fatal — the
+/// Update check with a consent dialog. Runs on launch (quiet when already
+/// current) and from the tray. Failures are logged, never fatal — the
 /// updater only works on releases signed with the updater key.
-async fn check_for_updates(app: AppHandle) {
+async fn check_for_updates(app: AppHandle, manual: bool) {
     let updater = match app.updater() {
         Ok(updater) => updater,
         Err(error) => {
@@ -200,10 +204,29 @@ async fn check_for_updates(app: AppHandle) {
 
     match updater.check().await {
         Ok(Some(update)) => {
-            eprintln!(
-                "droplocal update {} available, downloading…",
-                update.version
-            );
+            let version = update.version.clone();
+            let dialog_app = app.clone();
+            let confirmed = tauri::async_runtime::spawn_blocking(move || {
+                dialog_app
+                    .dialog()
+                    .message(format!(
+                        "DropLocal {version} is available.\nInstall now and relaunch?"
+                    ))
+                    .title("Update available")
+                    .kind(MessageDialogKind::Info)
+                    .buttons(MessageDialogButtons::OkCancelCustom(
+                        "Install & Relaunch".to_string(),
+                        "Later".to_string(),
+                    ))
+                    .blocking_show()
+            })
+            .await
+            .unwrap_or(false);
+
+            if !confirmed {
+                return;
+            }
+
             match update.download_and_install(|_, _| {}, || {}).await {
                 Ok(()) => {
                     app.restart();
@@ -212,10 +235,77 @@ async fn check_for_updates(app: AppHandle) {
             }
         }
         Ok(None) => {
-            eprintln!("droplocal is up to date");
+            if manual {
+                let dialog_app = app.clone();
+                let _ = tauri::async_runtime::spawn_blocking(move || {
+                    dialog_app
+                        .dialog()
+                        .message("DropLocal is up to date.")
+                        .title("No updates")
+                        .kind(MessageDialogKind::Info)
+                        .blocking_show()
+                })
+                .await;
+            } else {
+                eprintln!("droplocal is up to date");
+            }
         }
         Err(error) => eprintln!("droplocal update check failed: {error}"),
     }
+}
+
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    let _ = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show();
+}
+
+/// Forward server events to desktop notifications, honoring the settings.
+fn spawn_notification_listener(app: AppHandle, runtime: &ServerRuntime) {
+    let mut events = runtime.subscribe_events();
+    tauri::async_runtime::spawn(async move {
+        let mut last_count: u64 = 0;
+        while let Ok(envelope) = events.recv().await {
+            let settings = {
+                let state = app.state::<ManagedState>();
+                let guard = state.settings.lock().await;
+                guard.clone()
+            };
+
+            match envelope.event.as_str() {
+                "device:count" => {
+                    let count = envelope
+                        .data
+                        .get("count")
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(0);
+                    if settings.notify_on_device_connect && count > last_count {
+                        notify(
+                            &app,
+                            "DropLocal",
+                            &format!("A device connected ({count} online)"),
+                        );
+                    }
+                    last_count = count;
+                }
+                "file:new" if settings.notify_on_new_drop => {
+                    let name = envelope
+                        .data
+                        .get("name")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("file");
+                    notify(&app, "New drop", name);
+                }
+                "snippet:new" if settings.notify_on_new_drop => {
+                    notify(&app, "New drop", "A note was shared");
+                }
+                _ => {}
+            }
+        }
+    });
 }
 
 fn reveal_main_window(app: &AppHandle) {
@@ -297,7 +387,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 }
                 "check_updates" => {
                     tauri::async_runtime::spawn(async move {
-                        check_for_updates(app_handle).await;
+                        check_for_updates(app_handle, true).await;
                     });
                 }
                 "quit" => {
@@ -328,6 +418,8 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let config_dir = app
                 .path()
@@ -350,6 +442,14 @@ pub fn run() {
                 if let Err(error) = start_server_inner(&app_handle).await {
                     eprintln!("droplocal desktop startup failed: {error}");
                 }
+            });
+
+            // Quiet update check shortly after launch; the dialog only
+            // appears when an update actually exists.
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+                check_for_updates(update_handle, false).await;
             });
 
             Ok(())
