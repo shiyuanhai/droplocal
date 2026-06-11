@@ -7,7 +7,7 @@ if (!invoke) {
 }
 
 const I18N = JSON.parse(document.getElementById("i18n-data").textContent);
-const SUPPORTED_LANGS = ["en", "zh", "ja"];
+const SUPPORTED_LANGS = ["en", "zh", "ja", "ko", "es", "de", "fr"];
 
 const refs = {
   langSelect: document.getElementById("langSelect"),
@@ -32,6 +32,7 @@ const refs = {
   expireInput: document.getElementById("expireInput"),
   showQrInput: document.getElementById("showQrInput"),
   autoCleanInput: document.getElementById("autoCleanInput"),
+  notifyDropInput: document.getElementById("notifyDropInput"),
   notifyDeviceInput: document.getElementById("notifyDeviceInput"),
   autostartInput: document.getElementById("autostartInput"),
   dockIconRow: document.getElementById("dockIconRow"),
@@ -58,6 +59,10 @@ function detectLang() {
   const nav = (navigator.language || "en").toLowerCase();
   if (nav.startsWith("zh")) return "zh";
   if (nav.startsWith("ja")) return "ja";
+  if (nav.startsWith("ko")) return "ko";
+  if (nav.startsWith("es")) return "es";
+  if (nav.startsWith("de")) return "de";
+  if (nav.startsWith("fr")) return "fr";
   return "en";
 }
 
@@ -220,6 +225,7 @@ async function loadSettings() {
     // setting is no longer surfaced as a checkbox but must round-trip.
     refs.showQrInput.value = settings.showQrInTray ? "1" : "";
     refs.autoCleanInput.checked = Boolean(settings.autoCleanOnQuit);
+    refs.notifyDropInput.checked = Boolean(settings.notifyOnNewDrop);
     refs.notifyDeviceInput.checked = Boolean(settings.notifyOnDeviceConnect);
     refs.autostartInput.checked = Boolean(settings.launchAtLogin);
     refs.dockIconInput.checked = Boolean(settings.showDockIcon);
@@ -238,6 +244,7 @@ async function saveSettings(event) {
     expireMinutes: Number.parseInt(refs.expireInput.value, 10) || 0,
     showQrInTray: refs.showQrInput.value === "1",
     autoCleanOnQuit: refs.autoCleanInput.checked,
+    notifyOnNewDrop: refs.notifyDropInput.checked,
     notifyOnDeviceConnect: refs.notifyDeviceInput.checked,
     launchAtLogin: refs.autostartInput.checked,
     showDockIcon: refs.dockIconInput.checked

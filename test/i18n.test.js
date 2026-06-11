@@ -5,7 +5,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const fs = require("node:fs");
 
-const REQUIRED_LANGS = ["en", "zh", "ja"];
+const REQUIRED_LANGS = ["en", "zh", "ja", "ko", "es", "de", "fr"];
 
 function extractI18nDictionary(htmlPath) {
   const html = fs.readFileSync(htmlPath, "utf8");
