@@ -154,6 +154,30 @@ test("files upload, list, download and delete", async () => {
   assert.deepEqual(await emptyList.json(), []);
 });
 
+test("zip download bundles selected files", async () => {
+  const form1 = new FormData();
+  form1.append("file", new Blob(["zip me first"], { type: "text/plain" }), "first.txt");
+  const upload1 = await (await fetch(`${baseUrl}/api/files`, { method: "POST", body: form1 })).json();
+
+  const form2 = new FormData();
+  form2.append("file", new Blob(["zip me second"], { type: "text/plain" }), "second.txt");
+  const upload2 = await (await fetch(`${baseUrl}/api/files`, { method: "POST", body: form2 })).json();
+
+  const response = await fetch(`${baseUrl}/api/files.zip?ids=${upload1.id},${upload2.id}`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("content-type"), "application/zip");
+
+  const buffer = Buffer.from(await response.arrayBuffer());
+  assert.deepEqual([...buffer.subarray(0, 4)], [0x50, 0x4b, 0x03, 0x04], "local header magic");
+  assert.ok(buffer.includes(Buffer.from([0x50, 0x4b, 0x05, 0x06])), "end of central directory");
+  assert.ok(buffer.includes(Buffer.from("first.txt")), "contains first name");
+  assert.ok(buffer.includes(Buffer.from("second.txt")), "contains second name");
+  assert.ok(buffer.includes(Buffer.from("zip me first")), "contains first body (stored)");
+
+  const missing = await fetch(`${baseUrl}/api/files.zip?ids=nope`);
+  assert.equal(missing.status, 404);
+});
+
 test("pin protection gates the api until /api/auth succeeds", async () => {
   const pinDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-pin-"));
   const pinApp = createDropLocalApp({ port: 0, dir: pinDir, pin: "4471" });

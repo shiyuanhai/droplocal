@@ -344,6 +344,47 @@
         }
       }
 
+      /* ---------- Selection bar ---------- */
+
+      .select-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 16px 10px;
+        padding: 8px 8px 8px 14px;
+        border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+        border-radius: 14px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .select-bar[hidden] {
+        display: none;
+      }
+
+      .select-count {
+        font-size: 0.84rem;
+        font-weight: 700;
+      }
+
+      .select-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .pill-btn.accent {
+        border-color: transparent;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+        color: #fff;
+      }
+
+      .pill-btn.accent:hover {
+        opacity: 0.93;
+        background: linear-gradient(135deg, var(--accent-a), var(--accent-b));
+      }
+
       /* ---------- Stream ---------- */
 
       .stream-wrap {
@@ -419,6 +460,25 @@
       .item-icon.kind-text {
         background: var(--surface-2);
         color: var(--accent);
+      }
+
+      button.item-icon {
+        border: none;
+        cursor: pointer;
+        transition: transform 0.1s ease, box-shadow 0.15s ease;
+      }
+
+      button.item-icon:hover {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+      }
+
+      button.item-icon:active {
+        transform: scale(0.94);
+      }
+
+      .item.selected {
+        border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+        background: color-mix(in srgb, var(--accent) 6%, var(--surface));
       }
 
       .item-main {
@@ -692,6 +752,63 @@
         word-break: break-all;
       }
 
+      /* markdown rendering inside notes */
+      .item-text h1,
+      .item-text h2,
+      .item-text h3 {
+        margin: 0 0 4px;
+        line-height: 1.3;
+        letter-spacing: -0.01em;
+      }
+
+      .item-text h1 {
+        font-size: 1.08rem;
+      }
+
+      .item-text h2 {
+        font-size: 1rem;
+      }
+
+      .item-text h3 {
+        font-size: 0.94rem;
+      }
+
+      .item-text p {
+        margin: 0 0 6px;
+      }
+
+      .item-text > :last-child {
+        margin-bottom: 0;
+      }
+
+      .item-text ul,
+      .item-text ol {
+        margin: 0 0 6px;
+        padding-left: 20px;
+        white-space: normal;
+      }
+
+      .item-text code {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 0 5px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.85em;
+      }
+
+      .item-text pre {
+        margin: 0 0 6px;
+        padding: 10px 12px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+
       .toast {
         position: fixed;
         left: 50%;
@@ -793,6 +910,17 @@
         </button>
       </section>
 
+      <div class="select-bar" id="selectBar" hidden>
+        <span class="select-count" id="selectCount"></span>
+        <div class="select-actions">
+          <button class="pill-btn" id="selectAllBtn" type="button" data-i18n="sel.all"></button>
+          <button class="pill-btn accent" id="zipBtn" type="button" data-i18n="sel.zip"></button>
+          <button class="icon-btn" id="selectClearBtn" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+
       <main class="stream-wrap" id="streamWrap">
         <div class="empty-state" id="emptyState" hidden>
           <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -889,7 +1017,11 @@
     "pin.placeholder": "PIN",
     "pin.submit": "Unlock",
     "pin.wrong": "Wrong PIN — try again",
-    "item.cancel": "Cancel upload"
+    "item.cancel": "Cancel upload",
+    "sel.count": "{count} selected",
+    "sel.zip": "Download .zip",
+    "sel.all": "Select all",
+    "item.select": "Select file"
   },
   "zh": {
     "tagline": "本地一放，随处可取。",
@@ -932,7 +1064,11 @@
     "pin.placeholder": "PIN 码",
     "pin.submit": "解锁",
     "pin.wrong": "PIN 码错误——请重试",
-    "item.cancel": "取消上传"
+    "item.cancel": "取消上传",
+    "sel.count": "已选 {count} 项",
+    "sel.zip": "下载 .zip",
+    "sel.all": "全选",
+    "item.select": "选择文件"
   },
   "ja": {
     "tagline": "ローカルにドロップ、どこでもピックアップ。",
@@ -975,7 +1111,11 @@
     "pin.placeholder": "PIN",
     "pin.submit": "ロック解除",
     "pin.wrong": "PINが違います — もう一度お試しください",
-    "item.cancel": "アップロードをキャンセル"
+    "item.cancel": "アップロードをキャンセル",
+    "sel.count": "{count} 件選択中",
+    "sel.zip": ".zip をダウンロード",
+    "sel.all": "すべて選択",
+    "item.select": "ファイルを選択"
   }
 }
     </script>
@@ -1001,6 +1141,11 @@
           themeToggle: document.getElementById("themeToggle"),
           stream: document.getElementById("stream"),
           streamWrap: document.getElementById("streamWrap"),
+          selectBar: document.getElementById("selectBar"),
+          selectCount: document.getElementById("selectCount"),
+          selectAllBtn: document.getElementById("selectAllBtn"),
+          zipBtn: document.getElementById("zipBtn"),
+          selectClearBtn: document.getElementById("selectClearBtn"),
           emptyState: document.getElementById("emptyState"),
           attachBtn: document.getElementById("attachBtn"),
           fileInput: document.getElementById("fileInput"),
@@ -1027,6 +1172,7 @@
           shareUrl: "",
           toastTimer: 0,
           expanded: new Set(),
+          selected: new Set(),
           locked: false
         };
 
@@ -1279,6 +1425,142 @@
         }
 
         var URL_PATTERN = /(https?:\/\/[^\s<>"']+)/g;
+        var MD_PATTERN = /(^|\n)(#{1,3} |[-*] |\d+\. )|```|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\//;
+
+        /* ---------- markdown (safe subset, DOM-built) ---------- */
+
+        var INLINE_PATTERNS = [
+          {
+            re: /`([^`]+)`/,
+            make: function (match) {
+              var code = document.createElement("code");
+              code.textContent = match[1];
+              return code;
+            }
+          },
+          {
+            re: /\*\*([^*]+)\*\*/,
+            make: function (match) {
+              var strong = document.createElement("strong");
+              appendInline(strong, match[1]);
+              return strong;
+            }
+          },
+          {
+            re: /\*([^*\s][^*]*)\*/,
+            make: function (match) {
+              var em = document.createElement("em");
+              appendInline(em, match[1]);
+              return em;
+            }
+          },
+          {
+            re: /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/,
+            make: function (match) {
+              var anchor = document.createElement("a");
+              anchor.href = match[2];
+              anchor.target = "_blank";
+              anchor.rel = "noopener noreferrer";
+              anchor.textContent = match[1];
+              return anchor;
+            }
+          }
+        ];
+
+        function appendInline(node, text) {
+          var remaining = text;
+          while (remaining) {
+            var best = null;
+            for (var i = 0; i < INLINE_PATTERNS.length; i += 1) {
+              var match = INLINE_PATTERNS[i].re.exec(remaining);
+              if (match && (best === null || match.index < best.match.index)) {
+                best = { pattern: INLINE_PATTERNS[i], match: match };
+              }
+            }
+            if (!best) {
+              appendLinkified(node, remaining);
+              return;
+            }
+            if (best.match.index > 0) {
+              appendLinkified(node, remaining.slice(0, best.match.index));
+            }
+            node.appendChild(best.pattern.make(best.match));
+            remaining = remaining.slice(best.match.index + best.match[0].length);
+          }
+        }
+
+        function renderMarkdownBlocks(container, text) {
+          var lines = text.split("\n");
+          var paragraph = [];
+          var list = null;
+
+          function flushParagraph() {
+            if (paragraph.length) {
+              var p = document.createElement("p");
+              appendInline(p, paragraph.join("\n"));
+              container.appendChild(p);
+              paragraph = [];
+            }
+          }
+
+          function flushList() {
+            if (list) {
+              container.appendChild(list.el);
+              list = null;
+            }
+          }
+
+          for (var i = 0; i < lines.length; i += 1) {
+            var line = lines[i];
+            var heading = line.match(/^(#{1,3})\s+(.*)/);
+            var bullet = line.match(/^[-*]\s+(.*)/);
+            var numbered = line.match(/^\d+\.\s+(.*)/);
+
+            if (heading) {
+              flushParagraph();
+              flushList();
+              var headingEl = document.createElement("h" + heading[1].length);
+              appendInline(headingEl, heading[2]);
+              container.appendChild(headingEl);
+            } else if (bullet || numbered) {
+              flushParagraph();
+              var type = bullet ? "ul" : "ol";
+              if (!list || list.type !== type) {
+                flushList();
+                list = { type: type, el: document.createElement(type) };
+              }
+              var item = document.createElement("li");
+              appendInline(item, (bullet || numbered)[1]);
+              list.el.appendChild(item);
+            } else if (!line.trim()) {
+              flushParagraph();
+              flushList();
+            } else {
+              flushList();
+              paragraph.push(line);
+            }
+          }
+          flushParagraph();
+          flushList();
+        }
+
+        function renderRichText(container, raw) {
+          var segments = String(raw).split("```");
+          for (var i = 0; i < segments.length; i += 1) {
+            if (i % 2 === 1) {
+              var code = segments[i];
+              var newline = code.indexOf("\n");
+              if (newline > -1 && /^[\w+-]*\s*$/.test(code.slice(0, newline))) {
+                code = code.slice(newline + 1);
+              }
+              var pre = document.createElement("pre");
+              pre.textContent = code.replace(/\n$/, "");
+              container.appendChild(pre);
+            } else if (segments[i]) {
+              renderMarkdownBlocks(container, segments[i]);
+            }
+          }
+        }
 
         function appendLinkified(container, value) {
           var parts = String(value).split(URL_PATTERN);
@@ -1308,9 +1590,13 @@
           var main = document.createElement("div");
           main.className = "item-main";
 
-          var text = document.createElement("p");
+          var text = document.createElement("div");
           text.className = "item-text";
-          appendLinkified(text, item.text);
+          if (MD_PATTERN.test(item.text)) {
+            renderRichText(text, item.text);
+          } else {
+            appendLinkified(text, item.text);
+          }
           main.appendChild(text);
 
           if (item.text.length > 280 || item.text.split("\n").length > 6) {
@@ -1367,13 +1653,26 @@
         }
 
         function buildFileItem(item) {
+          var isSelected = state.selected.has(item.id);
           var li = document.createElement("li");
-          li.className = "item";
+          li.className = "item" + (isSelected ? " selected" : "");
           li.dataset.id = item.id;
 
-          var icon = document.createElement("div");
+          var icon = document.createElement("button");
+          icon.type = "button";
           icon.className = "item-icon";
-          icon.innerHTML = fileIcon(item.name);
+          icon.setAttribute("aria-pressed", String(isSelected));
+          icon.setAttribute("aria-label", t("item.select"));
+          icon.title = t("item.select");
+          icon.innerHTML = isSelected ? ICONS.check : fileIcon(item.name);
+          icon.addEventListener("click", function () {
+            if (state.selected.has(item.id)) {
+              state.selected.delete(item.id);
+            } else {
+              state.selected.add(item.id);
+            }
+            renderStream();
+          });
 
           var main = document.createElement("div");
           main.className = "item-main";
@@ -1471,12 +1770,29 @@
           return li;
         }
 
+        function renderSelectBar() {
+          // Selection can only contain files that still exist.
+          state.selected.forEach(function (id) {
+            var item = state.items.get(id);
+            if (!item || item.kind !== "file") {
+              state.selected.delete(id);
+            }
+          });
+
+          var count = state.selected.size;
+          refs.selectBar.hidden = count === 0;
+          if (count > 0) {
+            refs.selectCount.textContent = t("sel.count", { count: count });
+          }
+        }
+
         function renderStream() {
           var entries = Array.from(state.items.values());
           entries.sort(function (left, right) {
             return String(right.timestamp).localeCompare(String(left.timestamp));
           });
 
+          renderSelectBar();
           refs.stream.textContent = "";
 
           state.uploads.forEach(function (upload, uploadId) {
@@ -1981,6 +2297,35 @@
           });
 
           refs.pinForm.addEventListener("submit", submitPin);
+
+          refs.selectAllBtn.addEventListener("click", function () {
+            state.items.forEach(function (item) {
+              if (item.kind === "file") {
+                state.selected.add(item.id);
+              }
+            });
+            renderStream();
+          });
+
+          refs.selectClearBtn.addEventListener("click", function () {
+            state.selected.clear();
+            renderStream();
+          });
+
+          refs.zipBtn.addEventListener("click", function () {
+            var ids = Array.from(state.selected);
+            if (!ids.length) {
+              return;
+            }
+            var anchor = document.createElement("a");
+            anchor.href = "/api/files.zip?ids=" + ids.join(",");
+            anchor.download = "";
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+            state.selected.clear();
+            renderStream();
+          });
 
           window.setInterval(refreshTimes, 30000);
         }
