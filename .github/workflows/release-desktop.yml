@@ -110,6 +110,7 @@ jobs:
     needs: [create-release, build]
     permissions:
       contents: write
+      actions: write
     runs-on: ubuntu-22.04
     steps:
       - name: Publish the release
@@ -124,4 +125,21 @@ jobs:
               release_id: Number(process.env.RELEASE_ID),
               draft: false,
               prerelease: false,
+            });
+
+      # The "release published" event above is created with GITHUB_TOKEN, and
+      # such events never trigger other workflows (recursion guard) — so the
+      # npm workflow's `release` trigger can't fire from this pipeline.
+      # Dispatch it explicitly instead; workflow_dispatch via API is the
+      # sanctioned exception, and it matches the trigger shape npm trusted
+      # publishing already accepts.
+      - name: Trigger npm publish
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'npm-publish.yml',
+              ref: context.ref.replace('refs/tags/', ''),
             });

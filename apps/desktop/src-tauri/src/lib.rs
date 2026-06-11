@@ -11,10 +11,12 @@ use server::{RuntimeStatus, ServerConfig, ServerRuntime};
 use settings::{load_or_default, save as save_settings_file, DesktopSettings};
 use tauri::{
     menu::{MenuBuilder, MenuItem, MenuItemBuilder, PredefinedMenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    tray::TrayIconBuilder,
     AppHandle, Emitter, Manager, State, WindowEvent, Wry,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as AutostartManagerExt};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
@@ -164,6 +166,8 @@ async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
         .map_err(|error| format!("failed to start server: {error}"))?;
     let snapshot = runtime.snapshot();
 
+    spawn_notification_listener(app.clone(), &runtime);
+
     {
         let mut slot = state.runtime.lock().await;
         *slot = Some(runtime);
@@ -245,28 +249,42 @@ fn apply_system_integration(app: &AppHandle, settings: &DesktopSettings) {
     }
 
     let autolaunch = app.autolaunch();
-    match autolaunch.is_enabled() {
-        Ok(enabled) if enabled != settings.launch_at_login => {
-            let result = if settings.launch_at_login {
-                autolaunch.enable()
-            } else {
-                autolaunch.disable()
-            };
-            if let Err(error) = result {
-                eprintln!("droplocal: failed to update launch-at-login: {error}");
+    let result = if settings.launch_at_login {
+        // enable() idempotently rewrites the login item with the current
+        // executable path, healing stale entries (dev builds, app moves) —
+        // so it runs on every launch, not only on state mismatch. Never
+        // record a Gatekeeper-translocated or DMG path: it dies on reboot.
+        let translocated = std::env::current_exe().is_ok_and(|exe| {
+            let exe = exe.to_string_lossy().to_string();
+            exe.contains("/AppTranslocation/") || exe.starts_with("/Volumes/")
+        });
+        if translocated {
+            eprintln!(
+                "droplocal: skipping launch-at-login registration from a temporary path; move DropLocal to /Applications first"
+            );
+            Ok(())
+        } else {
+            autolaunch.enable()
+        }
+    } else {
+        match autolaunch.is_enabled() {
+            Ok(true) => autolaunch.disable(),
+            Ok(false) => Ok(()),
+            Err(error) => {
+                eprintln!("droplocal: failed to query launch-at-login: {error}");
+                Ok(())
             }
         }
-        Ok(_) => {}
-        Err(error) => {
-            eprintln!("droplocal: failed to query launch-at-login: {error}");
-        }
+    };
+    if let Err(error) = result {
+        eprintln!("droplocal: failed to update launch-at-login: {error}");
     }
 }
 
-/// Manual update check from the tray: install + relaunch when an update
-/// exists, otherwise do nothing. Failures are logged, never fatal — the
+/// Update check with a consent dialog. Runs on launch (quiet when already
+/// current) and from the tray. Failures are logged, never fatal — the
 /// updater only works on releases signed with the updater key.
-async fn check_for_updates(app: AppHandle) {
+async fn check_for_updates(app: AppHandle, manual: bool) {
     let updater = match app.updater() {
         Ok(updater) => updater,
         Err(error) => {
@@ -277,10 +295,29 @@ async fn check_for_updates(app: AppHandle) {
 
     match updater.check().await {
         Ok(Some(update)) => {
-            eprintln!(
-                "droplocal update {} available, downloading…",
-                update.version
-            );
+            let version = update.version.clone();
+            let dialog_app = app.clone();
+            let confirmed = tauri::async_runtime::spawn_blocking(move || {
+                dialog_app
+                    .dialog()
+                    .message(format!(
+                        "DropLocal {version} is available.\nInstall now and relaunch?"
+                    ))
+                    .title("Update available")
+                    .kind(MessageDialogKind::Info)
+                    .buttons(MessageDialogButtons::OkCancelCustom(
+                        "Install & Relaunch".to_string(),
+                        "Later".to_string(),
+                    ))
+                    .blocking_show()
+            })
+            .await
+            .unwrap_or(false);
+
+            if !confirmed {
+                return;
+            }
+
             match update.download_and_install(|_, _| {}, || {}).await {
                 Ok(()) => {
                     app.restart();
@@ -289,10 +326,77 @@ async fn check_for_updates(app: AppHandle) {
             }
         }
         Ok(None) => {
-            eprintln!("droplocal is up to date");
+            if manual {
+                let dialog_app = app.clone();
+                let _ = tauri::async_runtime::spawn_blocking(move || {
+                    dialog_app
+                        .dialog()
+                        .message("DropLocal is up to date.")
+                        .title("No updates")
+                        .kind(MessageDialogKind::Info)
+                        .blocking_show()
+                })
+                .await;
+            } else {
+                eprintln!("droplocal is up to date");
+            }
         }
         Err(error) => eprintln!("droplocal update check failed: {error}"),
     }
+}
+
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    let _ = app
+        .notification()
+        .builder()
+        .title(title)
+        .body(body)
+        .show();
+}
+
+/// Forward server events to desktop notifications, honoring the settings.
+fn spawn_notification_listener(app: AppHandle, runtime: &ServerRuntime) {
+    let mut events = runtime.subscribe_events();
+    tauri::async_runtime::spawn(async move {
+        let mut last_count: u64 = 0;
+        while let Ok(envelope) = events.recv().await {
+            let settings = {
+                let state = app.state::<ManagedState>();
+                let guard = state.settings.lock().await;
+                guard.clone()
+            };
+
+            match envelope.event.as_str() {
+                "device:count" => {
+                    let count = envelope
+                        .data
+                        .get("count")
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(0);
+                    if settings.notify_on_device_connect && count > last_count {
+                        notify(
+                            &app,
+                            "DropLocal",
+                            &format!("A device connected ({count} online)"),
+                        );
+                    }
+                    last_count = count;
+                }
+                "file:new" if settings.notify_on_new_drop => {
+                    let name = envelope
+                        .data
+                        .get("name")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("file");
+                    notify(&app, "New drop", name);
+                }
+                "snippet:new" if settings.notify_on_new_drop => {
+                    notify(&app, "New drop", "A note was shared");
+                }
+                _ => {}
+            }
+        }
+    });
 }
 
 fn reveal_main_window(app: &AppHandle) {
@@ -378,7 +482,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 }
                 "check_updates" => {
                     tauri::async_runtime::spawn(async move {
-                        check_for_updates(app_handle).await;
+                        check_for_updates(app_handle, true).await;
                     });
                 }
                 "quit" => {
@@ -390,16 +494,6 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 _ => {}
             }
         })
-        .on_tray_icon_event(|tray, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                reveal_main_window(tray.app_handle());
-            }
-        })
         .build(app)?;
 
     Ok(())
@@ -407,15 +501,30 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut app = tauri::Builder::default()
+        // Must be the first plugin so a second launch exits before doing
+        // any work; it reveals the running instance's dashboard instead.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            reveal_main_window(app);
+        }))
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .on_window_event(|window, event| {
             // Menu-bar app: closing the dashboard hides it, the server keeps
-            // running. Quitting lives in the tray menu.
+            // running. Quitting lives in the tray menu. Linux is exempt —
+            // stock GNOME has no tray host, so the tray icon may not exist
+            // and closing the window must remain a real quit.
             if let WindowEvent::CloseRequested { api, .. } = event {
-                api.prevent_close();
-                let _ = window.hide();
+                #[cfg(not(target_os = "linux"))]
+                {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+                #[cfg(target_os = "linux")]
+                let _ = (window, api);
             }
         })
         .setup(|app| {
@@ -439,9 +548,11 @@ pub fn run() {
             create_tray(app.handle())?;
             apply_system_integration(app.handle(), &settings);
 
-            if first_run {
-                // Onboarding: show the dashboard (QR + share link) once.
-                // Every later launch starts silently in the menu bar.
+            // Onboarding: show the dashboard (QR + share link) on the very
+            // first launch; later launches start silently in the menu bar.
+            // On Linux the window always shows — the tray is the only other
+            // affordance and not every desktop displays one.
+            if first_run || cfg!(target_os = "linux") {
                 reveal_main_window(app.handle());
             }
 
@@ -450,6 +561,14 @@ pub fn run() {
                 if let Err(error) = start_server_inner(&app_handle).await {
                     eprintln!("droplocal desktop startup failed: {error}");
                 }
+            });
+
+            // Quiet update check shortly after launch; the dialog only
+            // appears when an update actually exists.
+            let update_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(6)).await;
+                check_for_updates(update_handle, false).await;
             });
 
             Ok(())
@@ -466,13 +585,57 @@ pub fn run() {
             stop_server
         ])
         .build(tauri::generate_context!())
-        .expect("error while building DropLocal desktop")
-        .run(|_app, event| {
-            // Tray app: keep the event loop alive when the last window closes
-            // (code is None). Programmatic exits — tray Quit, updater restart —
-            // carry Some(code) and pass through.
-            if let tauri::RunEvent::ExitRequested { code: None, api, .. } = event {
-                api.prevent_exit();
+        .expect("error while building DropLocal desktop");
+
+    // Seed the activation policy before the event loop starts: the setup
+    // hook runs after AppKit applies the default Regular policy, so setting
+    // Accessory only there makes the Dock icon flash on every launch.
+    #[cfg(target_os = "macos")]
+    {
+        let show_dock = app
+            .path()
+            .app_config_dir()
+            .ok()
+            .map(|dir| dir.join("settings.json"))
+            .and_then(|path| std::fs::read_to_string(path).ok())
+            .and_then(|raw| serde_json::from_str::<DesktopSettings>(&raw).ok())
+            .map(|settings| settings.show_dock_icon)
+            .unwrap_or(false);
+        if !show_dock {
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        }
+    }
+
+    app.run(|app, event| match event {
+        // Tray app: keep the event loop alive when the last window closes
+        // (code is None). Programmatic exits — tray Quit, updater restart —
+        // carry Some(code) and pass through. On Linux the window is the
+        // primary surface, so closing it quits as before.
+        #[cfg(not(target_os = "linux"))]
+        tauri::RunEvent::ExitRequested { code: None, api, .. } => {
+            api.prevent_exit();
+        }
+        // macOS: relaunching the app (Finder/Spotlight/Launchpad/Dock) while
+        // the window is hidden delivers a reopen event — show the dashboard.
+        #[cfg(target_os = "macos")]
+        tauri::RunEvent::Reopen {
+            has_visible_windows: false,
+            ..
+        } => {
+            reveal_main_window(app);
+        }
+        // Cmd+Q / NSApp `terminate:` skips ExitRequested entirely on macOS;
+        // Exit is the only hook that still fires there, so stop the server
+        // (mDNS unregister, auto-clean) here. Idempotent with the tray Quit
+        // path, which already stopped it.
+        tauri::RunEvent::Exit => {
+            let state = app.state::<ManagedState>();
+            let runtime =
+                tauri::async_runtime::block_on(async { state.runtime.lock().await.take() });
+            if let Some(mut runtime) = runtime {
+                let _ = tauri::async_runtime::block_on(runtime.stop());
             }
-        });
+        }
+        _ => {}
+    });
 }

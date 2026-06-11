@@ -29,6 +29,10 @@
             <option value="en">EN</option>
             <option value="zh">中文</option>
             <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
           </select>
           <button class="icon-btn" id="settingsBtn" type="button">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
@@ -105,6 +109,10 @@
             <span data-i18n="settings.autoClean"></span>
           </label>
           <label class="check">
+            <input id="notifyDropInput" name="notifyOnNewDrop" type="checkbox" />
+            <span data-i18n="settings.notifyDrop"></span>
+          </label>
+          <label class="check">
             <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
             <span data-i18n="settings.notify"></span>
           </label>
@@ -170,7 +178,8 @@
     "settings.autostart": "Launch at login",
     "settings.dockIcon": "Show Dock icon",
     "settings.save": "Save",
-    "settings.cancel": "Cancel"
+    "settings.cancel": "Cancel",
+    "settings.notifyDrop": "Notify when something is dropped"
   },
   "zh": {
     "header.sub": "分享到同一 Wi-Fi 下的任何设备。",
@@ -212,7 +221,8 @@
     "settings.autostart": "登录时自动启动",
     "settings.dockIcon": "在 Dock 中显示图标",
     "settings.save": "保存",
-    "settings.cancel": "取消"
+    "settings.cancel": "取消",
+    "settings.notifyDrop": "收到新内容时通知"
   },
   "ja": {
     "header.sub": "同じ Wi-Fi 上のどのデバイスにも共有。",
@@ -254,7 +264,180 @@
     "settings.autostart": "ログイン時に自動起動",
     "settings.dockIcon": "Dock にアイコンを表示",
     "settings.save": "保存",
-    "settings.cancel": "キャンセル"
+    "settings.cancel": "キャンセル",
+    "settings.notifyDrop": "新しいドロップを通知"
+  },
+  "ko": {
+    "header.sub": "같은 Wi-Fi의 어떤 기기로든 공유하세요.",
+    "status.starting": "시작 중",
+    "status.running": "실행 중",
+    "status.stopped": "중지됨",
+    "stat.deviceOne": "기기 1대",
+    "stat.deviceOther": "기기 {count}대",
+    "stat.port": "포트 {port}",
+    "stat.uptime": "가동 {time}",
+    "stat.offline": "현재 공유하고 있지 않습니다",
+    "url.label": "공유 링크",
+    "url.copy": "복사",
+    "url.open": "열기",
+    "connect.scan": "휴대폰 카메라로 코드를 스캔하거나 위 링크를 공유하세요.",
+    "qr.stopped": "서버가 중지되었습니다",
+    "qr.unavailable": "QR 코드를 사용할 수 없습니다",
+    "control.start": "공유 시작",
+    "control.stop": "공유 중지",
+    "msg.copied": "링크가 클립보드에 복사되었습니다",
+    "msg.opened": "브라우저에서 열었습니다",
+    "msg.started": "공유를 시작했습니다",
+    "msg.stopped": "공유를 중지했습니다",
+    "msg.saved": "설정이 저장되었습니다",
+    "msg.copyFailed": "복사 실패: {error}",
+    "msg.openFailed": "열기 실패: {error}",
+    "msg.actionFailed": "작업 실패: {error}",
+    "msg.statusFailed": "상태 확인 실패: {error}",
+    "msg.settingsLoadFailed": "설정을 불러오지 못했습니다: {error}",
+    "msg.saveFailed": "저장 실패: {error}",
+    "settings.title": "설정",
+    "settings.desc": "저장하면 로컬 서버가 재시작되어 변경 사항이 즉시 적용됩니다.",
+    "settings.port": "포트 (0 = 자동)",
+    "settings.storageDir": "받은 파일 저장 위치",
+    "settings.pin": "참여용 PIN (비워두면 사용 안 함)",
+    "settings.expire": "자동 삭제 시간(분, 0 = 안 함)",
+    "settings.autoClean": "앱 종료 시 공유 파일 삭제",
+    "settings.notifyDrop": "새 드롭 알림",
+    "settings.notify": "새 기기 연결 시 알림",
+    "settings.autostart": "로그인 시 자동 시작",
+    "settings.dockIcon": "Dock 아이콘 표시",
+    "settings.save": "저장",
+    "settings.cancel": "취소"
+  },
+  "es": {
+    "header.sub": "Comparte con cualquier dispositivo de tu Wi-Fi.",
+    "status.starting": "Iniciando",
+    "status.running": "En marcha",
+    "status.stopped": "Detenido",
+    "stat.deviceOne": "1 dispositivo",
+    "stat.deviceOther": "{count} dispositivos",
+    "stat.port": "puerto {port}",
+    "stat.uptime": "activo {time}",
+    "stat.offline": "No se está compartiendo ahora",
+    "url.label": "Enlace para compartir",
+    "url.copy": "Copiar",
+    "url.open": "Abrir",
+    "connect.scan": "Escanea el código con la cámara del móvil o comparte el enlace de arriba.",
+    "qr.stopped": "El servidor está detenido",
+    "qr.unavailable": "QR no disponible",
+    "control.start": "Empezar a compartir",
+    "control.stop": "Dejar de compartir",
+    "msg.copied": "Enlace copiado al portapapeles",
+    "msg.opened": "Abierto en tu navegador",
+    "msg.started": "Compartiendo",
+    "msg.stopped": "Se dejó de compartir",
+    "msg.saved": "Ajustes guardados",
+    "msg.copyFailed": "Error al copiar: {error}",
+    "msg.openFailed": "Error al abrir: {error}",
+    "msg.actionFailed": "Acción fallida: {error}",
+    "msg.statusFailed": "Error al comprobar el estado: {error}",
+    "msg.settingsLoadFailed": "No se pudieron cargar los ajustes: {error}",
+    "msg.saveFailed": "Error al guardar: {error}",
+    "settings.title": "Ajustes",
+    "settings.desc": "Al guardar se reinicia el servidor local y los cambios se aplican al instante.",
+    "settings.port": "Puerto (0 = automático)",
+    "settings.storageDir": "Guardar archivos recibidos en",
+    "settings.pin": "PIN para unirse (vacío = ninguno)",
+    "settings.expire": "Borrado automático (minutos, 0 = nunca)",
+    "settings.autoClean": "Eliminar archivos compartidos al salir",
+    "settings.notifyDrop": "Notificar cuando llegue algo",
+    "settings.notify": "Notificar cuando se conecte un dispositivo",
+    "settings.autostart": "Abrir al iniciar sesión",
+    "settings.dockIcon": "Mostrar icono en el Dock",
+    "settings.save": "Guardar",
+    "settings.cancel": "Cancelar"
+  },
+  "de": {
+    "header.sub": "Mit jedem Gerät in deinem WLAN teilen.",
+    "status.starting": "Startet",
+    "status.running": "Läuft",
+    "status.stopped": "Gestoppt",
+    "stat.deviceOne": "1 Gerät",
+    "stat.deviceOther": "{count} Geräte",
+    "stat.port": "Port {port}",
+    "stat.uptime": "läuft seit {time}",
+    "stat.offline": "Derzeit wird nichts geteilt",
+    "url.label": "Freigabe-Link",
+    "url.copy": "Kopieren",
+    "url.open": "Öffnen",
+    "connect.scan": "Scanne den Code mit der Handykamera oder teile den Link oben.",
+    "qr.stopped": "Server ist gestoppt",
+    "qr.unavailable": "QR nicht verfügbar",
+    "control.start": "Teilen starten",
+    "control.stop": "Teilen beenden",
+    "msg.copied": "Link in die Zwischenablage kopiert",
+    "msg.opened": "Im Browser geöffnet",
+    "msg.started": "Teilen gestartet",
+    "msg.stopped": "Teilen beendet",
+    "msg.saved": "Einstellungen gespeichert",
+    "msg.copyFailed": "Kopieren fehlgeschlagen: {error}",
+    "msg.openFailed": "Öffnen fehlgeschlagen: {error}",
+    "msg.actionFailed": "Aktion fehlgeschlagen: {error}",
+    "msg.statusFailed": "Statusprüfung fehlgeschlagen: {error}",
+    "msg.settingsLoadFailed": "Einstellungen konnten nicht geladen werden: {error}",
+    "msg.saveFailed": "Speichern fehlgeschlagen: {error}",
+    "settings.title": "Einstellungen",
+    "settings.desc": "Beim Speichern startet der lokale Server neu, Änderungen gelten sofort.",
+    "settings.port": "Port (0 = automatisch)",
+    "settings.storageDir": "Empfangene Dateien speichern unter",
+    "settings.pin": "PIN zum Beitreten (leer = keine)",
+    "settings.expire": "Automatisch löschen nach (Minuten, 0 = nie)",
+    "settings.autoClean": "Geteilte Dateien beim Beenden löschen",
+    "settings.notifyDrop": "Bei neuen Drops benachrichtigen",
+    "settings.notify": "Bei neuen Geräten benachrichtigen",
+    "settings.autostart": "Beim Anmelden starten",
+    "settings.dockIcon": "Dock-Symbol anzeigen",
+    "settings.save": "Speichern",
+    "settings.cancel": "Abbrechen"
+  },
+  "fr": {
+    "header.sub": "Partagez avec tous les appareils de votre Wi-Fi.",
+    "status.starting": "Démarrage",
+    "status.running": "En cours",
+    "status.stopped": "Arrêté",
+    "stat.deviceOne": "1 appareil",
+    "stat.deviceOther": "{count} appareils",
+    "stat.port": "port {port}",
+    "stat.uptime": "actif {time}",
+    "stat.offline": "Aucun partage en cours",
+    "url.label": "Lien de partage",
+    "url.copy": "Copier",
+    "url.open": "Ouvrir",
+    "connect.scan": "Scannez le code avec l'appareil photo du téléphone ou partagez le lien ci-dessus.",
+    "qr.stopped": "Le serveur est arrêté",
+    "qr.unavailable": "QR indisponible",
+    "control.start": "Démarrer le partage",
+    "control.stop": "Arrêter le partage",
+    "msg.copied": "Lien copié dans le presse-papiers",
+    "msg.opened": "Ouvert dans votre navigateur",
+    "msg.started": "Partage démarré",
+    "msg.stopped": "Partage arrêté",
+    "msg.saved": "Réglages enregistrés",
+    "msg.copyFailed": "Échec de la copie : {error}",
+    "msg.openFailed": "Échec de l'ouverture : {error}",
+    "msg.actionFailed": "Échec de l'action : {error}",
+    "msg.statusFailed": "Échec de la vérification : {error}",
+    "msg.settingsLoadFailed": "Impossible de charger les réglages : {error}",
+    "msg.saveFailed": "Échec de l'enregistrement : {error}",
+    "settings.title": "Réglages",
+    "settings.desc": "L'enregistrement redémarre le serveur local ; les changements s'appliquent immédiatement.",
+    "settings.port": "Port (0 = automatique)",
+    "settings.storageDir": "Enregistrer les fichiers reçus dans",
+    "settings.pin": "PIN pour rejoindre (vide = aucun)",
+    "settings.expire": "Suppression auto (minutes, 0 = jamais)",
+    "settings.autoClean": "Supprimer les fichiers partagés à la fermeture",
+    "settings.notifyDrop": "Notifier les nouveaux dépôts",
+    "settings.notify": "Notifier les nouveaux appareils",
+    "settings.autostart": "Lancer à la connexion",
+    "settings.dockIcon": "Afficher l'icône dans le Dock",
+    "settings.save": "Enregistrer",
+    "settings.cancel": "Annuler"
   }
 }
     </script>
