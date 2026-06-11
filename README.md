@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/logo.svg" alt="DropLocal logo" width="96" />
+  <img src="https://raw.githubusercontent.com/shiyuanhai/droplocal/main/assets/brand/logo.svg" alt="DropLocal logo" width="96" />
 </p>
 
 <h1 align="center">DropLocal</h1>
