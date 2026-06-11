@@ -108,6 +108,14 @@
             <input id="notifyDeviceInput" name="notifyOnDeviceConnect" type="checkbox" />
             <span data-i18n="settings.notify"></span>
           </label>
+          <label class="check">
+            <input id="autostartInput" name="launchAtLogin" type="checkbox" />
+            <span data-i18n="settings.autostart"></span>
+          </label>
+          <label class="check" id="dockIconRow" hidden>
+            <input id="dockIconInput" name="showDockIcon" type="checkbox" />
+            <span data-i18n="settings.dockIcon"></span>
+          </label>
           <input id="showQrInput" type="hidden" />
           <p class="settings-desc" data-i18n="settings.desc"></p>
           <div class="modal-actions">
@@ -159,6 +167,8 @@
     "settings.expire": "Auto-delete after (minutes, 0 = never)",
     "settings.autoClean": "Delete shared files when the app quits",
     "settings.notify": "Notify when a new device connects",
+    "settings.autostart": "Launch at login",
+    "settings.dockIcon": "Show Dock icon",
     "settings.save": "Save",
     "settings.cancel": "Cancel"
   },
@@ -199,6 +209,8 @@
     "settings.expire": "自动删除时间（分钟，0 = 永不）",
     "settings.autoClean": "退出应用时删除已分享的文件",
     "settings.notify": "新设备连接时通知",
+    "settings.autostart": "登录时自动启动",
+    "settings.dockIcon": "在 Dock 中显示图标",
     "settings.save": "保存",
     "settings.cancel": "取消"
   },
@@ -239,6 +251,8 @@
     "settings.expire": "自動削除（分、0 = しない）",
     "settings.autoClean": "アプリ終了時に共有ファイルを削除",
     "settings.notify": "新しいデバイス接続時に通知",
+    "settings.autostart": "ログイン時に自動起動",
+    "settings.dockIcon": "Dock にアイコンを表示",
     "settings.save": "保存",
     "settings.cancel": "キャンセル"
   }
