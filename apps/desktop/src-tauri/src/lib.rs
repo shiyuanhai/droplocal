@@ -141,13 +141,16 @@ async fn current_primary_url(app: &AppHandle) -> Result<String, String> {
 async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
     let state = app.state::<ManagedState>();
 
-    {
+    // Snapshot under the lock, emit after releasing it — emit_runtime_update
+    // blocks on a main-thread dispatch (tray text), and the Exit handler
+    // locks this mutex from the main thread.
+    let existing_snapshot = {
         let existing = state.runtime.lock().await;
-        if let Some(runtime) = existing.as_ref() {
-            let snapshot = runtime.snapshot();
-            emit_runtime_update(app, &snapshot);
-            return Ok(snapshot);
-        }
+        existing.as_ref().map(|runtime| runtime.snapshot())
+    };
+    if let Some(snapshot) = existing_snapshot {
+        emit_runtime_update(app, &snapshot);
+        return Ok(snapshot);
     }
 
     let settings = { state.settings.lock().await.clone() };
