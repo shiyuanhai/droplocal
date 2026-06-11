@@ -667,7 +667,6 @@
     "cta.sub.mac": ".dmg",
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
-    "cta.sub.generic": "",
     "how.title": "How it works",
     "how.1.title": "Start it",
     "how.1.body": "Open the desktop app, or run npx droplocal in a terminal.",
@@ -715,7 +714,6 @@
     "cta.sub.mac": ".dmg",
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
-    "cta.sub.generic": "",
     "how.title": "如何使用",
     "how.1.title": "启动",
     "how.1.body": "打开桌面应用，或在终端运行 npx droplocal。",
@@ -763,7 +761,6 @@
     "cta.sub.mac": ".dmg",
     "cta.sub.win": ".exe",
     "cta.sub.linux": ".AppImage",
-    "cta.sub.generic": "",
     "how.title": "使い方",
     "how.1.title": "起動する",
     "how.1.body": "デスクトップアプリを開くか、ターミナルで npx droplocal を実行。",
@@ -860,9 +857,10 @@
         var heroAssetKey = { mac: "dmg", win: "exe", linux: "appimage" }[OS] || null;
 
         function applyHeroCta() {
-          var key = OS === "mobile" || OS === "generic" ? "generic" : OS;
+          var generic = OS === "mobile" || OS === "generic";
+          var key = generic ? "generic" : OS;
           document.getElementById("heroCtaLabel").textContent = t("cta." + key);
-          document.getElementById("heroCtaSub").textContent = t("cta.sub." + key);
+          document.getElementById("heroCtaSub").textContent = generic ? "" : t("cta.sub." + key);
           if (OS === "mobile" || OS === "generic") {
             heroCta.setAttribute("href", "#download");
             heroCta.removeAttribute("rel");

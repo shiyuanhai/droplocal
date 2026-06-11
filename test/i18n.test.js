@@ -18,7 +18,7 @@ function extractI18nDictionary(htmlPath) {
 
 const UI_HTML = path.join(__dirname, "..", "ui.html");
 const DESKTOP_HTML = path.join(__dirname, "..", "apps", "desktop", "src", "index.html");
-const LANDING_HTML = path.join(__dirname, "..", "docs", "index.html");
+const LANDING_HTML = path.join(__dirname, "..", "landing", "index.html");
 
 for (const htmlPath of [UI_HTML, DESKTOP_HTML, LANDING_HTML]) {
   const label = path.relative(path.join(__dirname, ".."), htmlPath);
