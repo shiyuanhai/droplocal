@@ -1,6 +1,6 @@
 [package]
 name = "droplocal-desktop"
-version = "1.1.0"
+version = "1.2.0"
 description = "DropLocal desktop distribution"
 authors = ["DropLocal Contributors"]
 edition = "2021"
@@ -26,6 +26,8 @@ qrcode = { version = "0.14.1", default-features = false, features = ["svg"] }
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.137"
 tauri = { version = "2.1.1", features = ["tray-icon", "image-png"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
 tauri-plugin-updater = "2"
 tokio = { version = "1.42.0", features = ["full"] }
 tokio-util = { version = "0.7.13", features = ["io"] }

@@ -91,6 +91,12 @@ pub struct ServerRuntime {
 }
 
 impl ServerRuntime {
+    /// Live feed of the same events the WebSocket clients receive
+    /// (file:new, snippet:new, device:count, …) for desktop notifications.
+    pub fn subscribe_events(&self) -> broadcast::Receiver<SocketEnvelope> {
+        self.state.events_tx.subscribe()
+    }
+
     pub fn snapshot(&self) -> RuntimeStatus {
         RuntimeStatus {
             running: true,
@@ -161,6 +167,24 @@ struct ServerState {
     pin: String,
     session_token: String,
     expire_minutes: u32,
+    devices: RwLock<std::collections::HashMap<String, DeviceInfo>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct DeviceInfo {
+    id: String,
+    #[serde(rename = "clientId")]
+    client_id: String,
+    name: String,
+}
+
+fn sanitize_device_name(raw: &str) -> String {
+    raw.chars()
+        .filter(|ch| !ch.is_control())
+        .take(32)
+        .collect::<String>()
+        .trim()
+        .to_string()
 }
 
 impl ServerState {
@@ -187,7 +211,16 @@ impl ServerState {
             pin,
             session_token: Uuid::new_v4().to_string(),
             expire_minutes,
+            devices: RwLock::new(std::collections::HashMap::new()),
         }
+    }
+
+    async fn emit_device_list(&self) {
+        let devices: Vec<DeviceInfo> = self.devices.read().await.values().cloned().collect();
+        self.emit(
+            "device:list",
+            json!({ "devices": serde_json::to_value(devices).unwrap_or(json!([])) }),
+        );
     }
 
     fn uptime_seconds(&self) -> u64 {
@@ -245,6 +278,12 @@ struct ZipQuery {
     ids: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct DownloadQuery {
+    #[serde(default)]
+    inline: String,
+}
+
 struct ZipEntry {
     name: String,
     crc: u32,
@@ -291,9 +330,9 @@ struct PersistedIndex {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct SocketEnvelope {
-    event: String,
-    data: Value,
+pub struct SocketEnvelope {
+    pub event: String,
+    pub data: Value,
 }
 
 #[derive(Debug)]
@@ -949,6 +988,7 @@ async fn upload_files(
 async fn download_file(
     State(state): State<Arc<ServerState>>,
     AxumPath(id): AxumPath<String>,
+    axum::extract::Query(query): axum::extract::Query<DownloadQuery>,
 ) -> ApiResult<Response> {
     let stored = state
         .files
@@ -974,12 +1014,13 @@ async fn download_file(
         HeaderValue::from_str(&stored.mime_type)
             .unwrap_or_else(|_| HeaderValue::from_static("application/octet-stream")),
     );
-    headers.insert(
-        "content-disposition",
-        HeaderValue::from_str(&content_disposition(&stored.meta.name)).unwrap_or_else(|_| {
-            HeaderValue::from_str("attachment").expect("static attachment header")
-        }),
-    );
+    let disposition = if query.inline == "1" {
+        HeaderValue::from_static("inline")
+    } else {
+        HeaderValue::from_str(&content_disposition(&stored.meta.name))
+            .unwrap_or_else(|_| HeaderValue::from_static("attachment"))
+    };
+    headers.insert("content-disposition", disposition);
 
     let stream = ReaderStream::new(file);
     let body = Body::from_stream(stream);
@@ -1254,8 +1295,18 @@ async fn ws_upgrade(
 
 async fn handle_socket(socket: WebSocket, state: Arc<ServerState>) {
     let mut events_rx = state.events_tx.subscribe();
+    let conn_id = Uuid::new_v4().to_string();
     let new_count = state.connected_devices.fetch_add(1, Ordering::SeqCst) + 1;
+    state.devices.write().await.insert(
+        conn_id.clone(),
+        DeviceInfo {
+            id: conn_id.clone(),
+            client_id: String::new(),
+            name: String::new(),
+        },
+    );
     state.emit("device:count", json!({ "count": new_count }));
+    state.emit_device_list().await;
 
     let (mut sender, mut receiver) = socket.split();
     let initial = SocketEnvelope {
@@ -1287,10 +1338,32 @@ async fn handle_socket(socket: WebSocket, state: Arc<ServerState>) {
         }
     });
 
+    let recv_state = state.clone();
+    let recv_conn_id = conn_id.clone();
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(message)) = receiver.next().await {
-            if matches!(message, Message::Close(_)) {
-                break;
+            match message {
+                Message::Close(_) => break,
+                Message::Text(text) => {
+                    let Ok(parsed) = serde_json::from_str::<Value>(&text) else {
+                        continue;
+                    };
+                    if parsed.get("type").and_then(|v| v.as_str()) == Some("hello") {
+                        {
+                            let mut devices = recv_state.devices.write().await;
+                            if let Some(info) = devices.get_mut(&recv_conn_id) {
+                                info.name = sanitize_device_name(
+                                    parsed.get("name").and_then(|v| v.as_str()).unwrap_or(""),
+                                );
+                                info.client_id = sanitize_device_name(
+                                    parsed.get("clientId").and_then(|v| v.as_str()).unwrap_or(""),
+                                );
+                            }
+                        }
+                        recv_state.emit_device_list().await;
+                    }
+                }
+                _ => {}
             }
         }
     });
@@ -1305,7 +1378,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<ServerState>) {
     };
 
     let after_disconnect = state.connected_devices.fetch_sub(1, Ordering::SeqCst) - 1;
+    state.devices.write().await.remove(&conn_id);
     state.emit("device:count", json!({ "count": after_disconnect }));
+    state.emit_device_list().await;
 }
 
 fn sanitize_file_name(file_name: &str) -> String {

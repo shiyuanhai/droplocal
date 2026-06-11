@@ -9,6 +9,8 @@ pub struct DesktopSettings {
     pub show_qr_in_tray: bool,
     pub auto_clean_on_quit: bool,
     pub notify_on_device_connect: bool,
+    #[serde(default = "default_true")]
+    pub notify_on_new_drop: bool,
     #[serde(default)]
     pub pin: String,
     #[serde(default)]
@@ -28,10 +30,15 @@ impl Default for DesktopSettings {
             show_qr_in_tray: true,
             auto_clean_on_quit: false,
             notify_on_device_connect: false,
+            notify_on_new_drop: true,
             pin: String::new(),
             expire_minutes: 0,
         }
     }
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl DesktopSettings {

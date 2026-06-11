@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-06-11
+
+### Added
+
+- Image thumbnails in the stream with a tap-to-preview lightbox.
+- Folder upload: drag a whole folder in and every file inside uploads.
+- Device presence: tap the status pill to see who's connected; name your device.
+- Update check on launch with a consent dialog (desktop).
+- Desktop notifications for new drops and device connections (configurable).
+- Four new languages: 한국어, Español, Deutsch, Français (seven total).
+
+### Fixed
+
+- The "notify when a device connects" setting existed but was never wired — it
+  now actually notifies.
+
 ## [1.1.0] - 2026-06-11
 
 ### Added
