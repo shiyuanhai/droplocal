@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-06-12
+
+### Fixed
+
+- The "Connect another device" card showed the share address with the
+  `http://` scheme stripped (e.g. `drop.local`). Typed into mobile Safari,
+  a scheme-less `.local` name is force-upgraded to `https://`, which a LAN
+  HTTP server can't answer — so the page failed to load. The card now shows
+  the full `http://…` URL for both the `.local` name and the IP fallback, so
+  reading or copying it connects over HTTP.
+
+### Changed
+
+- The connect hint now points to scanning the QR code or tapping Copy, and
+  reminds you to keep the `http://` prefix when typing the address by hand
+  (all seven languages).
+
 ## [1.3.0] - 2026-06-11
 
 ### Changed
