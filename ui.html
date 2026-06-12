@@ -1203,7 +1203,7 @@
     "status.devices.one": "1 device",
     "status.devices.other": "{count} devices",
     "connect.title": "Connect another device",
-    "connect.hint": "Scan the QR code with the other device's camera, or type this address in its browser. Both devices must be on the same Wi-Fi or network.",
+    "connect.hint": "Scan the QR code with the other device's camera, or tap Copy. If you type the address by hand, keep the http:// prefix. Both devices must be on the same Wi-Fi or network.",
     "connect.copy": "Copy",
     "connect.copied": "Copied!",
     "share.placeholder": "Type or paste anything…",
@@ -1257,7 +1257,7 @@
     "status.devices.one": "1 台设备",
     "status.devices.other": "{count} 台设备",
     "connect.title": "连接其他设备",
-    "connect.hint": "用另一台设备的相机扫描二维码，或在其浏览器中输入此地址。两台设备需连接同一个 Wi-Fi 或网络。",
+    "connect.hint": "用另一台设备的相机扫描二维码，或点「复制」。若手动输入地址，请连同 http:// 一起输入。两台设备需连接同一个 Wi-Fi 或网络。",
     "connect.copy": "复制",
     "connect.copied": "已复制！",
     "share.placeholder": "输入或粘贴任何内容…",
@@ -1311,7 +1311,7 @@
     "status.devices.one": "1 台のデバイス",
     "status.devices.other": "{count} 台のデバイス",
     "connect.title": "別のデバイスを接続",
-    "connect.hint": "別のデバイスのカメラでQRコードをスキャンするか、そのブラウザにこのアドレスを入力してください。両方のデバイスが同じWi-Fi／ネットワークにある必要があります。",
+    "connect.hint": "別のデバイスのカメラでQRコードをスキャンするか、「コピー」をタップしてください。アドレスを手入力する場合は http:// も付けてください。両方のデバイスが同じWi-Fi／ネットワークにある必要があります。",
     "connect.copy": "コピー",
     "connect.copied": "コピーしました！",
     "share.placeholder": "何でも入力・貼り付け…",
@@ -1365,7 +1365,7 @@
     "status.devices.one": "기기 1대",
     "status.devices.other": "기기 {count}대",
     "connect.title": "다른 기기 연결하기",
-    "connect.hint": "다른 기기의 카메라로 QR 코드를 스캔하거나 브라우저에 이 주소를 입력하세요. 두 기기가 같은 Wi-Fi/네트워크에 있어야 합니다.",
+    "connect.hint": "다른 기기의 카메라로 QR 코드를 스캔하거나 복사를 누르세요. 주소를 직접 입력할 때는 http:// 까지 함께 입력하세요. 두 기기가 같은 Wi-Fi/네트워크에 있어야 합니다.",
     "connect.copy": "복사",
     "connect.copied": "복사됨!",
     "share.placeholder": "무엇이든 입력하거나 붙여넣기…",
@@ -1419,7 +1419,7 @@
     "status.devices.one": "1 dispositivo",
     "status.devices.other": "{count} dispositivos",
     "connect.title": "Conectar otro dispositivo",
-    "connect.hint": "Escanea el código QR con la cámara del otro dispositivo o escribe esta dirección en su navegador. Ambos deben estar en la misma red Wi-Fi.",
+    "connect.hint": "Escanea el código QR con la cámara del otro dispositivo o toca Copiar. Si escribes la dirección a mano, incluye el prefijo http://. Ambos deben estar en la misma red Wi-Fi.",
     "connect.copy": "Copiar",
     "connect.copied": "¡Copiado!",
     "share.placeholder": "Escribe o pega lo que quieras…",
@@ -1473,7 +1473,7 @@
     "status.devices.one": "1 Gerät",
     "status.devices.other": "{count} Geräte",
     "connect.title": "Weiteres Gerät verbinden",
-    "connect.hint": "Scanne den QR-Code mit der Kamera des anderen Geräts oder gib diese Adresse in dessen Browser ein. Beide Geräte müssen im selben WLAN sein.",
+    "connect.hint": "Scanne den QR-Code mit der Kamera des anderen Geräts oder tippe auf Kopieren. Wenn du die Adresse von Hand eingibst, gib das http:// mit ein. Beide Geräte müssen im selben WLAN sein.",
     "connect.copy": "Kopieren",
     "connect.copied": "Kopiert!",
     "share.placeholder": "Beliebigen Text eingeben oder einfügen…",
@@ -1527,7 +1527,7 @@
     "status.devices.one": "1 appareil",
     "status.devices.other": "{count} appareils",
     "connect.title": "Connecter un autre appareil",
-    "connect.hint": "Scannez le code QR avec l'appareil photo de l'autre appareil, ou saisissez cette adresse dans son navigateur. Les deux appareils doivent être sur le même réseau Wi-Fi.",
+    "connect.hint": "Scannez le code QR avec l'appareil photo de l'autre appareil, ou appuyez sur Copier. Si vous saisissez l'adresse à la main, conservez le préfixe http://. Les deux appareils doivent être sur le même réseau Wi-Fi.",
     "connect.copy": "Copier",
     "connect.copied": "Copié !",
     "share.placeholder": "Tapez ou collez n'importe quoi…",
@@ -2717,7 +2717,10 @@
 
           var fallbackUrl = location.origin;
           state.shareUrl = fallbackUrl;
-          refs.shareUrl.textContent = fallbackUrl.replace(/^http:\/\//, "");
+          // Keep the http:// scheme visible: mobile Safari upgrades a
+          // scheme-less typed address to https://, which a LAN HTTP server
+          // can't answer. Showing the scheme makes copy-by-eye typing work.
+          refs.shareUrl.textContent = fallbackUrl;
           if (!isLoopbackHost(location.hostname)) {
             renderQr(fallbackUrl);
           }
@@ -2737,12 +2740,12 @@
               var ipUrl = isLoopbackHost(location.hostname) ? info.urls.primary : location.origin;
               var displayUrl = info.urls.friendly || ipUrl;
               state.shareUrl = displayUrl;
-              refs.shareUrl.textContent = displayUrl.replace(/^http:\/\//, "");
+              refs.shareUrl.textContent = displayUrl;
               // The QR always encodes the IP URL — Android browsers can't
               // reliably resolve .local names.
               renderQr(ipUrl);
               if (info.urls.friendly && info.urls.friendly !== ipUrl) {
-                refs.connectAlt.textContent = ipUrl.replace(/^http:\/\//, "");
+                refs.connectAlt.textContent = ipUrl;
                 refs.connectAlt.hidden = false;
               } else {
                 refs.connectAlt.hidden = true;
