@@ -1,18 +1,19 @@
 use std::{
+    collections::HashMap,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use axum::{
     body::Body,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        DefaultBodyLimit, Multipart, Path as AxumPath, State,
+        DefaultBodyLimit, Multipart, Path as AxumPath, Query, State,
     },
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
@@ -40,6 +41,7 @@ const MDNS_HOSTNAME: &str = "drop.local";
 const AUTH_COOKIE: &str = "droplocal_auth";
 const INDEX_FILE_NAME: &str = ".droplocal.json";
 const EXPIRY_SWEEP_INTERVAL_SECS: u64 = 30;
+const INVITE_TTL_SECS: u64 = 10 * 60;
 const EMBEDDED_UI: &str = include_str!("../../../../ui.html");
 const FAVICON_SVG: &str = include_str!("../../../../assets/brand/logo.svg");
 const TOUCH_ICON_PNG: &[u8] = include_bytes!("../../../../assets/brand/apple-touch-icon.png");
@@ -56,6 +58,28 @@ pub struct ServerConfig {
     pub pin: String,
     pub expire_minutes: u32,
     pub enable_mdns: bool,
+    pub network_interface: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkInterface {
+    pub interface: String,
+    pub address: String,
+    pub url: String,
+    pub private: bool,
+    #[serde(rename = "virtual")]
+    pub is_virtual: bool,
+    pub selected: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReachabilityStatus {
+    pub ok: bool,
+    pub checked_at: String,
+    pub status_code: u16,
+    pub error: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -73,6 +97,12 @@ pub struct RuntimeStatus {
     pub file_count: usize,
     pub uptime_seconds: u64,
     pub upload_dir: String,
+    pub selected_interface: String,
+    pub preferred_interface: String,
+    pub preferred_found: bool,
+    pub network_interfaces: Vec<NetworkInterface>,
+    pub reachability: ReachabilityStatus,
+    pub pin_enabled: bool,
 }
 
 pub struct ServerRuntime {
@@ -83,6 +113,11 @@ pub struct ServerRuntime {
     primary_url: String,
     friendly_url: Option<String>,
     all_urls: Vec<String>,
+    selected_interface: String,
+    preferred_interface: String,
+    preferred_found: bool,
+    network_interfaces: Vec<NetworkInterface>,
+    reachability: ReachabilityStatus,
     shutdown_tx: Option<oneshot::Sender<()>>,
     task: Arc<tokio::sync::Mutex<Option<JoinHandle<()>>>>,
     auto_clean_on_quit: bool,
@@ -111,7 +146,48 @@ impl ServerRuntime {
             file_count: self.state.file_len(),
             uptime_seconds: self.state.uptime_seconds(),
             upload_dir: self.state.upload_dir.to_string_lossy().to_string(),
+            selected_interface: self.selected_interface.clone(),
+            preferred_interface: self.preferred_interface.clone(),
+            preferred_found: self.preferred_found,
+            network_interfaces: self.network_interfaces.clone(),
+            reachability: self.reachability.clone(),
+            pin_enabled: !self.state.pin.is_empty(),
         }
+    }
+
+    pub async fn create_invite_url(&self) -> String {
+        let base_url = self
+            .friendly_url
+            .as_deref()
+            .filter(|url| !url.is_empty())
+            .unwrap_or(&self.primary_url);
+        self.state.create_invite(base_url, &self.primary_url).await.url
+    }
+
+    pub async fn debug_info(&self) -> String {
+        let snapshot = self.snapshot();
+        let mut lines = vec![
+            format!("DropLocal {}", env!("CARGO_PKG_VERSION")),
+            format!("Primary: {}", snapshot.primary_url),
+            format!("Friendly: {}", snapshot.friendly_url),
+            format!("Selected interface: {}", snapshot.selected_interface),
+            format!("Preferred interface: {}", snapshot.preferred_interface),
+            format!("PIN enabled: {}", if self.state.pin.is_empty() { "no" } else { "yes" }),
+            format!(
+                "Local check: {}",
+                if snapshot.reachability.ok { "ok" } else { "failed" }
+            ),
+            format!("Upload dir: {}", snapshot.upload_dir),
+        ];
+        for entry in snapshot.network_interfaces {
+            lines.push(format!(
+                "Interface {}: {} {}",
+                entry.interface,
+                entry.address,
+                if entry.selected { "[selected]" } else { "" }
+            ));
+        }
+        lines.join("\n")
     }
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {
@@ -164,8 +240,14 @@ struct ServerState {
     primary_url: String,
     friendly_url: String,
     share_urls: Vec<String>,
+    selected_interface: String,
+    preferred_interface: String,
+    preferred_found: bool,
+    network_interfaces: Vec<NetworkInterface>,
+    reachability: RwLock<ReachabilityStatus>,
     pin: String,
     session_token: String,
+    invites: RwLock<HashMap<String, Instant>>,
     expire_minutes: u32,
     devices: RwLock<std::collections::HashMap<String, DeviceInfo>>,
 }
@@ -193,6 +275,11 @@ impl ServerState {
         primary_url: String,
         friendly_url: String,
         share_urls: Vec<String>,
+        selected_interface: String,
+        preferred_interface: String,
+        preferred_found: bool,
+        network_interfaces: Vec<NetworkInterface>,
+        reachability: ReachabilityStatus,
         pin: String,
         expire_minutes: u32,
     ) -> Self {
@@ -208,8 +295,14 @@ impl ServerState {
             primary_url,
             friendly_url,
             share_urls,
+            selected_interface,
+            preferred_interface,
+            preferred_found,
+            network_interfaces,
+            reachability: RwLock::new(reachability),
             pin,
             session_token: Uuid::new_v4().to_string(),
+            invites: RwLock::new(HashMap::new()),
             expire_minutes,
             devices: RwLock::new(std::collections::HashMap::new()),
         }
@@ -253,6 +346,39 @@ impl ServerState {
     fn device_count(&self) -> usize {
         self.connected_devices.load(Ordering::SeqCst)
     }
+
+    fn auth_cookie(&self) -> String {
+        format!("{AUTH_COOKIE}={}; Path=/; HttpOnly; SameSite=Lax", self.session_token)
+    }
+
+    async fn validate_invite(&self, token: &str) -> bool {
+        let token = token.trim();
+        if token.is_empty() {
+            return false;
+        }
+        let now = Instant::now();
+        let mut invites = self.invites.write().await;
+        invites.retain(|_, expires_at| *expires_at > now);
+        invites.get(token).is_some_and(|expires_at| *expires_at > now)
+    }
+
+    async fn create_invite(&self, base_url: &str, fallback_base_url: &str) -> InvitePayload {
+        let token = Uuid::new_v4().simple().to_string();
+        let expires_at = Instant::now() + Duration::from_secs(INVITE_TTL_SECS);
+        self.invites.write().await.insert(token.clone(), expires_at);
+        InvitePayload {
+            url: with_invite_token(base_url, &token),
+            fallback_url: if fallback_base_url.is_empty() {
+                String::new()
+            } else {
+                with_invite_token(fallback_base_url, &token)
+            },
+            token,
+            expires_at: (Utc::now() + chrono::Duration::seconds(INVITE_TTL_SECS as i64))
+                .to_rfc3339(),
+            ttl_seconds: INVITE_TTL_SECS,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -269,7 +395,20 @@ struct NewSnippet {
 
 #[derive(Debug, Deserialize)]
 struct AuthPayload {
+    #[serde(default)]
     pin: String,
+    #[serde(default)]
+    invite: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InvitePayload {
+    url: String,
+    fallback_url: String,
+    token: String,
+    expires_at: String,
+    ttl_seconds: u64,
 }
 
 #[derive(Debug, Deserialize)]
@@ -378,6 +517,17 @@ pub fn stopped_status() -> RuntimeStatus {
         file_count: 0,
         uptime_seconds: 0,
         upload_dir: String::new(),
+        selected_interface: String::new(),
+        preferred_interface: String::new(),
+        preferred_found: true,
+        network_interfaces: Vec::new(),
+        reachability: ReachabilityStatus {
+            ok: false,
+            checked_at: String::new(),
+            status_code: 0,
+            error: String::new(),
+        },
+        pin_enabled: false,
     }
 }
 
@@ -388,11 +538,23 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
     let bound_port = listener.local_addr()?.port();
     let fallback_count = bound_port.saturating_sub(config.requested_port);
 
-    let urls = build_share_urls(bound_port);
+    let network_interfaces = build_network_interfaces(bound_port, &config.network_interface);
+    let urls = build_share_urls(&network_interfaces, bound_port);
     let primary_url = urls
         .first()
         .cloned()
         .unwrap_or_else(|| format!("http://127.0.0.1:{bound_port}"));
+    let selected_interface = network_interfaces
+        .iter()
+        .find(|entry| entry.selected)
+        .map(|entry| entry.interface.clone())
+        .unwrap_or_default();
+    let preferred_interface = config.network_interface.trim().to_string();
+    let preferred_found = preferred_interface.is_empty()
+        || network_interfaces.iter().any(|entry| {
+            entry.interface.eq_ignore_ascii_case(&preferred_interface)
+                || entry.address.eq_ignore_ascii_case(&preferred_interface)
+        });
 
     let mdns = if config.enable_mdns {
         register_mdns(bound_port)
@@ -407,11 +569,23 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         }
     });
 
+    let mut reachability = ReachabilityStatus {
+        ok: false,
+        checked_at: String::new(),
+        status_code: 0,
+        error: "not checked".to_string(),
+    };
+
     let state = Arc::new(ServerState::new(
         config.storage_dir.clone(),
         primary_url.clone(),
         friendly_url.clone().unwrap_or_default(),
         urls.clone(),
+        selected_interface.clone(),
+        preferred_interface.clone(),
+        preferred_found,
+        network_interfaces.clone(),
+        reachability.clone(),
         config.pin.trim().to_string(),
         config.expire_minutes,
     ));
@@ -429,6 +603,8 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .route("/icons/icon-192.png", get(icon_192))
         .route("/icons/icon-512.png", get(icon_512))
         .route("/api/info", get(info))
+        .route("/api/diagnostics", get(diagnostics))
+        .route("/api/invites", axum::routing::post(create_invite))
         .route("/api/snippets", get(list_snippets).post(create_snippet))
         .route("/api/snippets/{id}", delete(delete_snippet))
         .route("/api/files", get(list_files).post(upload_files))
@@ -472,6 +648,10 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         None
     };
 
+    tokio::time::sleep(Duration::from_millis(40)).await;
+    reachability = check_local_reachability(bound_port).await;
+    *state.reachability.write().await = reachability.clone();
+
     Ok(ServerRuntime {
         state,
         port: bound_port,
@@ -480,6 +660,11 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         primary_url,
         friendly_url,
         all_urls: urls,
+        selected_interface,
+        preferred_interface,
+        preferred_found,
+        network_interfaces,
+        reachability,
         shutdown_tx: Some(shutdown_tx),
         task: Arc::new(tokio::sync::Mutex::new(Some(task))),
         auto_clean_on_quit: config.auto_clean_on_quit,
@@ -513,7 +698,10 @@ async fn require_auth(
     }
 
     let expected = format!("{AUTH_COOKIE}={}", state.session_token);
-    let authorized = request
+    let invite = query_value(request.uri().query(), "invite");
+    let authorized_by_invite = state.validate_invite(&invite).await;
+    let authorized = authorized_by_invite
+        || request
         .headers()
         .get("cookie")
         .and_then(|value| value.to_str().ok())
@@ -536,11 +724,8 @@ async fn auth(State(state): State<Arc<ServerState>>, Json(payload): Json<AuthPay
         return (StatusCode::OK, Json(json!({ "ok": true }))).into_response();
     }
 
-    if payload.pin.trim() == state.pin {
-        let cookie = format!(
-            "{AUTH_COOKIE}={}; Path=/; HttpOnly; SameSite=Lax",
-            state.session_token
-        );
+    if payload.pin.trim() == state.pin || state.validate_invite(&payload.invite).await {
+        let cookie = state.auth_cookie();
         let mut response = (StatusCode::OK, Json(json!({ "ok": true }))).into_response();
         if let Ok(value) = HeaderValue::from_str(&cookie) {
             response
@@ -680,6 +865,27 @@ fn register_mdns(port: u16) -> Option<mdns_sd::ServiceDaemon> {
     Some(daemon)
 }
 
+fn query_value(query: Option<&str>, key: &str) -> String {
+    let Some(query) = query else {
+        return String::new();
+    };
+    for pair in query.split('&') {
+        let mut parts = pair.splitn(2, '=');
+        let Some(name) = parts.next() else {
+            continue;
+        };
+        if name == key {
+            return parts.next().unwrap_or("").to_string();
+        }
+    }
+    String::new()
+}
+
+fn with_invite_token(base_url: &str, token: &str) -> String {
+    let separator = if base_url.contains('?') { "&" } else { "?" };
+    format!("{base_url}{separator}invite={token}")
+}
+
 async fn bind_listener(requested_port: u16) -> anyhow::Result<TcpListener> {
     if requested_port == 0 {
         // Auto mode: port 80 gives a portless URL (http://drop.local);
@@ -723,35 +929,87 @@ async fn bind_listener(requested_port: u16) -> anyhow::Result<TcpListener> {
     ))
 }
 
-fn build_share_urls(port: u16) -> Vec<String> {
+fn build_network_interfaces(port: u16, preferred_interface: &str) -> Vec<NetworkInterface> {
+    let preferred = preferred_interface.trim().to_lowercase();
     let mut found = Vec::new();
 
     if let Ok(netifs) = local_ip_address::list_afinet_netifas() {
         // Score: real private LAN < virtual private (VPN/container) < public.
-        let mut urls: Vec<(u8, String, String)> = netifs
+        let mut rows: Vec<(i16, String, NetworkInterface)> = netifs
             .into_iter()
             .filter_map(|(name, ip)| match ip {
                 IpAddr::V4(v4) if !v4.is_loopback() => {
-                    let score = match (is_private_ipv4(v4), is_virtual_interface(&name)) {
+                    let address = v4.to_string();
+                    let virtual_interface = is_virtual_interface(&name);
+                    let matched = !preferred.is_empty()
+                        && (name.to_lowercase() == preferred || address.to_lowercase() == preferred);
+                    let base_score = match (is_private_ipv4(v4), virtual_interface) {
                         (true, false) => 0,
                         (true, true) => 1,
                         (false, _) => 2,
                     };
-                    Some((score, name, format!("http://{v4}:{port}")))
+                    Some((
+                        base_score - if matched { 10 } else { 0 },
+                        name.clone(),
+                        NetworkInterface {
+                            interface: name,
+                            address: address.clone(),
+                            url: format!("http://{address}:{port}"),
+                            private: is_private_ipv4(v4),
+                            is_virtual: virtual_interface,
+                            selected: false,
+                        },
+                    ))
                 }
                 _ => None,
             })
             .collect();
 
-        urls.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
-        found.extend(urls.into_iter().map(|(_, _, url)| url));
+        rows.sort_by(|left, right| left.0.cmp(&right.0).then(left.1.cmp(&right.1)));
+        found.extend(rows.into_iter().map(|(_, _, row)| row));
     }
 
-    if found.is_empty() {
-        found.push(format!("http://127.0.0.1:{port}"));
+    if let Some(first) = found.first_mut() {
+        first.selected = true;
     }
 
     found
+}
+
+fn build_share_urls(interfaces: &[NetworkInterface], port: u16) -> Vec<String> {
+    if interfaces.is_empty() {
+        return vec![format!("http://127.0.0.1:{port}")];
+    }
+    interfaces.iter().map(|entry| entry.url.clone()).collect()
+}
+
+async fn check_local_reachability(port: u16) -> ReachabilityStatus {
+    let checked_at = Utc::now().to_rfc3339();
+    match tokio::time::timeout(
+        Duration::from_millis(800),
+        tokio::net::TcpStream::connect(("127.0.0.1", port)),
+    )
+    .await
+    {
+        Ok(Ok(_stream)) => ReachabilityStatus {
+            ok: true,
+            checked_at,
+            status_code: 0,
+            error: String::new(),
+        },
+        Ok(Err(error)) => ReachabilityStatus {
+            ok: false,
+            checked_at,
+            status_code: 0,
+            error: error.to_string(),
+        },
+        Err(error) => ReachabilityStatus {
+            ok: false,
+            checked_at,
+            status_code: 0,
+            error: error.to_string(),
+        },
+    }
 }
 
 /// VPN tunnels, container bridges and link-local helpers advertise private
@@ -774,12 +1032,30 @@ fn is_private_ipv4(ip: Ipv4Addr) -> bool {
     }
 }
 
-async fn index_html() -> impl IntoResponse {
-    (
+async fn index_html(
+    State(state): State<Arc<ServerState>>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Response {
+    let mut response = (
         StatusCode::OK,
         [("content-type", "text/html; charset=utf-8")],
         EMBEDDED_UI,
     )
+        .into_response();
+
+    if !state.pin.is_empty() {
+        if let Some(invite) = query.get("invite") {
+            if state.validate_invite(invite).await {
+                if let Ok(value) = HeaderValue::from_str(&state.auth_cookie()) {
+                    response
+                        .headers_mut()
+                        .insert(axum::http::header::SET_COOKIE, value);
+                }
+            }
+        }
+    }
+
+    response
 }
 
 async fn favicon_svg() -> impl IntoResponse {
@@ -816,9 +1092,63 @@ async fn info(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
             "primary": state.primary_url,
             "friendly": friendly,
             "all": state.share_urls,
-            "interfaces": []
+            "interfaces": state.network_interfaces
         }
     }))
+}
+
+async fn diagnostics(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+    let mut warnings = Vec::new();
+    if !state.preferred_interface.is_empty() && !state.preferred_found {
+        warnings.push(format!(
+            "Preferred interface \"{}\" was not found.",
+            state.preferred_interface
+        ));
+    }
+    if let Some(selected) = state.network_interfaces.iter().find(|entry| entry.selected) {
+        if selected.is_virtual {
+            warnings.push(
+                "The selected interface looks virtual/VPN-backed; phones may not reach it."
+                    .to_string(),
+            );
+        }
+    }
+    if state.friendly_url.is_empty() {
+        warnings.push("mDNS friendly address is unavailable; use the IP URL or QR code.".to_string());
+    }
+    let reachability = state.reachability.read().await.clone();
+
+    Json(json!({
+        "name": "DropLocal",
+        "version": env!("CARGO_PKG_VERSION"),
+        "running": true,
+        "primaryUrl": state.primary_url,
+        "friendlyUrl": state.friendly_url,
+        "selectedInterface": state.selected_interface,
+        "preferredInterface": state.preferred_interface,
+        "preferredFound": state.preferred_found,
+        "interfaces": state.network_interfaces,
+        "mdns": {
+            "enabled": true,
+            "available": !state.friendly_url.is_empty(),
+            "url": state.friendly_url,
+        },
+        "reachability": reachability,
+        "pinEnabled": !state.pin.is_empty(),
+        "inviteTtlSeconds": INVITE_TTL_SECS,
+        "uploadDir": state.upload_dir.to_string_lossy(),
+        "warnings": warnings
+    }))
+}
+
+async fn create_invite(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+    let base_url = if state.friendly_url.is_empty() {
+        state.primary_url.as_str()
+    } else {
+        state.friendly_url.as_str()
+    };
+    let invite = state.create_invite(base_url, &state.primary_url).await;
+    (StatusCode::CREATED, Json(invite))
 }
 
 async fn web_manifest() -> impl IntoResponse {
@@ -1444,6 +1774,7 @@ mod tests {
             pin: pin.to_string(),
             expire_minutes: 0,
             enable_mdns: false,
+            network_interface: String::new(),
         }
     }
 
@@ -1468,6 +1799,18 @@ mod tests {
             .expect("info json");
         assert_eq!(info["name"], "DropLocal");
         assert!(info["urls"]["primary"].as_str().unwrap().starts_with("http"));
+        assert!(info["urls"]["interfaces"].as_array().is_some());
+
+        let diagnostics: Value = client
+            .get(format!("{base}/api/diagnostics"))
+            .send()
+            .await
+            .expect("diagnostics request")
+            .json()
+            .await
+            .expect("diagnostics json");
+        assert_eq!(diagnostics["name"], "DropLocal");
+        assert_eq!(diagnostics["running"], true);
 
         let created: Value = client
             .post(format!("{base}/api/snippets"))
@@ -1615,6 +1958,34 @@ mod tests {
             .await
             .expect("authorized request");
         assert_eq!(authorized.status(), reqwest::StatusCode::OK);
+
+        let invite = client
+            .post(format!("{base}/api/invites"))
+            .send()
+            .await
+            .expect("invite request");
+        assert_eq!(invite.status(), reqwest::StatusCode::CREATED);
+        let invite: Value = invite.json().await.expect("invite json");
+        assert!(invite["url"].as_str().unwrap().contains("invite="));
+
+        let fresh_client = reqwest::Client::builder()
+            .cookie_store(true)
+            .build()
+            .expect("fresh client");
+        let invite_auth = fresh_client
+            .post(format!("{base}/api/auth"))
+            .json(&json!({ "invite": invite["token"].as_str().unwrap() }))
+            .send()
+            .await
+            .expect("invite auth");
+        assert_eq!(invite_auth.status(), reqwest::StatusCode::OK);
+
+        let invite_authorized = fresh_client
+            .get(format!("{base}/api/snippets"))
+            .send()
+            .await
+            .expect("invite authorized request");
+        assert_eq!(invite_authorized.status(), reqwest::StatusCode::OK);
 
         runtime.stop().await.expect("stop");
     }

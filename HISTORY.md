@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-06-15
+
+### Added
+
+- Connection Doctor in the web UI and desktop dashboard: selected interface,
+  primary IP URL, friendly URL, local listener check, PIN state, warnings, and
+  one-click debug info copy.
+- Manual preferred network interface selection via CLI `--interface <name-or-ip>`
+  and the desktop settings screen.
+- Short-lived invite links for PIN-protected sessions. Authorized users can copy
+  a 10-minute invite link so another device can join without typing the PIN.
+
+### Changed
+
+- Share URL selection now honors the preferred interface before falling back to
+  the existing real-LAN-first ordering.
+
 ## [1.3.1] - 2026-06-12
 
 ### Fixed

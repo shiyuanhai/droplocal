@@ -34,8 +34,10 @@ npx droplocal
 - One shared **drop stream** — notes and files interleaved, synced live to every device,
   **persistent across restarts** (opt out with `--ephemeral`)
 - Optional **PIN protection** (`--pin 4471`) and auto-expiry (`--expire 60`)
+- **Short-lived invite links** for PIN-protected sessions
 - Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
 - **Connect card in the web UI**: QR code + address so any device can onboard the next one
+- **Connection Doctor**: interface, URL, mDNS, and local listener diagnostics with copyable debug info
 - Per-file upload progress, copy/download/delete actions
 - **Multi-select → .zip**: tap file icons to select several, download as one archive
 - **Markdown notes**: headings, lists, bold, links, and code blocks render properly
@@ -61,6 +63,7 @@ droplocal --dir ./shared          # default: ~/Downloads/DropLocal
 droplocal --pin 4471              # other devices must enter this PIN
 droplocal --expire 60             # auto-delete drops after 60 minutes
 droplocal --ephemeral             # wipe everything when the server stops
+droplocal --interface en0         # prefer a network interface name or IP
 droplocal --help
 droplocal --version
 ```

@@ -253,6 +253,7 @@ input {
 
 .url-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 10px;
 }
@@ -265,6 +266,43 @@ input {
   margin: 14px 0 0;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.desktop-doctor {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.doctor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  font-size: 0.76rem;
+}
+
+.doctor-row {
+  min-width: 0;
+}
+
+.doctor-label {
+  display: block;
+  color: var(--muted);
+}
+
+.doctor-value {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.doctor-warning {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 0.74rem;
 }
 
 /* ---------- Buttons ---------- */

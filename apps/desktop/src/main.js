@@ -18,6 +18,10 @@ const refs = {
   primaryUrl: document.getElementById("primaryUrl"),
   copyUrlBtn: document.getElementById("copyUrlBtn"),
   openBrowserBtn: document.getElementById("openBrowserBtn"),
+  copyInviteBtn: document.getElementById("copyInviteBtn"),
+  copyDebugBtn: document.getElementById("copyDebugBtn"),
+  doctorGrid: document.getElementById("doctorGrid"),
+  doctorWarning: document.getElementById("doctorWarning"),
   qrCode: document.getElementById("qrCode"),
   toggleServerBtn: document.getElementById("toggleServerBtn"),
   refreshBtn: document.getElementById("refreshBtn"),
@@ -29,6 +33,7 @@ const refs = {
   portInput: document.getElementById("portInput"),
   storageDirInput: document.getElementById("storageDirInput"),
   pinInput: document.getElementById("pinInput"),
+  networkInterfaceInput: document.getElementById("networkInterfaceInput"),
   expireInput: document.getElementById("expireInput"),
   showQrInput: document.getElementById("showQrInput"),
   autoCleanInput: document.getElementById("autoCleanInput"),
@@ -158,8 +163,54 @@ function renderRuntime(runtime) {
 
   refs.copyUrlBtn.disabled = !running;
   refs.openBrowserBtn.disabled = !running;
+  refs.copyInviteBtn.disabled = !running;
+  refs.copyDebugBtn.disabled = !running;
+  renderDoctor(runtime);
 
   void renderQr(running ? runtime.primaryUrl : "");
+}
+
+function doctorRows(runtime) {
+  const local = runtime.reachability?.ok ? t("doctor.ok") : t("doctor.failed");
+  return [
+    [t("doctor.interface"), runtime.selectedInterface || "-"],
+    [t("doctor.primary"), runtime.primaryUrl || "-"],
+    [t("doctor.friendly"), runtime.friendlyUrl || "-"],
+    [t("doctor.local"), local],
+    [t("doctor.pin"), runtime.pinEnabled ? t("doctor.on") : t("doctor.off")]
+  ];
+}
+
+function renderDoctor(runtime) {
+  refs.doctorGrid.textContent = "";
+  if (!runtime?.running) {
+    refs.doctorWarning.hidden = true;
+    return;
+  }
+
+  doctorRows(runtime).forEach(([labelText, valueText]) => {
+    const row = document.createElement("div");
+    row.className = "doctor-row";
+    const label = document.createElement("span");
+    label.className = "doctor-label";
+    label.textContent = labelText;
+    const value = document.createElement("span");
+    value.className = "doctor-value";
+    value.textContent = valueText;
+    row.append(label, value);
+    refs.doctorGrid.appendChild(row);
+  });
+
+  const selected = (runtime.networkInterfaces || []).find((entry) => entry.selected);
+  const warnings = [];
+  if (runtime.preferredInterface && !runtime.preferredFound) {
+    warnings.push(`Preferred interface "${runtime.preferredInterface}" was not found.`);
+  }
+  if (selected?.virtual) {
+    warnings.push("Selected interface looks virtual or VPN-backed.");
+  }
+  refs.doctorWarning.hidden = warnings.length === 0;
+  refs.doctorWarning.textContent = warnings[0] || "";
 }
 
 async function refreshRuntime() {
@@ -203,6 +254,24 @@ async function openBrowser() {
   }
 }
 
+async function copyInvite() {
+  try {
+    await invoke("copy_invite_link");
+    showToast(t("doctor.inviteCopied"));
+  } catch (error) {
+    showToast(t("msg.copyFailed", { error: String(error) }));
+  }
+}
+
+async function copyDebug() {
+  try {
+    await invoke("copy_debug_info");
+    showToast(t("doctor.debugCopied"));
+  } catch (error) {
+    showToast(t("msg.copyFailed", { error: String(error) }));
+  }
+}
+
 /* ---------- settings modal ---------- */
 
 function openSettings() {
@@ -220,6 +289,7 @@ async function loadSettings() {
     refs.portInput.value = String(settings.port);
     refs.storageDirInput.value = settings.storageDir;
     refs.pinInput.value = settings.pin || "";
+    refs.networkInterfaceInput.value = settings.networkInterface || "";
     refs.expireInput.value = String(settings.expireMinutes || 0);
     // Preserved verbatim — the dashboard always shows the QR now, so this
     // setting is no longer surfaced as a checkbox but must round-trip.
@@ -241,6 +311,7 @@ async function saveSettings(event) {
     port: Number.parseInt(refs.portInput.value, 10),
     storageDir: refs.storageDirInput.value.trim(),
     pin: refs.pinInput.value.trim(),
+    networkInterface: refs.networkInterfaceInput.value.trim(),
     expireMinutes: Number.parseInt(refs.expireInput.value, 10) || 0,
     showQrInTray: refs.showQrInput.value === "1",
     autoCleanOnQuit: refs.autoCleanInput.checked,
@@ -282,6 +353,8 @@ async function initialize() {
   refs.toggleServerBtn.addEventListener("click", () => void toggleServer());
   refs.copyUrlBtn.addEventListener("click", () => void copyUrl());
   refs.openBrowserBtn.addEventListener("click", () => void openBrowser());
+  refs.copyInviteBtn.addEventListener("click", () => void copyInvite());
+  refs.copyDebugBtn.addEventListener("click", () => void copyDebug());
   refs.refreshBtn.addEventListener("click", () => void refreshRuntime());
 
   refs.settingsBtn.addEventListener("click", openSettings);

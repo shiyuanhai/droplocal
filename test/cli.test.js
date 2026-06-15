@@ -37,13 +37,15 @@ test("parseArgs throws on invalid options", () => {
 });
 
 test("parseArgs supports pin, expire and ephemeral flags", () => {
-  const args = parseArgs(["--pin", "4471", "--expire", "60", "--ephemeral"], {});
+  const args = parseArgs(["--pin", "4471", "--expire", "60", "--ephemeral", "--interface", "en0"], {});
   assert.equal(args.pin, "4471");
   assert.equal(args.expireMinutes, 60);
   assert.equal(args.ephemeral, true);
+  assert.equal(args.networkInterface, "en0");
 
   assert.throws(() => parseArgs(["--pin", "x"], {}), /Invalid --pin/);
   assert.throws(() => parseArgs(["--expire", "-5"], {}), /Invalid --expire/);
+  assert.throws(() => parseArgs(["--interface"], {}), /Missing value/);
 });
 
 test("sanitizeFileName strips unsafe path fragments", () => {
