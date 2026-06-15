@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-06-15
+
+### Added
+
+- Search box in the shared drop stream so notes and file names can be filtered
+  in place without leaving the page.
+- Bulk cleanup controls in the web UI for clearing notes, files, older drops,
+  or everything.
+- Selected-file delete action alongside the existing selected-file zip download.
+- `DELETE /api/drops` cleanup endpoint in both the Node CLI server and the
+  Rust desktop server.
+- Desktop tray "Drop Clipboard" action that creates a new text drop from the
+  current system clipboard.
+
+### Changed
+
+- The web UI reload path now clears stale local stream state before applying
+  server results, so bulk cleanup is reflected immediately.
+
 ## [1.4.0] - 2026-06-15
 
 ### Added

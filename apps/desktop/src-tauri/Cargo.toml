@@ -1,6 +1,6 @@
 [package]
 name = "droplocal-desktop"
-version = "1.4.0"
+version = "1.5.0"
 description = "DropLocal desktop distribution"
 authors = ["DropLocal Contributors"]
 edition = "2021"

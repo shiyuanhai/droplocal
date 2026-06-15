@@ -161,7 +161,10 @@ impl ServerRuntime {
             .as_deref()
             .filter(|url| !url.is_empty())
             .unwrap_or(&self.primary_url);
-        self.state.create_invite(base_url, &self.primary_url).await.url
+        self.state
+            .create_invite(base_url, &self.primary_url)
+            .await
+            .url
     }
 
     pub async fn debug_info(&self) -> String {
@@ -172,10 +175,21 @@ impl ServerRuntime {
             format!("Friendly: {}", snapshot.friendly_url),
             format!("Selected interface: {}", snapshot.selected_interface),
             format!("Preferred interface: {}", snapshot.preferred_interface),
-            format!("PIN enabled: {}", if self.state.pin.is_empty() { "no" } else { "yes" }),
+            format!(
+                "PIN enabled: {}",
+                if self.state.pin.is_empty() {
+                    "no"
+                } else {
+                    "yes"
+                }
+            ),
             format!(
                 "Local check: {}",
-                if snapshot.reachability.ok { "ok" } else { "failed" }
+                if snapshot.reachability.ok {
+                    "ok"
+                } else {
+                    "failed"
+                }
             ),
             format!("Upload dir: {}", snapshot.upload_dir),
         ];
@@ -188,6 +202,22 @@ impl ServerRuntime {
             ));
         }
         lines.join("\n")
+    }
+
+    pub async fn drop_text(&self, raw_text: &str) -> anyhow::Result<()> {
+        let text = raw_text.trim();
+        if text.is_empty() {
+            return Err(anyhow::anyhow!("Clipboard has no text to drop"));
+        }
+        let snippet = Snippet {
+            id: Uuid::new_v4().to_string(),
+            text: text.to_string(),
+            timestamp: Utc::now().to_rfc3339(),
+        };
+        self.state.snippets.write().await.insert(0, snippet.clone());
+        self.state.emit("snippet:new", json!(snippet));
+        save_index_spawn(&self.state);
+        Ok(())
     }
 
     pub async fn stop(&mut self) -> anyhow::Result<()> {
@@ -348,7 +378,10 @@ impl ServerState {
     }
 
     fn auth_cookie(&self) -> String {
-        format!("{AUTH_COOKIE}={}; Path=/; HttpOnly; SameSite=Lax", self.session_token)
+        format!(
+            "{AUTH_COOKIE}={}; Path=/; HttpOnly; SameSite=Lax",
+            self.session_token
+        )
     }
 
     async fn validate_invite(&self, token: &str) -> bool {
@@ -359,7 +392,9 @@ impl ServerState {
         let now = Instant::now();
         let mut invites = self.invites.write().await;
         invites.retain(|_, expires_at| *expires_at > now);
-        invites.get(token).is_some_and(|expires_at| *expires_at > now)
+        invites
+            .get(token)
+            .is_some_and(|expires_at| *expires_at > now)
     }
 
     async fn create_invite(&self, base_url: &str, fallback_base_url: &str) -> InvitePayload {
@@ -421,6 +456,18 @@ struct ZipQuery {
 struct DownloadQuery {
     #[serde(default)]
     inline: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CleanupQuery {
+    #[serde(default = "default_cleanup_type")]
+    r#type: String,
+    #[serde(rename = "olderThanMinutes", default)]
+    older_than_minutes: u64,
+}
+
+fn default_cleanup_type() -> String {
+    "all".to_string()
 }
 
 struct ZipEntry {
@@ -610,6 +657,7 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .route("/api/files", get(list_files).post(upload_files))
         .route("/api/files.zip", get(download_zip))
         .route("/api/files/{id}", get(download_file).delete(delete_file))
+        .route("/api/drops", delete(clear_drops))
         .route("/api/status", get(status))
         .route("/ws", get(ws_upgrade))
         // Files stream to disk chunk-by-chunk; axum's 2 MB default body cap
@@ -636,9 +684,8 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
     let sweeper = if config.expire_minutes > 0 {
         let sweep_state = state.clone();
         Some(tokio::spawn(async move {
-            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(
-                EXPIRY_SWEEP_INTERVAL_SECS,
-            ));
+            let mut ticker =
+                tokio::time::interval(std::time::Duration::from_secs(EXPIRY_SWEEP_INTERVAL_SECS));
             loop {
                 ticker.tick().await;
                 sweep_expired(&sweep_state).await;
@@ -702,11 +749,11 @@ async fn require_auth(
     let authorized_by_invite = state.validate_invite(&invite).await;
     let authorized = authorized_by_invite
         || request
-        .headers()
-        .get("cookie")
-        .and_then(|value| value.to_str().ok())
-        .map(|cookies| cookies.split(';').any(|part| part.trim() == expected))
-        .unwrap_or(false);
+            .headers()
+            .get("cookie")
+            .and_then(|value| value.to_str().ok())
+            .map(|cookies| cookies.split(';').any(|part| part.trim() == expected))
+            .unwrap_or(false);
 
     if authorized {
         next.run(request).await
@@ -942,7 +989,8 @@ fn build_network_interfaces(port: u16, preferred_interface: &str) -> Vec<Network
                     let address = v4.to_string();
                     let virtual_interface = is_virtual_interface(&name);
                     let matched = !preferred.is_empty()
-                        && (name.to_lowercase() == preferred || address.to_lowercase() == preferred);
+                        && (name.to_lowercase() == preferred
+                            || address.to_lowercase() == preferred);
                     let base_score = match (is_private_ipv4(v4), virtual_interface) {
                         (true, false) => 0,
                         (true, true) => 1,
@@ -1017,9 +1065,11 @@ async fn check_local_reachability(port: u16) -> ReachabilityStatus {
 /// the primary share URL.
 fn is_virtual_interface(name: &str) -> bool {
     let lowered = name.to_lowercase();
-    ["utun", "tun", "tap", "docker", "vmnet", "bridge", "br-", "zt", "awdl", "llw", "veth"]
-        .iter()
-        .any(|prefix| lowered.starts_with(prefix))
+    [
+        "utun", "tun", "tap", "docker", "vmnet", "bridge", "br-", "zt", "awdl", "llw", "veth",
+    ]
+    .iter()
+    .any(|prefix| lowered.starts_with(prefix))
 }
 
 fn is_private_ipv4(ip: Ipv4Addr) -> bool {
@@ -1067,7 +1117,11 @@ async fn favicon_svg() -> impl IntoResponse {
 }
 
 async fn touch_icon_png() -> impl IntoResponse {
-    (StatusCode::OK, [("content-type", "image/png")], TOUCH_ICON_PNG)
+    (
+        StatusCode::OK,
+        [("content-type", "image/png")],
+        TOUCH_ICON_PNG,
+    )
 }
 
 async fn qrcode_vendor_js() -> impl IntoResponse {
@@ -1114,7 +1168,8 @@ async fn diagnostics(State(state): State<Arc<ServerState>>) -> impl IntoResponse
         }
     }
     if state.friendly_url.is_empty() {
-        warnings.push("mDNS friendly address is unavailable; use the IP URL or QR code.".to_string());
+        warnings
+            .push("mDNS friendly address is unavailable; use the IP URL or QR code.".to_string());
     }
     let reachability = state.reachability.read().await.clone();
 
@@ -1160,11 +1215,19 @@ async fn web_manifest() -> impl IntoResponse {
 }
 
 async fn icon_192() -> impl IntoResponse {
-    (StatusCode::OK, [("content-type", "image/png")], ICON_192_PNG)
+    (
+        StatusCode::OK,
+        [("content-type", "image/png")],
+        ICON_192_PNG,
+    )
 }
 
 async fn icon_512() -> impl IntoResponse {
-    (StatusCode::OK, [("content-type", "image/png")], ICON_512_PNG)
+    (
+        StatusCode::OK,
+        [("content-type", "image/png")],
+        ICON_512_PNG,
+    )
 }
 
 async fn list_snippets(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
@@ -1367,7 +1430,11 @@ fn crc32_update(crc: u32, chunk: &[u8]) -> u32 {
         for (n, slot) in table.iter_mut().enumerate() {
             let mut c = n as u32;
             for _ in 0..8 {
-                c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+                c = if c & 1 != 0 {
+                    0xEDB8_8320 ^ (c >> 1)
+                } else {
+                    c >> 1
+                };
             }
             *slot = c;
         }
@@ -1604,6 +1671,75 @@ async fn delete_file(
     Ok((StatusCode::OK, Json(json!({ "ok": true }))))
 }
 
+async fn clear_drops(
+    State(state): State<Arc<ServerState>>,
+    Query(query): Query<CleanupQuery>,
+) -> ApiResult<impl IntoResponse> {
+    let cleanup_type = query.r#type.trim();
+    if !matches!(cleanup_type, "all" | "notes" | "snippets" | "files") {
+        return Err(ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "Invalid cleanup type",
+        ));
+    }
+
+    let cutoff = if query.older_than_minutes > 0 {
+        Some(Utc::now() - chrono::Duration::minutes(query.older_than_minutes as i64))
+    } else {
+        None
+    };
+    let should_remove = |timestamp: &str| {
+        let Some(cutoff) = cutoff else {
+            return true;
+        };
+        chrono::DateTime::parse_from_rfc3339(timestamp)
+            .map(|parsed| parsed.with_timezone(&Utc) <= cutoff)
+            .unwrap_or(false)
+    };
+
+    let removed_snippets: Vec<String> = if matches!(cleanup_type, "all" | "notes" | "snippets") {
+        let mut snippets = state.snippets.write().await;
+        let (removed, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut *snippets)
+            .into_iter()
+            .partition(|snippet| should_remove(&snippet.timestamp));
+        *snippets = kept;
+        removed.into_iter().map(|snippet| snippet.id).collect()
+    } else {
+        Vec::new()
+    };
+
+    let removed_files: Vec<StoredFile> = if matches!(cleanup_type, "all" | "files") {
+        let mut files = state.files.write().await;
+        let (removed, kept): (Vec<_>, Vec<_>) = std::mem::take(&mut *files)
+            .into_iter()
+            .partition(|file| should_remove(&file.meta.timestamp));
+        *files = kept;
+        removed
+    } else {
+        Vec::new()
+    };
+
+    for id in &removed_snippets {
+        state.emit("snippet:delete", json!({ "id": id }));
+    }
+    for file in &removed_files {
+        let _ = fs::remove_file(&file.path).await;
+        state.emit("file:delete", json!({ "id": file.meta.id }));
+    }
+
+    if !removed_snippets.is_empty() || !removed_files.is_empty() {
+        save_index_spawn(&state);
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(json!({
+            "deletedSnippets": removed_snippets.len(),
+            "deletedFiles": removed_files.len()
+        })),
+    ))
+}
+
 async fn status(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let snippet_count = state.snippets.read().await.len();
     let file_count = state.files.read().await.len();
@@ -1686,7 +1822,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<ServerState>) {
                                     parsed.get("name").and_then(|v| v.as_str()).unwrap_or(""),
                                 );
                                 info.client_id = sanitize_device_name(
-                                    parsed.get("clientId").and_then(|v| v.as_str()).unwrap_or(""),
+                                    parsed
+                                        .get("clientId")
+                                        .and_then(|v| v.as_str())
+                                        .unwrap_or(""),
                                 );
                             }
                         }
@@ -1798,7 +1937,10 @@ mod tests {
             .await
             .expect("info json");
         assert_eq!(info["name"], "DropLocal");
-        assert!(info["urls"]["primary"].as_str().unwrap().starts_with("http"));
+        assert!(info["urls"]["primary"]
+            .as_str()
+            .unwrap()
+            .starts_with("http"));
         assert!(info["urls"]["interfaces"].as_array().is_some());
 
         let diagnostics: Value = client
@@ -1840,7 +1982,10 @@ mod tests {
         assert_eq!(uploaded["name"], "note.txt");
 
         let downloaded = client
-            .get(format!("{base}/api/files/{}", uploaded["id"].as_str().unwrap()))
+            .get(format!(
+                "{base}/api/files/{}",
+                uploaded["id"].as_str().unwrap()
+            ))
             .send()
             .await
             .expect("download")
@@ -1850,11 +1995,106 @@ mod tests {
         assert_eq!(downloaded, "rust upload body");
 
         let deleted = client
-            .delete(format!("{base}/api/files/{}", uploaded["id"].as_str().unwrap()))
+            .delete(format!(
+                "{base}/api/files/{}",
+                uploaded["id"].as_str().unwrap()
+            ))
             .send()
             .await
             .expect("delete file");
         assert_eq!(deleted.status(), reqwest::StatusCode::OK);
+
+        runtime.stop().await.expect("stop");
+    }
+
+    #[tokio::test]
+    async fn bulk_cleanup_clears_selected_drop_types() {
+        let dir = temp_dir("cleanup");
+        let mut runtime = start(test_config(&dir, "", true)).await.expect("start");
+        let base = format!("http://127.0.0.1:{}", runtime.snapshot().port);
+        let client = reqwest::Client::new();
+
+        let created = client
+            .post(format!("{base}/api/snippets"))
+            .json(&json!({ "text": "cleanup note" }))
+            .send()
+            .await
+            .expect("create snippet");
+        assert_eq!(created.status(), reqwest::StatusCode::CREATED);
+
+        let part = reqwest::multipart::Part::bytes(b"cleanup body".to_vec())
+            .file_name("cleanup.txt")
+            .mime_str("text/plain")
+            .expect("part");
+        let uploaded: Value = client
+            .post(format!("{base}/api/files"))
+            .multipart(reqwest::multipart::Form::new().part("file", part))
+            .send()
+            .await
+            .expect("upload")
+            .json()
+            .await
+            .expect("upload json");
+
+        let notes_only: Value = client
+            .delete(format!("{base}/api/drops?type=notes"))
+            .send()
+            .await
+            .expect("notes cleanup")
+            .json()
+            .await
+            .expect("cleanup json");
+        assert_eq!(notes_only["deletedSnippets"], 1);
+        assert_eq!(notes_only["deletedFiles"], 0);
+
+        let snippets: Value = client
+            .get(format!("{base}/api/snippets"))
+            .send()
+            .await
+            .expect("list snippets")
+            .json()
+            .await
+            .expect("snippets json");
+        assert_eq!(snippets.as_array().unwrap().len(), 0);
+
+        let files: Value = client
+            .get(format!("{base}/api/files"))
+            .send()
+            .await
+            .expect("list files")
+            .json()
+            .await
+            .expect("files json");
+        assert_eq!(files.as_array().unwrap().len(), 1);
+        assert_eq!(files[0]["id"], uploaded["id"]);
+
+        let invalid = client
+            .delete(format!("{base}/api/drops?type=unknown"))
+            .send()
+            .await
+            .expect("invalid cleanup");
+        assert_eq!(invalid.status(), reqwest::StatusCode::BAD_REQUEST);
+
+        let all: Value = client
+            .delete(format!("{base}/api/drops"))
+            .send()
+            .await
+            .expect("all cleanup")
+            .json()
+            .await
+            .expect("cleanup json");
+        assert_eq!(all["deletedSnippets"], 0);
+        assert_eq!(all["deletedFiles"], 1);
+
+        let files: Value = client
+            .get(format!("{base}/api/files"))
+            .send()
+            .await
+            .expect("list files")
+            .json()
+            .await
+            .expect("files json");
+        assert_eq!(files.as_array().unwrap().len(), 0);
 
         runtime.stop().await.expect("stop");
     }
@@ -1867,7 +2107,10 @@ mod tests {
         let client = reqwest::Client::new();
 
         let mut ids = Vec::new();
-        for (name, body) in [("first.txt", "zip me first"), ("second.txt", "zip me second")] {
+        for (name, body) in [
+            ("first.txt", "zip me first"),
+            ("second.txt", "zip me second"),
+        ] {
             let part = reqwest::multipart::Part::bytes(body.as_bytes().to_vec())
                 .file_name(name)
                 .mime_str("text/plain")
@@ -1934,7 +2177,11 @@ mod tests {
         assert_eq!(unauthorized.status(), reqwest::StatusCode::UNAUTHORIZED);
 
         let ui = client.get(&base).send().await.expect("ui request");
-        assert_eq!(ui.status(), reqwest::StatusCode::OK, "UI shell stays public");
+        assert_eq!(
+            ui.status(),
+            reqwest::StatusCode::OK,
+            "UI shell stays public"
+        );
 
         let wrong = client
             .post(format!("{base}/api/auth"))

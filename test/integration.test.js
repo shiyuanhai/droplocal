@@ -190,6 +190,38 @@ test("zip download bundles selected files", async () => {
   assert.equal(missing.status, 404);
 });
 
+test("bulk cleanup can clear notes, files, or everything", async () => {
+  const create = await fetch(`${baseUrl}/api/snippets`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ text: "cleanup note" })
+  });
+  assert.equal(create.status, 201);
+
+  const form = new FormData();
+  form.append("file", new Blob(["cleanup file"], { type: "text/plain" }), "cleanup.txt");
+  const upload = await fetch(`${baseUrl}/api/files`, { method: "POST", body: form });
+  assert.equal(upload.status, 201);
+  const uploaded = await upload.json();
+
+  const notesOnly = await fetch(`${baseUrl}/api/drops?type=notes`, { method: "DELETE" });
+  assert.equal(notesOnly.status, 200);
+  assert.deepEqual(await notesOnly.json(), { deletedSnippets: 1, deletedFiles: 0 });
+
+  assert.deepEqual(await (await fetch(`${baseUrl}/api/snippets`)).json(), []);
+  const filesAfterNotes = await (await fetch(`${baseUrl}/api/files`)).json();
+  assert.equal(filesAfterNotes.length, 1);
+  assert.equal(filesAfterNotes[0].id, uploaded.id);
+
+  const invalid = await fetch(`${baseUrl}/api/drops?type=unknown`, { method: "DELETE" });
+  assert.equal(invalid.status, 400);
+
+  const all = await fetch(`${baseUrl}/api/drops`, { method: "DELETE" });
+  assert.equal(all.status, 200);
+  assert.deepEqual(await all.json(), { deletedSnippets: 0, deletedFiles: 1 });
+  assert.deepEqual(await (await fetch(`${baseUrl}/api/files`)).json(), []);
+});
+
 test("pin protection gates the api until /api/auth succeeds", async () => {
   const pinDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-pin-"));
   const pinApp = createDropLocalApp({ port: 0, dir: pinDir, pin: "4471" });

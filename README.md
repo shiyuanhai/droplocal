@@ -33,13 +33,14 @@ npx droplocal
 
 - One shared **drop stream** — notes and files interleaved, synced live to every device,
   **persistent across restarts** (opt out with `--ephemeral`)
+- Search the drop stream by note text or file name
 - Optional **PIN protection** (`--pin 4471`) and auto-expiry (`--expire 60`)
 - **Short-lived invite links** for PIN-protected sessions
 - Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
 - **Connect card in the web UI**: QR code + address so any device can onboard the next one
 - **Connection Doctor**: interface, URL, mDNS, and local listener diagnostics with copyable debug info
-- Per-file upload progress, copy/download/delete actions
-- **Multi-select → .zip**: tap file icons to select several, download as one archive
+- Per-file upload progress, copy/download/delete actions, plus bulk clear controls
+- **Multi-select → .zip/delete**: tap file icons to select several, download as one archive or delete them together
 - **Markdown notes**: headings, lists, bold, links, and code blocks render properly
 - English, 简体中文, and 日本語 UI (auto-detected, switchable)
 - Light/dark theme, mobile-first layout
@@ -47,7 +48,7 @@ npx droplocal
   (the QR code keeps using the IP so Android works too)
 - Automatic port: tries 80 first (portless URL), falls back to 3000+
 - LAN URL + terminal QR code (CLI)
-- Native tray controls + desktop dashboard (Desktop app)
+- Native tray controls, Drop Clipboard, and desktop dashboard (Desktop app)
 
 ## Quickstart (CLI)
 
@@ -125,6 +126,9 @@ droplocal/
 ### REST
 
 - `GET /` - UI
+- `GET /api/info` - app version and share URLs
+- `GET /api/diagnostics` - local network diagnostics
+- `POST /api/invites` - create a short-lived invite link for PIN-protected sessions
 - `GET /api/snippets` - list snippets
 - `POST /api/snippets` - create snippet
 - `DELETE /api/snippets/:id` - delete snippet
@@ -132,6 +136,8 @@ droplocal/
 - `POST /api/files` - upload files
 - `GET /api/files/:id` - download file
 - `DELETE /api/files/:id` - delete file
+- `GET /api/files.zip?ids=a,b` - download selected files as a zip
+- `DELETE /api/drops?type=all|notes|files&olderThanMinutes=60` - bulk cleanup
 - `GET /api/status` - runtime status
 
 ### WebSocket
