@@ -30,6 +30,14 @@ test("web UI browser flow supports notes, files, search, zip, delete, and cleanu
   await page.getByRole("button", { name: /^Drop$/ }).click();
   await page.getByText("Browser E2E note").waitFor();
 
+  const actionCenterDelta = await page.locator(".item").first().evaluate((item) => {
+    const actions = item.querySelector(".item-actions");
+    const itemRect = item.getBoundingClientRect();
+    const actionsRect = actions.getBoundingClientRect();
+    return Math.abs(itemRect.top + itemRect.height / 2 - (actionsRect.top + actionsRect.height / 2));
+  });
+  assert.ok(actionCenterDelta <= 4, `expected row actions to be vertically centered, got ${actionCenterDelta}`);
+
   await page.locator("#fileInput").setInputFiles({
     name: "browser-e2e.txt",
     mimeType: "text/plain",
@@ -72,4 +80,126 @@ test("web UI browser flow supports notes, files, search, zip, delete, and cleanu
     return Boolean(await navigator.serviceWorker.getRegistration("/"));
   });
   assert.equal(registration, true);
+});
+
+test("connection doctor toggles and keeps the stream usable", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-doctor-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.locator("#doctorBtn").click();
+  await page.locator("#doctorPanel").waitFor({ state: "visible" });
+  assert.equal(await page.locator("#devicesCard").isVisible(), true);
+  assert.equal(await page.locator("#doctorBtn").getAttribute("aria-pressed"), "true");
+
+  await page.getByPlaceholder(/Type or paste anything/i).fill("Doctor-visible note");
+  await page.getByRole("button", { name: /^Drop$/ }).click();
+  await page.getByText("Doctor-visible note").waitFor();
+
+  const streamBox = await page.locator("#streamWrap").boundingBox();
+  assert.ok(streamBox.height >= 90, `expected visible stream height, got ${streamBox.height}`);
+
+  await page.locator("#doctorBtn").click();
+  await page.locator("#devicesCard").waitFor({ state: "hidden" });
+  assert.equal(await page.locator("#doctorBtn").getAttribute("aria-pressed"), "false");
+});
+
+test("mobile starts with the connection card collapsed and a usable share box", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-mobile-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 700 },
+    isMobile: true
+  });
+  await context.addInitScript(() => {
+    localStorage.removeItem("droplocal-connect");
+  });
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  assert.equal(await page.locator("#connectCard").isVisible(), false);
+
+  const inputBox = await page.locator("#shareInput").boundingBox();
+  assert.ok(inputBox.height >= 40, `expected usable mobile share input height, got ${inputBox.height}`);
+
+  await page.getByPlaceholder(/Type or paste anything/i).fill("Mobile note");
+  await page.getByRole("button", { name: /^Drop$/ }).click();
+  await page.getByText("Mobile note").waitFor();
+
+  await page.locator("#connectToggle").click();
+  await page.locator("#connectCard").waitFor({ state: "visible" });
+});
+
+test("connection QR uses the friendly URL when available", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-qr-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.route("**/vendor/qrcode.js", (route) => {
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.__qrPayloads = [];
+        window.qrcode = function () {
+          return {
+            addData: function (url) { window.__qrPayloads.push(url); },
+            make: function () {},
+            createSvgTag: function () { return "<svg></svg>"; }
+          };
+        };
+      `
+    });
+  });
+  await page.route("**/api/info", (route) => {
+    route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        name: "DropLocal",
+        version: "test",
+        urls: {
+          primary: baseUrl,
+          friendly: "http://drop.local",
+          all: [baseUrl],
+          interfaces: []
+        }
+      })
+    });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => window.__qrPayloads && window.__qrPayloads.includes("http://drop.local"));
+  assert.equal(await page.locator("#shareUrl").innerText(), "http://drop.local");
 });

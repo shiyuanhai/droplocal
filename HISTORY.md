@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-06-15
+
+### Fixed
+
+- Connection Doctor now toggles closed from the same button that opens it.
+- The shared web UI keeps the drop stream usable while Connection Doctor is
+  open, including when a friendly local URL and IP fallback are shown.
+- Message row action buttons are vertically centered with their row content.
+- QR codes now encode the friendly local URL when one is available, while still
+  showing the IP fallback as text.
+- Mobile first-visit layout starts with the connect card collapsed and keeps a
+  larger share input available.
+- Device-name editing and doctor values keep readable contrast in dark mode.
+
 ## [1.6.0] - 2026-06-15
 
 ### Added

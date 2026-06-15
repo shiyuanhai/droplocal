@@ -1836,7 +1836,7 @@ function printStartupSummary(startInfo) {
   }
 
   process.stdout.write(`\n${ansi.bold("Scan QR")}:\n`);
-  qrcode.generate(primaryUrl, { small: true }, (qrcodeText) => {
+  qrcode.generate(startInfo.friendlyUrl || primaryUrl, { small: true }, (qrcodeText) => {
     process.stdout.write(`${qrcodeText}\n`);
   });
 
