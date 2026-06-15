@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-06-15
+
+### Added
+
+- Versioned service worker for the shared web UI so the installable shell,
+  manifest, icons, and QR vendor asset can be cached when the browser permits
+  service workers.
+- Browser E2E coverage for the core web workflow: create note, upload file,
+  search, selected zip download, selected delete, bulk cleanup, and service
+  worker registration.
+- Desktop dashboard "Drop Clipboard" button and keyboard shortcut that reuse
+  the existing tray action.
+- Release artifact verification checklist in the release guide.
+
+### Changed
+
+- GitHub Actions workflows now use current major versions of checkout,
+  setup-node, and github-script, and the Node jobs run on Node 22.
+- CI and npm publish workflows install Chromium and run the browser E2E suite.
+- Connection Doctor, invite, preferred-interface, and dashboard clipboard strings
+  are localized across all supported web and desktop dashboard languages.
+
 ## [1.5.0] - 2026-06-15
 
 ### Added

@@ -4,7 +4,7 @@ Everything repo-side is wired: [release-desktop.yml](../.github/workflows/releas
 builds signed bundles on every `v*` tag, the auto-updater is configured in
 [tauri.conf.json](../apps/desktop/src-tauri/tauri.conf.json), and the updater keypair exists.
 
-## Current status (2026-06-11)
+## Current status (2026-06-15)
 
 **All 8 GitHub secrets are configured and valid.** The Apple credentials
 (`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`,
@@ -16,9 +16,34 @@ is superseded: keep it or delete it, but never upload it again.)
 **Sections 0–3 below are reference for future rotation only.** What's actually left:
 
 - [ ] §4 — optional local signing dry run
-- [ ] §5 — tag `v1.0.0` and verify the dmg on a fresh Mac
-- [ ] §6 — `npm publish`
+- [ ] §5 — tag the next version and verify the desktop artifacts
+- [ ] §6 — verify npm Trusted Publishing
 - [ ] §8 — GitHub Pages + droplocal.app DNS
+
+## Release artifact verification checklist
+
+Before tagging:
+
+- [ ] Bump `package.json`, `apps/desktop/package.json`,
+  `apps/desktop/src-tauri/Cargo.toml`, and
+  `apps/desktop/src-tauri/tauri.conf.json` to the same version.
+- [ ] Run `node --check index.js`.
+- [ ] Run `node --check apps/desktop/src/main.js`.
+- [ ] Run `npm test`.
+- [ ] Run `npm run test:e2e` after `npx playwright install chromium`.
+- [ ] Run `cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check`.
+- [ ] Run `npm run desktop:test`.
+
+After the tag workflow publishes:
+
+- [ ] Confirm the GitHub release is published, not draft.
+- [ ] Confirm macOS, Windows, Linux, and `latest.json` assets are attached.
+- [ ] Download the macOS `.dmg` and verify it opens without a Gatekeeper warning
+  on a clean Mac user account when possible.
+- [ ] Confirm the `Publish to npm` workflow succeeds.
+- [ ] Run `npm view droplocal version dist-tags --json` and confirm `latest`
+  points at the tagged version.
+- [ ] Run `npx droplocal@latest --version` from a clean temporary directory.
 
 ## 0. One-time: back up the updater key
 

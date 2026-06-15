@@ -735,24 +735,102 @@ const PUBLIC_GET_PATHS = new Set([
   "/favicon.ico",
   "/apple-touch-icon.png",
   "/vendor/qrcode.js",
+  "/sw.js",
   "/manifest.webmanifest",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ]);
 
 const WEB_MANIFEST = JSON.stringify({
+  id: "/",
   name: "DropLocal",
   short_name: "DropLocal",
   description: "Drop it local. Pick it up anywhere.",
   start_url: "/",
+  scope: "/",
   display: "standalone",
   background_color: "#F5F7FB",
   theme_color: "#4F6BF5",
+  categories: ["productivity", "utilities"],
   icons: [
     { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
   ]
 });
+
+const SERVICE_WORKER_JS = `
+const CACHE_NAME = "droplocal-shell-${pkg.version}";
+const SHELL_ASSETS = [
+  "/",
+  "/manifest.webmanifest",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/vendor/qrcode.js"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((key) => (key.startsWith("droplocal-shell-") && key !== CACHE_NAME ? caches.delete(key) : undefined)))
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname === "/ws") {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          return response;
+        })
+        .catch(() => caches.match("/"))
+    );
+    return;
+  }
+
+  if (SHELL_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    );
+  }
+});
+`.trim();
 
 function publicFileMetadata(file) {
   return {
@@ -1213,6 +1291,17 @@ function createDropLocalApp(options = {}) {
         createTextResponder(res, 200, vendorScript, "application/javascript; charset=utf-8");
         return;
       }
+    }
+
+    if (method === "GET" && pathname === "/sw.js") {
+      res.writeHead(200, {
+        "content-type": "application/javascript; charset=utf-8",
+        "content-length": Buffer.byteLength(SERVICE_WORKER_JS),
+        "cache-control": "no-cache",
+        "service-worker-allowed": "/"
+      });
+      res.end(SERVICE_WORKER_JS);
+      return;
     }
 
     if (method === "GET" && pathname === "/manifest.webmanifest") {

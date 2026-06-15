@@ -11,8 +11,8 @@ features.
 
 | Area | State |
 |---|---|
-| **CLI** (`index.js`, `ui.html`) | ✅ Shipped to npm. HTTP + WebSocket server, persistent notes/files, PIN, invite links, diagnostics, search, zip, bulk cleanup, terminal QR. |
-| **Desktop app** (`apps/desktop`, Tauri 2 + Rust) | ✅ Shipped through GitHub Releases. Tray menu, Drop Clipboard, settings persistence, dashboard, QR, Rust-native server, shared `ui.html`. |
+| **CLI** (`index.js`, `ui.html`) | ✅ Shipped to npm. HTTP + WebSocket server, persistent notes/files, PIN, invite links, diagnostics, search, zip, bulk cleanup, terminal QR, service-worker shell caching where supported. |
+| **Desktop app** (`apps/desktop`, Tauri 2 + Rust) | ✅ Shipped through GitHub Releases. Tray menu, dashboard Drop Clipboard, settings persistence, QR, Rust-native server, shared `ui.html`. |
 | **npm publish** | ✅ Published; `npx droplocal` is the CLI distribution path. |
 | **GitHub release** | ✅ Tagged releases trigger cross-platform desktop builds. |
 | **Auto-updater** | ✅ Desktop release workflow publishes updater artifacts. |
@@ -53,7 +53,7 @@ Effort: S = ~half day, M = ~1–2 days, L = several days+. Value = impact on the
 ### B. Platform & distribution
 | ID | Item | State |
 |---|---|---|
-| B1 | PWA / add-to-home-screen | ✅ Manifest shipped; service worker remains optional |
+| B1 | PWA / add-to-home-screen | ✅ Manifest + service worker shell cache shipped in 1.6.0 where browsers permit service workers |
 | B2 | Mac app signing + notarization | Release-time verification |
 | B3 | Desktop auto-updater | ✅ Shipped |
 | B4 | Cut tagged releases | ✅ Shipped |
@@ -68,16 +68,14 @@ Effort: S = ~half day, M = ~1–2 days, L = several days+. Value = impact on the
 | C2 | Rust backend tests | ✅ Shipped and expanding |
 | C3 | Port-conflict / multi-NIC edge cases review | ✅ Shipped preferred interface controls |
 | C4 | Large-file streaming review | ✅ Shipped |
-| C5 | Release artifact verification checklist | Candidate |
-| C6 | Browser E2E coverage for core web workflows | Candidate |
+| C5 | Release artifact verification checklist | ✅ Shipped in 1.6.0 |
+| C6 | Browser E2E coverage for core web workflows | ✅ Shipped in 1.6.0 |
 
 ## Suggested order
 
-1. Add a lightweight release artifact verification checklist and keep it close
-   to `docs/RELEASING.md`.
-2. Add browser E2E coverage for the core web workflows: create note, upload
-   file, search, selected zip/delete, and bulk cleanup.
-3. Research HTTPS-on-LAN options before committing to deeper PWA clipboard or
+1. Research HTTPS-on-LAN options before committing to deeper PWA clipboard or
    install behavior.
-4. Revisit native share-sheet receiving only after enough real usage shows that
+2. Revisit native share-sheet receiving only after enough real usage shows that
    browser-first sharing is not enough.
+3. Keep broadening browser E2E around PIN/invite, mobile layout, and diagnostics
+   as those flows change.

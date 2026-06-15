@@ -94,7 +94,10 @@ test("web manifest and pwa icons are served", async () => {
   assert.equal(manifestResponse.status, 200);
   const manifest = await manifestResponse.json();
   assert.equal(manifest.name, "DropLocal");
+  assert.equal(manifest.id, "/");
+  assert.equal(manifest.scope, "/");
   assert.equal(manifest.display, "standalone");
+  assert.ok(manifest.categories.includes("utilities"));
   assert.equal(manifest.icons.length, 2);
 
   for (const icon of manifest.icons) {
@@ -102,6 +105,24 @@ test("web manifest and pwa icons are served", async () => {
     assert.equal(iconResponse.status, 200);
     assert.equal(iconResponse.headers.get("content-type"), "image/png");
   }
+});
+
+test("service worker shell cache is served without caching runtime APIs", async () => {
+  const page = await fetch(baseUrl);
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes('serviceWorker.register("/sw.js"'));
+
+  const response = await fetch(`${baseUrl}/sw.js`);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("content-type"), /application\/javascript/);
+  assert.equal(response.headers.get("service-worker-allowed"), "/");
+  assert.equal(response.headers.get("cache-control"), "no-cache");
+
+  const script = await response.text();
+  assert.ok(script.includes("droplocal-shell-"));
+  assert.ok(script.includes('"/vendor/qrcode.js"'));
+  assert.ok(script.includes('url.pathname.startsWith("/api/")'));
 });
 
 test("snippets REST lifecycle", async () => {
