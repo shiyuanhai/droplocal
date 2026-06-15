@@ -146,6 +146,24 @@ async fn copy_debug_info(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn drop_clipboard(app: AppHandle) -> Result<(), String> {
+    let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
+    let text = clipboard
+        .get_text()
+        .map_err(|_| "Clipboard has no text to drop".to_string())?;
+
+    let state = app.state::<ManagedState>();
+    let runtime = state.runtime.lock().await;
+    let Some(runtime) = runtime.as_ref() else {
+        return Err("DropLocal server is not running".to_string());
+    };
+    runtime
+        .drop_text(&text)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn build_qr_svg(payload: String) -> Result<String, String> {
     let qr = QrCode::new(payload.as_bytes()).map_err(|error| error.to_string())?;
     Ok(qr
@@ -378,12 +396,7 @@ async fn check_for_updates(app: AppHandle, manual: bool) {
 }
 
 fn notify(app: &AppHandle, title: &str, body: &str) {
-    let _ = app
-        .notification()
-        .builder()
-        .title(title)
-        .body(body)
-        .show();
+    let _ = app.notification().builder().title(title).body(body).show();
 }
 
 /// Forward server events to desktop notifications, honoring the settings.
@@ -446,6 +459,8 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_item = MenuItemBuilder::with_id("show_window", "Open Dashboard").build(app)?;
     let open_item = MenuItemBuilder::with_id("open_browser", "Open in Browser").build(app)?;
     let copy_item = MenuItemBuilder::with_id("copy_url", "Copy URL").build(app)?;
+    let drop_clipboard_item =
+        MenuItemBuilder::with_id("drop_clipboard", "Drop Clipboard").build(app)?;
     let toggle_item = MenuItemBuilder::with_id("toggle_server", "Start Server").build(app)?;
     let update_item = MenuItemBuilder::with_id("check_updates", "Check for Updates").build(app)?;
     let quit_item = MenuItemBuilder::with_id("quit", "Quit DropLocal").build(app)?;
@@ -459,6 +474,7 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             &show_item,
             &open_item,
             &copy_item,
+            &drop_clipboard_item,
             &separator_bottom,
             &toggle_item,
             &update_item,
@@ -492,6 +508,14 @@ fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 "copy_url" => {
                     tauri::async_runtime::spawn(async move {
                         let _ = copy_share_url(app_handle).await;
+                    });
+                }
+                "drop_clipboard" => {
+                    tauri::async_runtime::spawn(async move {
+                        match drop_clipboard(app_handle.clone()).await {
+                            Ok(()) => notify(&app_handle, "DropLocal", "Clipboard dropped"),
+                            Err(error) => notify(&app_handle, "DropLocal", &error),
+                        }
                     });
                 }
                 "toggle_server" => {
@@ -540,7 +564,10 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             reveal_main_window(app);
         }))
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
@@ -608,6 +635,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             build_qr_svg,
             copy_debug_info,
+            drop_clipboard,
             copy_invite_link,
             copy_share_url,
             get_runtime_status,
@@ -646,7 +674,9 @@ pub fn run() {
         // carry Some(code) and pass through. On Linux the window is the
         // primary surface, so closing it quits as before.
         #[cfg(not(target_os = "linux"))]
-        tauri::RunEvent::ExitRequested { code: None, api, .. } => {
+        tauri::RunEvent::ExitRequested {
+            code: None, api, ..
+        } => {
             api.prevent_exit();
         }
         // macOS: relaunching the app (Finder/Spotlight/Launchpad/Dock) while

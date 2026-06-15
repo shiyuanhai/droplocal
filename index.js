@@ -1037,6 +1037,64 @@ function createDropLocalApp(options = {}) {
     }
   }
 
+  async function clearDrops({ type = "all", olderThanMinutes = 0 } = {}) {
+    const cutoff =
+      Number(olderThanMinutes) > 0 ? Date.now() - Number(olderThanMinutes) * 60_000 : 0;
+    const shouldRemove = (timestamp) => {
+      if (!cutoff) {
+        return true;
+      }
+      return new Date(timestamp).getTime() <= cutoff;
+    };
+
+    const removedSnippets = [];
+    if (type === "all" || type === "notes" || type === "snippets") {
+      const kept = [];
+      for (const snippet of state.snippets) {
+        if (shouldRemove(snippet.timestamp)) {
+          removedSnippets.push(snippet);
+        } else {
+          kept.push(snippet);
+        }
+      }
+      state.snippets = kept;
+    }
+
+    const removedFiles = [];
+    if (type === "all" || type === "files") {
+      const kept = [];
+      for (const file of state.files) {
+        if (shouldRemove(file.timestamp)) {
+          removedFiles.push(file);
+        } else {
+          kept.push(file);
+        }
+      }
+      state.files = kept;
+    }
+
+    for (const snippet of removedSnippets) {
+      broadcast("snippet:delete", { id: snippet.id });
+    }
+    for (const file of removedFiles) {
+      await fsp.unlink(file.path).catch((error) => {
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
+      });
+      broadcast("file:delete", { id: file.id });
+    }
+
+    if (removedSnippets.length || removedFiles.length) {
+      schedulePersist();
+    }
+
+    return {
+      deletedSnippets: removedSnippets.length,
+      deletedFiles: removedFiles.length
+    };
+  }
+
   wss.on("connection", (wsSocket) => {
     sockets.set(wsSocket, { id: randomUUID(), clientId: "", name: "" });
     // Send an initial device count on next tick so clients that attach listeners
@@ -1247,6 +1305,18 @@ function createDropLocalApp(options = {}) {
         200,
         state.files.map((file) => publicFileMetadata(file))
       );
+      return;
+    }
+
+    if (method === "DELETE" && pathname === "/api/drops") {
+      const type = String(parsedUrl.searchParams.get("type") || "all");
+      const olderThanMinutes = Number(parsedUrl.searchParams.get("olderThanMinutes") || "0");
+      if (!["all", "notes", "snippets", "files"].includes(type)) {
+        createJsonResponder(res, 400, { error: "Invalid cleanup type" });
+        return;
+      }
+      const result = await clearDrops({ type, olderThanMinutes });
+      createJsonResponder(res, 200, result);
       return;
     }
 

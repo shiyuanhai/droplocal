@@ -4,7 +4,7 @@ DropLocal Desktop wraps the LAN sharing server in a native tray app for macOS, W
 
 ## What it includes
 
-- Native tray icon/menu with open, copy URL, toggle server, and quit actions.
+- Native tray icon/menu with open, copy URL, Drop Clipboard, toggle server, and quit actions.
 - Rust-native HTTP + WebSocket backend (no Node runtime required at desktop runtime).
 - Desktop dashboard for:
   - runtime status and device count

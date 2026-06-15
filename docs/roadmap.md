@@ -1,23 +1,23 @@
 # DropLocal — Roadmap
 
 > Status snapshot and backlog for picking the project back up.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-15
 
 ## Where the project stands
 
-The project is **not** unfinished at the code level — both planned phases are code-complete. What was never done is the **last mile of shipping** and a handful of feature enhancements.
+The original launch backlog is shipped. The project is now in release polish mode:
+small workflow improvements, distribution reliability, and platform-specific power
+features.
 
 | Area | State |
 |---|---|
-| **CLI** (`index.js`, `ui.html`) | ✅ Done. HTTP + WebSocket server, snippets, file up/download, LAN IP detection, terminal QR. Tests 9/9 passing. Deps: `busboy`, `qrcode-terminal`, `ws`. |
-| **Desktop app** (`apps/desktop`, Tauri 2 + Rust) | ✅ Code-complete, `cargo check` passes. Tray menu, settings persistence, dashboard, QR, reuses `ui.html`. |
-| **npm publish** | ❌ Not published (`droplocal` returns 404). |
-| **GitHub release** | ❌ No git tags exist → release CI never triggered → no built installers. |
-| **Auto-updater** | ❌ Not wired (no `updater` block in `tauri.conf.json`). |
-| **Landing page** | Written (`docs/landing-page.html`) but not deployed. |
-| **Code signing** | Not set up (CI references Apple/Tauri signing secrets that aren't configured). |
-
-The "unfinished" feeling comes from building something usable but never delivering it to anyone — signing, notarization, publishing, and deployment are the tedious steps that stalled.
+| **CLI** (`index.js`, `ui.html`) | ✅ Shipped to npm. HTTP + WebSocket server, persistent notes/files, PIN, invite links, diagnostics, search, zip, bulk cleanup, terminal QR. |
+| **Desktop app** (`apps/desktop`, Tauri 2 + Rust) | ✅ Shipped through GitHub Releases. Tray menu, Drop Clipboard, settings persistence, dashboard, QR, Rust-native server, shared `ui.html`. |
+| **npm publish** | ✅ Published; `npx droplocal` is the CLI distribution path. |
+| **GitHub release** | ✅ Tagged releases trigger cross-platform desktop builds. |
+| **Auto-updater** | ✅ Desktop release workflow publishes updater artifacts. |
+| **Landing page** | ✅ `droplocal.app` is the public landing page. |
+| **Code signing** | Operationally separate: keep release secrets healthy and verify each release artifact. |
 
 ## Native app decision (Mac / iOS)
 
@@ -37,38 +37,47 @@ Recommendation: ship the **PWA first** (~70% of the app-like benefit for ~15% of
 Effort: S = ~half day, M = ~1–2 days, L = several days+. Value = impact on the core goal (fast LAN sharing between a few devices).
 
 ### A. Feature enhancements
-| ID | Feature | Value | Effort |
-|---|---|---|---|
-| A1 | Clipboard image / screenshot paste — `Cmd/Ctrl+V` to upload directly | High | S |
-| A2 | mDNS/Bonjour auto-discovery + friendly address (`drop.local`), no typing IPs | High | M |
-| A3 | Multi-file / folder zip download | Medium | M |
-| A4 | File expiration / auto-cleanup on a timer | Low | S |
-| A5 | Upload progress / large-file resilience | Medium | M |
-| A6 | History persistence (currently in-memory only; lost on restart) | Medium | M |
-| A7 | Code snippet syntax highlighting / Markdown preview | Low | S |
+| ID | Feature | State |
+|---|---|---|
+| A1 | Clipboard image / screenshot paste — `Cmd/Ctrl+V` to upload directly | ✅ Shipped |
+| A2 | mDNS/Bonjour auto-discovery + friendly address (`drop.local`), no typing IPs | ✅ Shipped |
+| A3 | Multi-file / folder zip download | ✅ Shipped |
+| A4 | File expiration / auto-cleanup on a timer | ✅ Shipped |
+| A5 | Upload progress / large-file resilience | ✅ Shipped |
+| A6 | History persistence | ✅ Shipped |
+| A7 | Markdown preview | ✅ Shipped |
+| A8 | Stream search, bulk cleanup, selected delete | ✅ Shipped in 1.5.0 |
+| A9 | Native share-sheet receiving on iOS/macOS | Candidate |
+| A10 | HTTPS-on-LAN research for richer PWA clipboard/install behavior | Candidate |
 
 ### B. Platform & distribution
-| ID | Item | Notes | Effort |
-|---|---|---|---|
-| B1 | PWA / add-to-home-screen | manifest + service worker; app-like on phone | M |
-| B2 | Mac app signing + notarization | Use the Apple Developer membership to ship a clean `.dmg` | M |
-| B3 | Desktop auto-updater | Not wired yet (PRD §6) | M |
-| B4 | Cut a real release (tag → CI builds installers) | Code is ready, just needs the trigger | S |
-| B5 | Publish to npm (`npx droplocal`) | Not on npm yet | S |
-| B6 | Deploy landing page (GitHub Pages) | `docs/landing-page.html` already written | S |
-| B7 | (Optional) Native iOS app | Only for Share Sheet + Bonjour; defer | L |
+| ID | Item | State |
+|---|---|---|
+| B1 | PWA / add-to-home-screen | ✅ Manifest shipped; service worker remains optional |
+| B2 | Mac app signing + notarization | Release-time verification |
+| B3 | Desktop auto-updater | ✅ Shipped |
+| B4 | Cut tagged releases | ✅ Shipped |
+| B5 | Publish to npm (`npx droplocal`) | ✅ Shipped |
+| B6 | Deploy landing page | ✅ Shipped |
+| B7 | Native iOS app | Candidate only if Share Sheet becomes important |
 
 ### C. Engineering quality / robustness
-| ID | Item | Notes | Effort |
-|---|---|---|---|
-| C1 | Optional PIN/password protection | LAN can still hold untrusted peers | S |
-| C2 | Rust backend tests | Only the CLI is tested today; `cargo test` is essentially empty | M |
-| C3 | Port-conflict / multi-NIC edge cases review | PRD §9 | S |
-| C4 | Large-file streaming review (avoid buffering in memory) | Check both busboy and axum sides | S |
+| ID | Item | State |
+|---|---|---|
+| C1 | Optional PIN/password protection | ✅ Shipped |
+| C2 | Rust backend tests | ✅ Shipped and expanding |
+| C3 | Port-conflict / multi-NIC edge cases review | ✅ Shipped preferred interface controls |
+| C4 | Large-file streaming review | ✅ Shipped |
+| C5 | Release artifact verification checklist | Candidate |
+| C6 | Browser E2E coverage for core web workflows | Candidate |
 
 ## Suggested order
 
-> **Superseded (2026-06-10):** the detailed phase-by-phase execution plan now lives in
-> [plan.md](plan.md) — it covers every item above plus the new priorities (brand/logo, UI redesign,
-> i18n en/zh/ja, droplocal.app landing page, mDNS, Mac signing). Short version:
-> brand → UI overhaul (+i18n +A1) → mDNS (A2) → sign & release (B2–B5) → droplocal.app (B6) → hardening (A/C tracks).
+1. Add a lightweight release artifact verification checklist and keep it close
+   to `docs/RELEASING.md`.
+2. Add browser E2E coverage for the core web workflows: create note, upload
+   file, search, selected zip/delete, and bulk cleanup.
+3. Research HTTPS-on-LAN options before committing to deeper PWA clipboard or
+   install behavior.
+4. Revisit native share-sheet receiving only after enough real usage shows that
+   browser-first sharing is not enough.

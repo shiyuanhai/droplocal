@@ -312,6 +312,10 @@
         background: var(--surface-2);
       }
 
+      .pill-btn.danger {
+        color: var(--danger);
+      }
+
       .connect-close {
         position: absolute;
         top: 8px;
@@ -490,6 +494,45 @@
 
       .select-bar[hidden] {
         display: none;
+      }
+
+      .stream-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 16px 10px;
+      }
+
+      .stream-search,
+      .cleanup-select {
+        min-width: 0;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+        color: var(--text);
+        padding: 9px 12px;
+        font-size: 0.84rem;
+        box-shadow: var(--shadow);
+      }
+
+      .stream-search {
+        flex: 1;
+      }
+
+      .cleanup-select {
+        flex: 0 0 auto;
+        max-width: 150px;
+      }
+
+      @media (max-width: 559px) {
+        .stream-tools {
+          flex-wrap: wrap;
+        }
+
+        .cleanup-select {
+          flex: 1;
+          max-width: none;
+        }
       }
 
       .select-count {
@@ -1173,11 +1216,24 @@
         </div>
       </section>
 
+      <div class="stream-tools">
+        <input class="stream-search" id="searchInput" type="search" data-i18n-placeholder="search.placeholder" />
+        <select class="cleanup-select" id="cleanupSelect" aria-label="Cleanup">
+          <option value="" data-i18n="cleanup.choose"></option>
+          <option value="notes" data-i18n="cleanup.notes"></option>
+          <option value="files" data-i18n="cleanup.files"></option>
+          <option value="older-day" data-i18n="cleanup.olderDay"></option>
+          <option value="all" data-i18n="cleanup.all"></option>
+        </select>
+        <button class="pill-btn" id="cleanupBtn" type="button" data-i18n="cleanup.clear"></button>
+      </div>
+
       <div class="select-bar" id="selectBar" hidden>
         <span class="select-count" id="selectCount"></span>
         <div class="select-actions">
           <button class="pill-btn" id="selectAllBtn" type="button" data-i18n="sel.all"></button>
           <button class="pill-btn accent" id="zipBtn" type="button" data-i18n="sel.zip"></button>
+          <button class="pill-btn danger" id="deleteSelectedBtn" type="button" data-i18n="sel.delete"></button>
           <button class="icon-btn" id="selectClearBtn" type="button">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
           </button>
@@ -1294,6 +1350,16 @@
     "sel.count": "{count} selected",
     "sel.zip": "Download .zip",
     "sel.all": "Select all",
+    "search.placeholder": "Search drops…",
+    "cleanup.choose": "Clear…",
+    "cleanup.notes": "Notes",
+    "cleanup.files": "Files",
+    "cleanup.olderDay": "Older than 1 day",
+    "cleanup.all": "Everything",
+    "cleanup.clear": "Clear",
+    "cleanup.confirm": "Clear selected drops?",
+    "cleanup.done": "Cleared {count} drops",
+    "sel.delete": "Delete",
     "item.select": "Select file",
     "item.preview": "Preview",
     "devices.title": "Connected devices",
@@ -1363,6 +1429,16 @@
     "sel.count": "已选 {count} 项",
     "sel.zip": "下载 .zip",
     "sel.all": "全选",
+    "search.placeholder": "搜索投放…",
+    "cleanup.choose": "清理…",
+    "cleanup.notes": "文本",
+    "cleanup.files": "文件",
+    "cleanup.olderDay": "超过 1 天",
+    "cleanup.all": "全部",
+    "cleanup.clear": "清理",
+    "cleanup.confirm": "确定要清理所选投放吗？",
+    "cleanup.done": "已清理 {count} 项",
+    "sel.delete": "删除",
     "item.select": "选择文件",
     "item.preview": "预览",
     "devices.title": "已连接的设备",
@@ -1432,6 +1508,16 @@
     "sel.count": "{count} 件選択中",
     "sel.zip": ".zip をダウンロード",
     "sel.all": "すべて選択",
+    "search.placeholder": "ドロップを検索…",
+    "cleanup.choose": "消去…",
+    "cleanup.notes": "メモ",
+    "cleanup.files": "ファイル",
+    "cleanup.olderDay": "1日より古い",
+    "cleanup.all": "すべて",
+    "cleanup.clear": "消去",
+    "cleanup.confirm": "選択したドロップを消去しますか？",
+    "cleanup.done": "{count} 件を消去しました",
+    "sel.delete": "削除",
     "item.select": "ファイルを選択",
     "item.preview": "プレビュー",
     "devices.title": "接続中のデバイス",
@@ -1501,6 +1587,16 @@
     "sel.count": "{count}개 선택됨",
     "sel.zip": ".zip 다운로드",
     "sel.all": "모두 선택",
+    "search.placeholder": "드롭 검색…",
+    "cleanup.choose": "정리…",
+    "cleanup.notes": "메모",
+    "cleanup.files": "파일",
+    "cleanup.olderDay": "1일 이상 지난 항목",
+    "cleanup.all": "전체",
+    "cleanup.clear": "정리",
+    "cleanup.confirm": "선택한 드롭을 정리할까요?",
+    "cleanup.done": "{count}개 정리됨",
+    "sel.delete": "삭제",
     "item.select": "파일 선택",
     "item.preview": "미리보기",
     "devices.title": "연결된 기기",
@@ -1570,6 +1666,16 @@
     "sel.count": "{count} seleccionados",
     "sel.zip": "Descargar .zip",
     "sel.all": "Seleccionar todo",
+    "search.placeholder": "Buscar drops…",
+    "cleanup.choose": "Limpiar…",
+    "cleanup.notes": "Notas",
+    "cleanup.files": "Archivos",
+    "cleanup.olderDay": "Más de 1 día",
+    "cleanup.all": "Todo",
+    "cleanup.clear": "Limpiar",
+    "cleanup.confirm": "¿Limpiar los drops seleccionados?",
+    "cleanup.done": "{count} drops limpiados",
+    "sel.delete": "Eliminar",
     "item.select": "Seleccionar archivo",
     "item.preview": "Vista previa",
     "devices.title": "Dispositivos conectados",
@@ -1639,6 +1745,16 @@
     "sel.count": "{count} ausgewählt",
     "sel.zip": ".zip herunterladen",
     "sel.all": "Alle auswählen",
+    "search.placeholder": "Drops suchen…",
+    "cleanup.choose": "Leeren…",
+    "cleanup.notes": "Notizen",
+    "cleanup.files": "Dateien",
+    "cleanup.olderDay": "Älter als 1 Tag",
+    "cleanup.all": "Alles",
+    "cleanup.clear": "Leeren",
+    "cleanup.confirm": "Ausgewählte Drops löschen?",
+    "cleanup.done": "{count} Drops gelöscht",
+    "sel.delete": "Löschen",
     "item.select": "Datei auswählen",
     "item.preview": "Vorschau",
     "devices.title": "Verbundene Geräte",
@@ -1708,6 +1824,16 @@
     "sel.count": "{count} sélectionnés",
     "sel.zip": "Télécharger le .zip",
     "sel.all": "Tout sélectionner",
+    "search.placeholder": "Rechercher des drops…",
+    "cleanup.choose": "Effacer…",
+    "cleanup.notes": "Notes",
+    "cleanup.files": "Fichiers",
+    "cleanup.olderDay": "Plus d’un jour",
+    "cleanup.all": "Tout",
+    "cleanup.clear": "Effacer",
+    "cleanup.confirm": "Effacer les drops sélectionnés ?",
+    "cleanup.done": "{count} drops effacés",
+    "sel.delete": "Supprimer",
     "item.select": "Sélectionner le fichier",
     "item.preview": "Aperçu",
     "devices.title": "Appareils connectés",
@@ -1766,10 +1892,14 @@
           doctorGrid: document.getElementById("doctorGrid"),
           doctorWarnings: document.getElementById("doctorWarnings"),
           copyDebugBtn: document.getElementById("copyDebugBtn"),
+          searchInput: document.getElementById("searchInput"),
+          cleanupSelect: document.getElementById("cleanupSelect"),
+          cleanupBtn: document.getElementById("cleanupBtn"),
           selectBar: document.getElementById("selectBar"),
           selectCount: document.getElementById("selectCount"),
           selectAllBtn: document.getElementById("selectAllBtn"),
           zipBtn: document.getElementById("zipBtn"),
+          deleteSelectedBtn: document.getElementById("deleteSelectedBtn"),
           selectClearBtn: document.getElementById("selectClearBtn"),
           emptyState: document.getElementById("emptyState"),
           attachBtn: document.getElementById("attachBtn"),
@@ -1805,6 +1935,7 @@
           selected: new Set(),
           devices: [],
           diagnostics: null,
+          query: "",
           clientId: "",
           locked: false
         };
@@ -1932,6 +2063,13 @@
           var nodes = document.querySelectorAll("[data-i18n]");
           for (var i = 0; i < nodes.length; i += 1) {
             nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
+          }
+          var placeholders = document.querySelectorAll("[data-i18n-placeholder]");
+          for (var p = 0; p < placeholders.length; p += 1) {
+            placeholders[p].setAttribute(
+              "placeholder",
+              t(placeholders[p].getAttribute("data-i18n-placeholder"))
+            );
           }
 
           refs.shareInput.placeholder = t("share.placeholder");
@@ -2566,8 +2704,17 @@
           }
         }
 
+        function itemMatchesQuery(item) {
+          var query = state.query.trim().toLowerCase();
+          if (!query) {
+            return true;
+          }
+          var haystack = item.kind === "text" ? item.text : item.name;
+          return String(haystack || "").toLowerCase().indexOf(query) !== -1;
+        }
+
         function renderStream() {
-          var entries = Array.from(state.items.values());
+          var entries = Array.from(state.items.values()).filter(itemMatchesQuery);
           entries.sort(function (left, right) {
             return String(right.timestamp).localeCompare(String(left.timestamp));
           });
@@ -2583,7 +2730,7 @@
             refs.stream.appendChild(item.kind === "text" ? buildTextItem(item) : buildFileItem(item));
           });
 
-          refs.emptyState.hidden = state.items.size > 0 || state.uploads.size > 0;
+          refs.emptyState.hidden = entries.length > 0 || state.uploads.size > 0;
         }
 
         function refreshTimes() {
@@ -2637,6 +2784,8 @@
               if (!results) {
                 return;
               }
+              state.items.clear();
+              state.selected.clear();
               results[0].forEach(addSnippet);
               results[1].forEach(addFile);
               renderStream();
@@ -2739,6 +2888,75 @@
             })
             .catch(function () {
               showToast(t("toast.deleteFailed"));
+            });
+        }
+
+        function cleanupEndpoint(value) {
+          if (value === "older-day") {
+            return "/api/drops?olderThanMinutes=1440";
+          }
+          if (value === "notes" || value === "files" || value === "all") {
+            return "/api/drops?type=" + encodeURIComponent(value);
+          }
+          return "";
+        }
+
+        function clearDrops() {
+          var endpoint = cleanupEndpoint(refs.cleanupSelect.value);
+          if (!endpoint) {
+            return;
+          }
+          if (!window.confirm(t("cleanup.confirm"))) {
+            return;
+          }
+          refs.cleanupBtn.disabled = true;
+          fetch(endpoint, { method: "DELETE" })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error("cleanup failed");
+              }
+              return response.json();
+            })
+            .then(function (result) {
+              var count = Number(result.deletedSnippets || 0) + Number(result.deletedFiles || 0);
+              refs.cleanupSelect.value = "";
+              loadInitial();
+              showToast(t("cleanup.done", { count: count }));
+            })
+            .catch(function () {
+              showToast(t("toast.deleteFailed"));
+            })
+            .finally(function () {
+              refs.cleanupBtn.disabled = false;
+            });
+        }
+
+        function deleteSelectedFiles() {
+          var ids = Array.from(state.selected);
+          if (!ids.length || !window.confirm(t("cleanup.confirm"))) {
+            return;
+          }
+          refs.deleteSelectedBtn.disabled = true;
+          Promise.all(ids.map(function (id) {
+            return fetch("/api/files/" + encodeURIComponent(id), { method: "DELETE" })
+              .then(function (response) {
+                if (!response.ok && response.status !== 404) {
+                  throw new Error("delete failed");
+                }
+              });
+          }))
+            .then(function () {
+              ids.forEach(function (id) {
+                state.items.delete(id);
+                state.selected.delete(id);
+              });
+              renderStream();
+            })
+            .catch(function () {
+              showToast(t("toast.deleteFailed"));
+            })
+            .finally(function () {
+              refs.deleteSelectedBtn.disabled = false;
             });
         }
 
@@ -3306,6 +3524,13 @@
             refs.fileInput.click();
           });
 
+          refs.searchInput.addEventListener("input", function () {
+            state.query = refs.searchInput.value;
+            renderStream();
+          });
+
+          refs.cleanupBtn.addEventListener("click", clearDrops);
+
           refs.fileInput.addEventListener("change", function () {
             if (refs.fileInput.files.length) {
               uploadFiles(refs.fileInput.files);
@@ -3342,6 +3567,8 @@
             state.selected.clear();
             renderStream();
           });
+
+          refs.deleteSelectedBtn.addEventListener("click", deleteSelectedFiles);
 
           refs.status.addEventListener("click", function () {
             var open = refs.devicesCard.hidden;
