@@ -1,6 +1,6 @@
 {
   "name": "droplocal",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Drop it local. Pick it up anywhere.",
   "main": "index.js",
   "type": "commonjs",
@@ -23,12 +23,13 @@
   "scripts": {
     "start": "node index.js",
     "test": "node --test",
+    "test:e2e": "node --test e2e/*.js",
     "desktop:install": "npm --prefix apps/desktop install",
     "desktop:check": "npm --prefix apps/desktop run tauri:check",
     "desktop:test": "npm --prefix apps/desktop run tauri:test",
     "desktop:dev": "npm --prefix apps/desktop run tauri:dev",
     "desktop:build": "npm --prefix apps/desktop run tauri:build",
-    "test:all": "npm test && npm run desktop:test"
+    "test:all": "npm test && npm run test:e2e && npm run desktop:test"
   },
   "engines": {
     "node": ">=18.17.0"
@@ -53,6 +54,9 @@
     "busboy": "^1.6.0",
     "multicast-dns": "^7.2.5",
     "qrcode-terminal": "^0.12.0",
-    "ws": "^8.18.1"
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
   }
 }

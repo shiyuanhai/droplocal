@@ -48,7 +48,78 @@ const TOUCH_ICON_PNG: &[u8] = include_bytes!("../../../../assets/brand/apple-tou
 const QRCODE_VENDOR_JS: &str = include_str!("../../../../assets/vendor/qrcode.js");
 const ICON_192_PNG: &[u8] = include_bytes!("../../../../assets/brand/icon-192.png");
 const ICON_512_PNG: &[u8] = include_bytes!("../../../../assets/brand/icon-512.png");
-const WEB_MANIFEST: &str = r##"{"name":"DropLocal","short_name":"DropLocal","description":"Drop it local. Pick it up anywhere.","start_url":"/","display":"standalone","background_color":"#F5F7FB","theme_color":"#4F6BF5","icons":[{"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png"}]}"##;
+const WEB_MANIFEST: &str = r##"{"id":"/","name":"DropLocal","short_name":"DropLocal","description":"Drop it local. Pick it up anywhere.","start_url":"/","scope":"/","display":"standalone","background_color":"#F5F7FB","theme_color":"#4F6BF5","categories":["productivity","utilities"],"icons":[{"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png"}]}"##;
+const SERVICE_WORKER_TEMPLATE: &str = r#"const CACHE_NAME = "droplocal-shell-__DROPLOCAL_VERSION__";
+const SHELL_ASSETS = [
+  "/",
+  "/manifest.webmanifest",
+  "/favicon.svg",
+  "/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/vendor/qrcode.js"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.map((key) => (key.startsWith("droplocal-shell-") && key !== CACHE_NAME ? caches.delete(key) : undefined)))
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/") || url.pathname === "/ws") {
+    return;
+  }
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put("/", copy));
+          return response;
+        })
+        .catch(() => caches.match("/"))
+    );
+    return;
+  }
+
+  if (SHELL_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    );
+  }
+});"#;
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
@@ -646,6 +717,7 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
         .route("/favicon.ico", get(favicon_svg))
         .route("/apple-touch-icon.png", get(touch_icon_png))
         .route("/vendor/qrcode.js", get(qrcode_vendor_js))
+        .route("/sw.js", get(service_worker_js))
         .route("/manifest.webmanifest", get(web_manifest))
         .route("/icons/icon-192.png", get(icon_192))
         .route("/icons/icon-512.png", get(icon_512))
@@ -735,6 +807,7 @@ async fn require_auth(
             | "/favicon.ico"
             | "/apple-touch-icon.png"
             | "/vendor/qrcode.js"
+            | "/sw.js"
             | "/manifest.webmanifest"
             | "/icons/icon-192.png"
             | "/icons/icon-512.png"
@@ -1130,6 +1203,24 @@ async fn qrcode_vendor_js() -> impl IntoResponse {
         [("content-type", "application/javascript; charset=utf-8")],
         QRCODE_VENDOR_JS,
     )
+}
+
+async fn service_worker_js() -> Response {
+    let body = SERVICE_WORKER_TEMPLATE.replace("__DROPLOCAL_VERSION__", env!("CARGO_PKG_VERSION"));
+    let mut response = (
+        StatusCode::OK,
+        [("content-type", "application/javascript; charset=utf-8")],
+        body,
+    )
+        .into_response();
+    response.headers_mut().insert(
+        axum::http::header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache"),
+    );
+    response
+        .headers_mut()
+        .insert("service-worker-allowed", HeaderValue::from_static("/"));
+    response
 }
 
 async fn info(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
@@ -1942,6 +2033,35 @@ mod tests {
             .unwrap()
             .starts_with("http"));
         assert!(info["urls"]["interfaces"].as_array().is_some());
+
+        let manifest: Value = client
+            .get(format!("{base}/manifest.webmanifest"))
+            .send()
+            .await
+            .expect("manifest request")
+            .json()
+            .await
+            .expect("manifest json");
+        assert_eq!(manifest["id"], "/");
+        assert_eq!(manifest["scope"], "/");
+        assert_eq!(manifest["display"], "standalone");
+
+        let service_worker = client
+            .get(format!("{base}/sw.js"))
+            .send()
+            .await
+            .expect("service worker request");
+        assert_eq!(service_worker.status(), reqwest::StatusCode::OK);
+        assert_eq!(
+            service_worker
+                .headers()
+                .get("service-worker-allowed")
+                .unwrap(),
+            "/"
+        );
+        let service_worker = service_worker.text().await.expect("service worker body");
+        assert!(service_worker.contains("droplocal-shell-"));
+        assert!(service_worker.contains("url.pathname.startsWith(\"/api/\")"));
 
         let diagnostics: Value = client
             .get(format!("{base}/api/diagnostics"))

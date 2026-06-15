@@ -20,6 +20,7 @@ const refs = {
   openBrowserBtn: document.getElementById("openBrowserBtn"),
   copyInviteBtn: document.getElementById("copyInviteBtn"),
   copyDebugBtn: document.getElementById("copyDebugBtn"),
+  dropClipboardBtn: document.getElementById("dropClipboardBtn"),
   doctorGrid: document.getElementById("doctorGrid"),
   doctorWarning: document.getElementById("doctorWarning"),
   qrCode: document.getElementById("qrCode"),
@@ -165,6 +166,7 @@ function renderRuntime(runtime) {
   refs.openBrowserBtn.disabled = !running;
   refs.copyInviteBtn.disabled = !running;
   refs.copyDebugBtn.disabled = !running;
+  refs.dropClipboardBtn.disabled = !running;
   renderDoctor(runtime);
 
   void renderQr(running ? runtime.primaryUrl : "");
@@ -272,6 +274,18 @@ async function copyDebug() {
   }
 }
 
+async function dropClipboard() {
+  refs.dropClipboardBtn.disabled = true;
+  try {
+    await invoke("drop_clipboard");
+    showToast(t("msg.clipboardDropped"));
+  } catch (error) {
+    showToast(t("msg.clipboardDropFailed", { error: String(error) }));
+  } finally {
+    refs.dropClipboardBtn.disabled = !state.runtime?.running;
+  }
+}
+
 /* ---------- settings modal ---------- */
 
 function openSettings() {
@@ -281,6 +295,13 @@ function openSettings() {
 
 function closeSettings() {
   refs.settingsModal.hidden = true;
+}
+
+function isEditableTarget(target) {
+  if (!target || !(target instanceof HTMLElement)) {
+    return false;
+  }
+  return Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
 
 async function loadSettings() {
@@ -355,6 +376,7 @@ async function initialize() {
   refs.openBrowserBtn.addEventListener("click", () => void openBrowser());
   refs.copyInviteBtn.addEventListener("click", () => void copyInvite());
   refs.copyDebugBtn.addEventListener("click", () => void copyDebug());
+  refs.dropClipboardBtn.addEventListener("click", () => void dropClipboard());
   refs.refreshBtn.addEventListener("click", () => void refreshRuntime());
 
   refs.settingsBtn.addEventListener("click", openSettings);
@@ -368,6 +390,17 @@ async function initialize() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !refs.settingsModal.hidden) {
       closeSettings();
+      return;
+    }
+    if (
+      event.key.toLowerCase() === "v" &&
+      event.shiftKey &&
+      (event.metaKey || event.ctrlKey) &&
+      refs.settingsModal.hidden &&
+      !isEditableTarget(event.target)
+    ) {
+      event.preventDefault();
+      void dropClipboard();
     }
   });
   refs.settingsForm.addEventListener("submit", (event) => void saveSettings(event));

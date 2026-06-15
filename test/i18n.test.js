@@ -19,6 +19,31 @@ function extractI18nDictionary(htmlPath) {
 const UI_HTML = path.join(__dirname, "..", "ui.html");
 const DESKTOP_HTML = path.join(__dirname, "..", "apps", "desktop", "src", "index.html");
 const LANDING_HTML = path.join(__dirname, "..", "landing", "index.html");
+const TRANSLATED_KEYS_BY_FILE = new Map([
+  [
+    UI_HTML,
+    [
+      "connect.invite",
+      "connect.inviteCopied",
+      "doctor.title",
+      "doctor.copyDebug",
+      "doctor.debugCopied",
+      "doctor.friendly",
+      "doctor.reachability"
+    ]
+  ],
+  [
+    DESKTOP_HTML,
+    [
+      "action.dropClipboard",
+      "msg.clipboardDropped",
+      "msg.clipboardDropFailed",
+      "doctor.invite",
+      "doctor.copyDebug",
+      "settings.interface"
+    ]
+  ]
+]);
 
 for (const htmlPath of [UI_HTML, DESKTOP_HTML, LANDING_HTML]) {
   const label = path.relative(path.join(__dirname, ".."), htmlPath);
@@ -67,4 +92,21 @@ for (const htmlPath of [UI_HTML, DESKTOP_HTML, LANDING_HTML]) {
       }
     }
   });
+
+  const translatedKeys = TRANSLATED_KEYS_BY_FILE.get(htmlPath) || [];
+  if (translatedKeys.length) {
+    test(`newly added i18n keys in ${label} are localized`, () => {
+      const dictionary = extractI18nDictionary(htmlPath);
+
+      for (const lang of REQUIRED_LANGS.filter((entry) => entry !== "en")) {
+        for (const key of translatedKeys) {
+          assert.notEqual(
+            dictionary[lang][key],
+            dictionary.en[key],
+            `${lang}.${key} should not fall back to the English copy`
+          );
+        }
+      }
+    });
+  }
 }

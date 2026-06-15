@@ -9,6 +9,7 @@ DropLocal Desktop wraps the LAN sharing server in a native tray app for macOS, W
 - Desktop dashboard for:
   - runtime status and device count
   - URL copy/open actions
+  - Drop Clipboard from the dashboard or tray
   - QR code generation
   - persisted settings (port, storage directory, cleanup, notifications toggle)
 - Cross-platform bundling config via Tauri.

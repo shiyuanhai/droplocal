@@ -39,16 +39,17 @@ npx droplocal
 - Drag-and-drop or paste-to-upload (screenshots paste straight from the clipboard)
 - **Connect card in the web UI**: QR code + address so any device can onboard the next one
 - **Connection Doctor**: interface, URL, mDNS, and local listener diagnostics with copyable debug info
+- Installable web shell with service-worker caching where the browser allows it
 - Per-file upload progress, copy/download/delete actions, plus bulk clear controls
 - **Multi-select → .zip/delete**: tap file icons to select several, download as one archive or delete them together
 - **Markdown notes**: headings, lists, bold, links, and code blocks render properly
-- English, 简体中文, and 日本語 UI (auto-detected, switchable)
+- English, 简体中文, 日本語, 한국어, Español, Deutsch, and Français UI (auto-detected, switchable)
 - Light/dark theme, mobile-first layout
 - **Friendly address via mDNS/Bonjour** — `http://drop.local` instead of an IP
   (the QR code keeps using the IP so Android works too)
 - Automatic port: tries 80 first (portless URL), falls back to 3000+
 - LAN URL + terminal QR code (CLI)
-- Native tray controls, Drop Clipboard, and desktop dashboard (Desktop app)
+- Native tray controls and dashboard Drop Clipboard (Desktop app)
 
 ## Quickstart (CLI)
 
@@ -82,6 +83,7 @@ Without `-p`, DropLocal tries port 80 first (so the share URL is just
 npm run desktop:install
 npm run desktop:check
 npm run desktop:test
+npm run test:e2e
 npm run desktop:dev
 ```
 
@@ -110,6 +112,7 @@ droplocal/
 ├── index.js                      # CLI app entrypoint/server
 ├── ui.html                       # Shared browser UI served by CLI + desktop backend
 ├── test/                         # Node CLI and integration tests
+├── e2e/                          # Playwright browser smoke tests
 ├── apps/desktop/                 # Tauri desktop app
 │   ├── src/                      # Desktop dashboard UI
 │   └── src-tauri/                # Rust backend + tray + bundling config
