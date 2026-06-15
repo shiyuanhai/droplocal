@@ -61,6 +61,18 @@ test("info endpoint reports name, version and share urls", async () => {
   assert.ok(info.urls);
   assert.ok(typeof info.urls.primary === "string" && info.urls.primary.startsWith("http"));
   assert.ok(Array.isArray(info.urls.all));
+  assert.ok(Array.isArray(info.urls.interfaces));
+});
+
+test("diagnostics endpoint reports selected interface and local reachability", async () => {
+  const response = await fetch(`${baseUrl}/api/diagnostics`);
+  assert.equal(response.status, 200);
+  const diagnostics = await response.json();
+  assert.equal(diagnostics.name, "DropLocal");
+  assert.equal(diagnostics.running, true);
+  assert.ok(typeof diagnostics.primaryUrl === "string" && diagnostics.primaryUrl.startsWith("http"));
+  assert.ok(Array.isArray(diagnostics.interfaces));
+  assert.equal(typeof diagnostics.reachability.ok, "boolean");
 });
 
 test("ui shell and static assets are served", async () => {
@@ -209,6 +221,47 @@ test("pin protection gates the api until /api/auth succeeds", async () => {
 
     const cookie = setCookie.split(";")[0];
     const authorized = await fetch(`${base}/api/snippets`, { headers: { cookie } });
+    assert.equal(authorized.status, 200);
+  } finally {
+    await pinApp.stop();
+    await fsp.rm(pinDir, { recursive: true, force: true });
+  }
+});
+
+test("invite links unlock a PIN-protected session", async () => {
+  const pinDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-invite-"));
+  const pinApp = createDropLocalApp({ port: 0, dir: pinDir, pin: "4471" });
+  const startInfo = await pinApp.start();
+  const base = `http://127.0.0.1:${startInfo.port}`;
+
+  try {
+    const unauthorizedInvite = await fetch(`${base}/api/invites`, { method: "POST" });
+    assert.equal(unauthorizedInvite.status, 401);
+
+    const auth = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: "4471" })
+    });
+    const cookie = auth.headers.get("set-cookie").split(";")[0];
+
+    const inviteResponse = await fetch(`${base}/api/invites`, {
+      method: "POST",
+      headers: { cookie }
+    });
+    assert.equal(inviteResponse.status, 201);
+    const invite = await inviteResponse.json();
+    assert.ok(invite.url.includes("invite="));
+
+    const fresh = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ invite: invite.token })
+    });
+    assert.equal(fresh.status, 200);
+    const inviteCookie = fresh.headers.get("set-cookie").split(";")[0];
+
+    const authorized = await fetch(`${base}/api/snippets`, { headers: { cookie: inviteCookie } });
     assert.equal(authorized.status, 200);
   } finally {
     await pinApp.stop();

@@ -118,6 +118,34 @@ async fn copy_share_url(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn copy_invite_link(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<ManagedState>();
+    let url = {
+        let runtime = state.runtime.lock().await;
+        let Some(runtime) = runtime.as_ref() else {
+            return Err("DropLocal server is not running".to_string());
+        };
+        runtime.create_invite_url().await
+    };
+    let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
+    clipboard.set_text(url).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn copy_debug_info(app: AppHandle) -> Result<(), String> {
+    let state = app.state::<ManagedState>();
+    let debug = {
+        let runtime = state.runtime.lock().await;
+        let Some(runtime) = runtime.as_ref() else {
+            return Err("DropLocal server is not running".to_string());
+        };
+        runtime.debug_info().await
+    };
+    let mut clipboard = Clipboard::new().map_err(|error| error.to_string())?;
+    clipboard.set_text(debug).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn build_qr_svg(payload: String) -> Result<String, String> {
     let qr = QrCode::new(payload.as_bytes()).map_err(|error| error.to_string())?;
     Ok(qr
@@ -162,6 +190,7 @@ async fn start_server_inner(app: &AppHandle) -> Result<RuntimeStatus, String> {
         pin: settings.pin.clone(),
         expire_minutes: settings.expire_minutes,
         enable_mdns: true,
+        network_interface: settings.network_interface.clone(),
     };
 
     let runtime = server::start(config)
@@ -578,6 +607,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             build_qr_svg,
+            copy_debug_info,
+            copy_invite_link,
             copy_share_url,
             get_runtime_status,
             get_settings,

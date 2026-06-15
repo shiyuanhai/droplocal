@@ -21,6 +21,8 @@ pub struct DesktopSettings {
     pub show_dock_icon: bool,
     #[serde(default)]
     pub launch_at_login: bool,
+    #[serde(default)]
+    pub network_interface: String,
 }
 
 impl Default for DesktopSettings {
@@ -41,6 +43,7 @@ impl Default for DesktopSettings {
             expire_minutes: 0,
             show_dock_icon: false,
             launch_at_login: false,
+            network_interface: String::new(),
         }
     }
 }
@@ -56,6 +59,7 @@ impl DesktopSettings {
         }
 
         self.pin = self.pin.trim().to_string();
+        self.network_interface = self.network_interface.trim().to_string();
 
         self
     }

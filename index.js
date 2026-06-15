@@ -22,6 +22,7 @@ const MDNS_MAX_NAME_ATTEMPTS = 5;
 const AUTH_COOKIE = "droplocal_auth";
 const INDEX_FILE_NAME = ".droplocal.json";
 const EXPIRY_SWEEP_INTERVAL_MS = 30_000;
+const INVITE_TTL_MS = 10 * 60 * 1000;
 // Received files belong somewhere a human looks: Downloads/DropLocal,
 // matching the desktop app. Fall back to a temp dir on systems without it.
 const DEFAULT_UPLOAD_ROOT = fs.existsSync(path.join(os.homedir(), "Downloads"))
@@ -66,6 +67,7 @@ function parseArgs(argv, env = process.env) {
   let pin = "";
   let expireMinutes = 0;
   let ephemeral = false;
+  let networkInterface = "";
   let help = false;
   let version = false;
 
@@ -134,6 +136,16 @@ function parseArgs(argv, env = process.env) {
       continue;
     }
 
+    if (arg === "--interface") {
+      const next = argv[i + 1];
+      if (!next) {
+        throw new Error("Missing value for --interface.");
+      }
+      networkInterface = next;
+      i += 1;
+      continue;
+    }
+
     throw new Error(`Unknown option: ${arg}`);
   }
 
@@ -143,6 +155,7 @@ function parseArgs(argv, env = process.env) {
     pin,
     expireMinutes,
     ephemeral,
+    networkInterface,
     help,
     version
   };
@@ -161,6 +174,7 @@ function renderHelp() {
     "      --pin <pin>       Require a PIN before other devices can join",
     "      --expire <mins>   Auto-delete drops older than this many minutes",
     "      --ephemeral       Wipe shared files and history when the server stops",
+    "      --interface <id>  Prefer a network interface name or IP address",
     "  -v, --version         Show version",
     "  -h, --help            Show this help",
     "",
@@ -190,9 +204,24 @@ function isVirtualInterface(name) {
   );
 }
 
-function getLocalNetworkAddresses() {
+function normalizePreferredInterface(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function entryMatchesPreferred(entry, preferred) {
+  if (!preferred) {
+    return false;
+  }
+  return (
+    String(entry.interface || "").toLowerCase() === preferred ||
+    String(entry.address || "").toLowerCase() === preferred
+  );
+}
+
+function getLocalNetworkAddresses(preferredInterface = "") {
   const interfaces = os.networkInterfaces();
   const addresses = [];
+  const preferred = normalizePreferredInterface(preferredInterface);
 
   for (const [name, records] of Object.entries(interfaces)) {
     if (!records) {
@@ -207,14 +236,18 @@ function getLocalNetworkAddresses() {
           interface: name,
           address: info.address,
           private: isPrivateIpv4(info.address),
-          virtual: isVirtualInterface(name)
+          virtual: isVirtualInterface(name),
+          selected: false
         });
       }
     }
   }
 
   // Real private LAN first, then virtual private (VPN/container), then public.
-  const score = (entry) => (entry.private ? 0 : 2) + (entry.virtual ? 1 : 0);
+  const score = (entry) =>
+    (entryMatchesPreferred(entry, preferred) ? -10 : 0) +
+    (entry.private ? 0 : 2) +
+    (entry.virtual ? 1 : 0);
   addresses.sort((left, right) => {
     const diff = score(left) - score(right);
     if (diff !== 0) {
@@ -223,7 +256,46 @@ function getLocalNetworkAddresses() {
     return left.interface.localeCompare(right.interface);
   });
 
+  if (addresses.length) {
+    addresses[0].selected = true;
+  }
+
   return addresses;
+}
+
+function buildShareUrls(port, preferredInterface = "") {
+  const addresses = getLocalNetworkAddresses(preferredInterface);
+  if (!addresses.length) {
+    return {
+      primary: `http://localhost:${port}`,
+      all: [`http://localhost:${port}`],
+      interfaces: [],
+      selectedInterface: "",
+      preferredInterface: String(preferredInterface || ""),
+      preferredFound: false
+    };
+  }
+
+  const urls = addresses.map((entry) => ({
+    interface: entry.interface,
+    address: entry.address,
+    url: `http://${entry.address}:${port}`,
+    private: entry.private,
+    virtual: entry.virtual,
+    selected: entry.selected
+  }));
+
+  const primary = urls.find((entry) => entry.selected) || urls[0];
+  const preferred = normalizePreferredInterface(preferredInterface);
+
+  return {
+    primary: primary.url,
+    all: urls.map((entry) => entry.url),
+    interfaces: urls,
+    selectedInterface: primary.interface || "",
+    preferredInterface: String(preferredInterface || ""),
+    preferredFound: preferred ? urls.some((entry) => entryMatchesPreferred(entry, preferred)) : true
+  };
 }
 
 function probeMdnsHostname(mdns, hostname, timeoutMs = 350) {
@@ -630,8 +702,17 @@ function createServerState(options = {}) {
     friendlyUrl: "",
     pin: typeof options.pin === "string" ? options.pin.trim() : "",
     sessionToken: randomUUID(),
+    invites: new Map(),
+    inviteTtlMs: Number(options.inviteTtlMs) > 0 ? Number(options.inviteTtlMs) : INVITE_TTL_MS,
     expireMinutes: Number(options.expireMinutes) > 0 ? Number(options.expireMinutes) : 0,
     ephemeral: Boolean(options.ephemeral),
+    preferredInterface: typeof options.networkInterface === "string" ? options.networkInterface.trim() : "",
+    localReachability: {
+      ok: false,
+      checkedAt: null,
+      statusCode: 0,
+      error: "not checked"
+    },
     expiryTimer: null,
     persistTimer: null
   };
@@ -746,7 +827,102 @@ function createDropLocalApp(options = {}) {
     if (!state.pin) {
       return true;
     }
-    return parseCookies(req.headers.cookie)[AUTH_COOKIE] === state.sessionToken;
+    if (parseCookies(req.headers.cookie)[AUTH_COOKIE] === state.sessionToken) {
+      return true;
+    }
+    try {
+      const parsed = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+      return validateInvite(parsed.searchParams.get("invite"));
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function authCookie() {
+    return `${AUTH_COOKIE}=${state.sessionToken}; Path=/; HttpOnly; SameSite=Lax`;
+  }
+
+  function cleanupInvites() {
+    const now = Date.now();
+    for (const [token, invite] of state.invites) {
+      if (!invite || invite.expiresAt <= now) {
+        state.invites.delete(token);
+      }
+    }
+  }
+
+  function validateInvite(rawToken) {
+    const token = String(rawToken || "").trim();
+    if (!token) {
+      return false;
+    }
+    cleanupInvites();
+    const invite = state.invites.get(token);
+    return Boolean(invite && invite.expiresAt > Date.now());
+  }
+
+  function buildInviteUrl(baseUrl, token) {
+    const url = new URL(baseUrl);
+    url.searchParams.set("invite", token);
+    return url.toString();
+  }
+
+  function createInvite(baseUrl, fallbackBaseUrl) {
+    cleanupInvites();
+    const token = randomUUID().replace(/-/g, "");
+    const expiresAt = Date.now() + state.inviteTtlMs;
+    state.invites.set(token, { expiresAt });
+    return {
+      url: buildInviteUrl(baseUrl, token),
+      fallbackUrl: fallbackBaseUrl ? buildInviteUrl(fallbackBaseUrl, token) : "",
+      token,
+      expiresAt: new Date(expiresAt).toISOString(),
+      ttlSeconds: Math.round(state.inviteTtlMs / 1000)
+    };
+  }
+
+  function diagnosticsPayload(port) {
+    const urls = buildShareUrls(port, state.preferredInterface);
+    const warnings = [];
+    const selected = urls.interfaces.find((entry) => entry.selected);
+
+    if (state.preferredInterface && !urls.preferredFound) {
+      warnings.push(`Preferred interface "${state.preferredInterface}" was not found.`);
+    }
+    if (selected && selected.virtual) {
+      warnings.push("The selected interface looks virtual/VPN-backed; phones may not reach it.");
+    }
+    if (!state.friendlyUrl) {
+      warnings.push("mDNS friendly address is unavailable; use the IP URL or QR code.");
+    }
+    if (port !== 80) {
+      warnings.push("Port 80 was unavailable, so the share URL includes a port number.");
+    }
+
+    return {
+      name: "DropLocal",
+      version: pkg.version,
+      running,
+      port,
+      requestedPort: Number.isInteger(options.port) ? options.port : port,
+      fallbackCount: state.lastPortFallbacks,
+      primaryUrl: urls.primary,
+      friendlyUrl: state.friendlyUrl || "",
+      selectedInterface: urls.selectedInterface,
+      preferredInterface: urls.preferredInterface,
+      preferredFound: urls.preferredFound,
+      interfaces: urls.interfaces,
+      mdns: {
+        enabled: Boolean(options.mdns),
+        available: Boolean(state.friendlyUrl),
+        url: state.friendlyUrl || ""
+      },
+      reachability: state.localReachability,
+      pinEnabled: Boolean(state.pin),
+      inviteTtlSeconds: Math.round(state.inviteTtlMs / 1000),
+      uploadDir: state.uploadDir,
+      warnings
+    };
   }
 
   server.on("upgrade", (req, socket, head) => {
@@ -927,13 +1103,13 @@ function createDropLocalApp(options = {}) {
       }
       const body = await readJsonBody(req);
       const submitted = typeof body.pin === "string" ? body.pin.trim() : "";
-      if (submitted && submitted === state.pin) {
-        const cookie = `${AUTH_COOKIE}=${state.sessionToken}; Path=/; HttpOnly; SameSite=Lax`;
+      const invite = typeof body.invite === "string" ? body.invite.trim() : "";
+      if ((submitted && submitted === state.pin) || validateInvite(invite)) {
         const payload = JSON.stringify({ ok: true });
         res.writeHead(200, {
           "content-type": "application/json; charset=utf-8",
           "content-length": Buffer.byteLength(payload),
-          "set-cookie": cookie
+          "set-cookie": authCookie()
         });
         res.end(payload);
       } else {
@@ -943,7 +1119,17 @@ function createDropLocalApp(options = {}) {
     }
 
     if (method === "GET" && pathname === "/") {
-      createTextResponder(res, 200, state.uiHtml, "text/html; charset=utf-8");
+      if (state.pin && validateInvite(parsedUrl.searchParams.get("invite"))) {
+        const body = state.uiHtml;
+        res.writeHead(200, {
+          "content-type": "text/html; charset=utf-8",
+          "content-length": Buffer.byteLength(body),
+          "set-cookie": authCookie()
+        });
+        res.end(body);
+      } else {
+        createTextResponder(res, 200, state.uiHtml, "text/html; charset=utf-8");
+      }
       return;
     }
 
@@ -988,13 +1174,29 @@ function createDropLocalApp(options = {}) {
     if (method === "GET" && pathname === "/api/info") {
       const address = server.address();
       const port = address && typeof address === "object" ? address.port : 0;
-      const urls = buildShareUrls(port);
+      const urls = buildShareUrls(port, state.preferredInterface);
       urls.friendly = state.friendlyUrl || null;
       createJsonResponder(res, 200, {
         name: "DropLocal",
         version: pkg.version,
         urls
       });
+      return;
+    }
+
+    if (method === "GET" && pathname === "/api/diagnostics") {
+      const address = server.address();
+      const port = address && typeof address === "object" ? address.port : 0;
+      createJsonResponder(res, 200, diagnosticsPayload(port));
+      return;
+    }
+
+    if (method === "POST" && pathname === "/api/invites") {
+      const address = server.address();
+      const port = address && typeof address === "object" ? address.port : 0;
+      const urls = buildShareUrls(port, state.preferredInterface);
+      const invite = createInvite(state.friendlyUrl || urls.primary, urls.primary);
+      createJsonResponder(res, 201, invite);
       return;
     }
 
@@ -1201,7 +1403,11 @@ function createDropLocalApp(options = {}) {
         connectedDevices: connectedDeviceCount(),
         uptimeSeconds: Math.floor((Date.now() - state.createdAt) / 1000),
         snippetCount: state.snippets.length,
-        fileCount: state.files.length
+        fileCount: state.files.length,
+        selectedInterface: buildShareUrls(
+          server.address() && typeof server.address() === "object" ? server.address().port : 0,
+          state.preferredInterface
+        ).selectedInterface
       });
       return;
     }
@@ -1215,7 +1421,7 @@ function createDropLocalApp(options = {}) {
     if (running) {
       return {
         port: server.address().port,
-        urls: buildShareUrls(server.address().port)
+          urls: buildShareUrls(server.address().port, state.preferredInterface)
       };
     }
 
@@ -1270,10 +1476,15 @@ function createDropLocalApp(options = {}) {
 
     state.lastPortFallbacks = fallbackCount;
     running = true;
+    state.localReachability = await checkLocalReachability(selectedPort);
 
     if (options.mdns) {
       try {
-        const responder = await startMdnsResponder(getLocalNetworkAddresses);
+        const responder = await startMdnsResponder(() => {
+          const addresses = getLocalNetworkAddresses(state.preferredInterface);
+          const selected = addresses.find((entry) => entry.selected);
+          return selected ? [selected] : addresses;
+        });
         if (responder) {
           state.mdns = responder.mdns;
           state.friendlyUrl =
@@ -1290,7 +1501,7 @@ function createDropLocalApp(options = {}) {
       port: selectedPort,
       requestedPort: requestedPort === null ? selectedPort : requestedPort,
       fallbackCount,
-      urls: buildShareUrls(selectedPort),
+      urls: buildShareUrls(selectedPort, state.preferredInterface),
       friendlyUrl: state.friendlyUrl || null,
       uploadDir: state.uploadDir,
       pin: state.pin
@@ -1398,30 +1609,40 @@ function listen(server, port) {
   });
 }
 
-function buildShareUrls(port) {
-  const addresses = getLocalNetworkAddresses();
-  if (!addresses.length) {
-    return {
-      primary: `http://localhost:${port}`,
-      all: [`http://localhost:${port}`],
-      interfaces: []
-    };
-  }
+function checkLocalReachability(port) {
+  return new Promise((resolve) => {
+    const checkedAt = new Date().toISOString();
+    const req = http.get(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: "/api/status",
+        timeout: 800
+      },
+      (res) => {
+        res.resume();
+        resolve({
+          ok: Number(res.statusCode) < 500,
+          checkedAt,
+          statusCode: Number(res.statusCode) || 0,
+          error: ""
+        });
+      }
+    );
 
-  const urls = addresses.map((entry) => ({
-    interface: entry.interface,
-    address: entry.address,
-    url: `http://${entry.address}:${port}`,
-    private: entry.private
-  }));
+    req.on("timeout", () => {
+      req.destroy(new Error("Timed out"));
+    });
 
-  const primary = urls.find((entry) => entry.private) || urls[0];
-
-  return {
-    primary: primary.url,
-    all: urls.map((entry) => entry.url),
-    interfaces: urls
-  };
+    req.on("error", (error) => {
+      resolve({
+        ok: false,
+        checkedAt,
+        statusCode: 0,
+        error: error.message
+      });
+    });
+  });
 }
 
 function printStartupSummary(startInfo) {
@@ -1522,6 +1743,7 @@ async function runCli(argv = process.argv.slice(2), env = process.env) {
     pin: args.pin,
     expireMinutes: args.expireMinutes,
     ephemeral: args.ephemeral,
+    networkInterface: args.networkInterface,
     mdns: true
   });
 

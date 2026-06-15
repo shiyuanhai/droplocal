@@ -328,6 +328,13 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
+      .connect-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
       @media (max-width: 559px) {
         .connect-card {
           flex-direction: column;
@@ -427,6 +434,43 @@
 
       .device-rename input:focus {
         border-color: var(--accent);
+      }
+
+      .doctor-panel {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+      }
+
+      .doctor-grid {
+        display: grid;
+        gap: 7px;
+        margin: 9px 0 12px;
+      }
+
+      .doctor-row {
+        display: grid;
+        grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr);
+        gap: 10px;
+        align-items: baseline;
+        font-size: 0.8rem;
+      }
+
+      .doctor-label {
+        color: var(--muted);
+      }
+
+      .doctor-value {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .doctor-warnings {
+        margin: 0 0 12px;
+        padding-left: 18px;
+        color: var(--danger);
+        font-size: 0.78rem;
       }
 
       /* ---------- Selection bar ---------- */
@@ -1104,6 +1148,10 @@
             <button class="pill-btn" id="copyUrlBtn" type="button" data-i18n="connect.copy"></button>
           </div>
           <p class="connect-alt" id="connectAlt" hidden></p>
+          <div class="connect-tools">
+            <button class="pill-btn accent" id="inviteBtn" type="button" data-i18n="connect.invite"></button>
+            <button class="pill-btn" id="doctorBtn" type="button" data-i18n="doctor.title"></button>
+          </div>
         </div>
         <button class="icon-btn connect-close" id="connectClose" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1116,6 +1164,12 @@
         <div class="device-rename">
           <input id="deviceNameInput" maxlength="32" />
           <button class="pill-btn accent" id="deviceNameSave" type="button" data-i18n="devices.save"></button>
+        </div>
+        <div class="doctor-panel" id="doctorPanel" hidden>
+          <h2 class="connect-title" data-i18n="doctor.title"></h2>
+          <div class="doctor-grid" id="doctorGrid"></div>
+          <ul class="doctor-warnings" id="doctorWarnings" hidden></ul>
+          <button class="pill-btn" id="copyDebugBtn" type="button" data-i18n="doctor.copyDebug"></button>
         </div>
       </section>
 
@@ -1247,6 +1301,21 @@
     "devices.you": "this device",
     "devices.save": "Save",
     "devices.saved": "Device name updated",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "Folder too large — only the first {count} files were uploaded"
   },
   "zh": {
@@ -1301,6 +1370,21 @@
     "devices.you": "本机",
     "devices.save": "保存",
     "devices.saved": "设备名称已更新",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "文件夹过大——只上传了前 {count} 个文件"
   },
   "ja": {
@@ -1355,6 +1439,21 @@
     "devices.you": "このデバイス",
     "devices.save": "保存",
     "devices.saved": "デバイス名を更新しました",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "フォルダが大きすぎます — 最初の {count} 件のみアップロードしました"
   },
   "ko": {
@@ -1409,6 +1508,21 @@
     "devices.you": "이 기기",
     "devices.save": "저장",
     "devices.saved": "기기 이름이 변경되었습니다",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "폴더가 너무 큽니다 — 처음 {count}개 파일만 업로드했습니다"
   },
   "es": {
@@ -1463,6 +1577,21 @@
     "devices.you": "este dispositivo",
     "devices.save": "Guardar",
     "devices.saved": "Nombre del dispositivo actualizado",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "Carpeta demasiado grande — solo se subieron los primeros {count} archivos"
   },
   "de": {
@@ -1517,6 +1646,21 @@
     "devices.you": "dieses Gerät",
     "devices.save": "Speichern",
     "devices.saved": "Gerätename aktualisiert",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "Ordner zu groß — nur die ersten {count} Dateien wurden hochgeladen"
   },
   "fr": {
@@ -1571,6 +1715,21 @@
     "devices.you": "cet appareil",
     "devices.save": "Enregistrer",
     "devices.saved": "Nom de l'appareil mis à jour",
+    "connect.invite": "Copy invite",
+    "connect.inviteCopied": "Invite copied",
+    "doctor.title": "Connection Doctor",
+    "doctor.copyDebug": "Copy debug info",
+    "doctor.debugCopied": "Debug info copied",
+    "doctor.interface": "Interface",
+    "doctor.primary": "IP URL",
+    "doctor.friendly": "Friendly URL",
+    "doctor.mdns": "mDNS",
+    "doctor.reachability": "Local check",
+    "doctor.pin": "PIN",
+    "doctor.on": "on",
+    "doctor.off": "off",
+    "doctor.ok": "ok",
+    "doctor.failed": "failed",
     "toast.tooMany": "Dossier trop volumineux — seuls les {count} premiers fichiers ont été envoyés"
   }
 }
@@ -1593,6 +1752,8 @@
           shareUrl: document.getElementById("shareUrl"),
           connectAlt: document.getElementById("connectAlt"),
           copyUrlBtn: document.getElementById("copyUrlBtn"),
+          inviteBtn: document.getElementById("inviteBtn"),
+          doctorBtn: document.getElementById("doctorBtn"),
           langSelect: document.getElementById("langSelect"),
           themeToggle: document.getElementById("themeToggle"),
           stream: document.getElementById("stream"),
@@ -1601,6 +1762,10 @@
           devicesList: document.getElementById("devicesList"),
           deviceNameInput: document.getElementById("deviceNameInput"),
           deviceNameSave: document.getElementById("deviceNameSave"),
+          doctorPanel: document.getElementById("doctorPanel"),
+          doctorGrid: document.getElementById("doctorGrid"),
+          doctorWarnings: document.getElementById("doctorWarnings"),
+          copyDebugBtn: document.getElementById("copyDebugBtn"),
           selectBar: document.getElementById("selectBar"),
           selectCount: document.getElementById("selectCount"),
           selectAllBtn: document.getElementById("selectAllBtn"),
@@ -1639,6 +1804,7 @@
           expanded: new Set(),
           selected: new Set(),
           devices: [],
+          diagnostics: null,
           clientId: "",
           locked: false
         };
@@ -2509,6 +2675,58 @@
             });
         }
 
+        function inviteTokenFromUrl() {
+          try {
+            return new URLSearchParams(location.search).get("invite") || "";
+          } catch (_e) {
+            return "";
+          }
+        }
+
+        function consumeInviteToken() {
+          var invite = inviteTokenFromUrl();
+          if (!invite) {
+            return Promise.resolve();
+          }
+          return fetch("/api/auth", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ invite: invite })
+          })
+            .then(function (response) {
+              if (response.ok) {
+                try {
+                  var url = new URL(location.href);
+                  url.searchParams.delete("invite");
+                  history.replaceState(null, "", url.pathname + url.search + url.hash);
+                } catch (_e) {}
+              }
+            })
+            .catch(function () {});
+        }
+
+        function copyInviteLink() {
+          fetch("/api/invites", { method: "POST" })
+            .then(function (response) {
+              if (response.status === 401) {
+                setLocked(true);
+                return null;
+              }
+              return response.ok ? response.json() : null;
+            })
+            .then(function (invite) {
+              if (!invite || !invite.url) {
+                return;
+              }
+              copyText(invite.url, function (ok) {
+                showToast(ok ? t("connect.inviteCopied") : t("toast.copyFailed"));
+              });
+            })
+            .catch(function () {
+              showToast(t("toast.copyFailed"));
+            });
+        }
+
         function deleteItem(item) {
           var endpoint = item.kind === "text" ? "/api/snippets/" : "/api/files/";
           fetch(endpoint + encodeURIComponent(item.id), { method: "DELETE" })
@@ -2754,6 +2972,95 @@
             .catch(function () {});
         }
 
+        function doctorRows(diagnostics) {
+          var friendly = diagnostics.friendlyUrl || "—";
+          var reachability = diagnostics.reachability && diagnostics.reachability.ok
+            ? t("doctor.ok")
+            : t("doctor.failed");
+          return [
+            [t("doctor.interface"), diagnostics.selectedInterface || "—"],
+            [t("doctor.primary"), diagnostics.primaryUrl || state.shareUrl || "—"],
+            [t("doctor.friendly"), friendly],
+            [t("doctor.mdns"), diagnostics.mdns && diagnostics.mdns.available ? t("doctor.ok") : t("doctor.failed")],
+            [t("doctor.reachability"), reachability],
+            [t("doctor.pin"), diagnostics.pinEnabled ? t("doctor.on") : t("doctor.off")]
+          ];
+        }
+
+        function renderDiagnostics(diagnostics) {
+          state.diagnostics = diagnostics;
+          refs.doctorGrid.textContent = "";
+          doctorRows(diagnostics).forEach(function (row) {
+            var wrap = document.createElement("div");
+            wrap.className = "doctor-row";
+            var label = document.createElement("span");
+            label.className = "doctor-label";
+            label.textContent = row[0];
+            var value = document.createElement("span");
+            value.className = "doctor-value";
+            value.textContent = row[1];
+            wrap.appendChild(label);
+            wrap.appendChild(value);
+            refs.doctorGrid.appendChild(wrap);
+          });
+
+          refs.doctorWarnings.textContent = "";
+          var warnings = diagnostics.warnings || [];
+          refs.doctorWarnings.hidden = warnings.length === 0;
+          warnings.forEach(function (warning) {
+            var li = document.createElement("li");
+            li.textContent = warning;
+            refs.doctorWarnings.appendChild(li);
+          });
+        }
+
+        function refreshDiagnostics() {
+          return fetch("/api/diagnostics")
+            .then(function (response) {
+              if (response.status === 401) {
+                setLocked(true);
+                return null;
+              }
+              return response.ok ? response.json() : null;
+            })
+            .then(function (diagnostics) {
+              if (diagnostics) {
+                renderDiagnostics(diagnostics);
+              }
+              return diagnostics;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+
+        function debugInfoText(diagnostics) {
+          var lines = [
+            "DropLocal " + (diagnostics.version || ""),
+            "Primary: " + (diagnostics.primaryUrl || ""),
+            "Friendly: " + (diagnostics.friendlyUrl || ""),
+            "Selected interface: " + (diagnostics.selectedInterface || ""),
+            "Preferred interface: " + (diagnostics.preferredInterface || ""),
+            "PIN enabled: " + (diagnostics.pinEnabled ? "yes" : "no"),
+            "Local check: " + (diagnostics.reachability && diagnostics.reachability.ok ? "ok" : "failed"),
+            "Upload dir: " + (diagnostics.uploadDir || "")
+          ];
+          (diagnostics.interfaces || []).forEach(function (entry) {
+            lines.push(
+              "Interface " +
+                entry.interface +
+                ": " +
+                entry.address +
+                " " +
+                (entry.selected ? "[selected]" : "")
+            );
+          });
+          (diagnostics.warnings || []).forEach(function (warning) {
+            lines.push("Warning: " + warning);
+          });
+          return lines.join("\n");
+        }
+
         /* ---------- share input ---------- */
 
         function autogrow() {
@@ -2984,6 +3291,17 @@
             });
           });
 
+          refs.inviteBtn.addEventListener("click", copyInviteLink);
+
+          refs.doctorBtn.addEventListener("click", function () {
+            refs.devicesCard.hidden = false;
+            refs.doctorPanel.hidden = false;
+            refs.status.setAttribute("aria-expanded", "true");
+            refs.deviceNameInput.value = deviceName();
+            renderDevices();
+            refreshDiagnostics();
+          });
+
           refs.attachBtn.addEventListener("click", function () {
             refs.fileInput.click();
           });
@@ -3032,6 +3350,9 @@
             if (open) {
               refs.deviceNameInput.value = deviceName();
               renderDevices();
+              if (!refs.doctorPanel.hidden) {
+                refreshDiagnostics();
+              }
             }
           });
 
@@ -3042,6 +3363,18 @@
             } catch (_e) {}
             sendHello();
             showToast(t("devices.saved"));
+          });
+
+          refs.copyDebugBtn.addEventListener("click", function () {
+            var promise = state.diagnostics ? Promise.resolve(state.diagnostics) : refreshDiagnostics();
+            promise.then(function (diagnostics) {
+              if (!diagnostics) {
+                return;
+              }
+              copyText(debugInfoText(diagnostics), function (ok) {
+                showToast(ok ? t("doctor.debugCopied") : t("toast.copyFailed"));
+              });
+            });
           });
 
           refs.lightboxClose.addEventListener("click", closeLightbox);
@@ -3083,9 +3416,11 @@
         setupEvents();
         setupDragDrop();
         setupPaste();
-        loadInitial();
-        connectSocket();
-        updateSendState();
+        consumeInviteToken().finally(function () {
+          loadInitial();
+          connectSocket();
+          updateSendState();
+        });
       })();
     </script>
   </body>
