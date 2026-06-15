@@ -234,6 +234,23 @@
         display: none;
       }
 
+      .connect-card[data-mode="doctor"] {
+        padding: 10px 16px;
+      }
+
+      .connect-card[data-mode="doctor"] .qr-box,
+      .connect-card[data-mode="doctor"] .connect-title,
+      .connect-card[data-mode="doctor"] .connect-hint,
+      .connect-card[data-mode="doctor"] .url-row,
+      .connect-card[data-mode="doctor"] .connect-alt,
+      .connect-card[data-mode="doctor"] .connect-close {
+        display: none;
+      }
+
+      .connect-card[data-mode="doctor"] .connect-tools {
+        margin-top: 0;
+      }
+
       .qr-box {
         flex: 0 0 auto;
         width: 148px;
@@ -312,6 +329,12 @@
         background: var(--surface-2);
       }
 
+      .pill-btn[aria-pressed="true"] {
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+        color: var(--accent);
+        background: var(--surface-2);
+      }
+
       .pill-btn.danger {
         color: var(--danger);
       }
@@ -376,6 +399,10 @@
         border-radius: 16px;
         background: var(--surface);
         box-shadow: var(--shadow);
+        flex: 0 1 auto;
+        max-height: min(20dvh, 220px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
       }
 
       .devices-card[hidden] {
@@ -431,6 +458,8 @@
         border: 1px solid var(--border);
         border-radius: 11px;
         background: var(--surface-2);
+        color: var(--text);
+        caret-color: var(--accent);
         padding: 8px 12px;
         font-size: 0.86rem;
         outline: none;
@@ -525,6 +554,11 @@
       }
 
       @media (max-width: 559px) {
+        .devices-card {
+          max-height: 28dvh;
+          margin-bottom: 8px;
+        }
+
         .stream-tools {
           flex-wrap: wrap;
         }
@@ -560,7 +594,8 @@
       /* ---------- Stream ---------- */
 
       .stream-wrap {
-        flex: 1;
+        flex: 1 1 160px;
+        min-height: 0;
         overflow-y: auto;
         padding: 4px 16px 12px;
         scrollbar-width: thin;
@@ -602,7 +637,7 @@
       .item {
         display: flex;
         gap: 12px;
-        align-items: flex-start;
+        align-items: center;
         padding: 12px 14px;
         border: 1px solid var(--border);
         border-radius: 16px;
@@ -699,6 +734,8 @@
       .item-actions {
         flex: 0 0 auto;
         display: flex;
+        align-items: center;
+        align-self: center;
         gap: 2px;
       }
 
@@ -739,6 +776,7 @@
       /* ---------- Share bar ---------- */
 
       .sharebar {
+        flex: 0 0 auto;
         padding: 10px 16px calc(12px + env(safe-area-inset-bottom));
         background: color-mix(in srgb, var(--bg) 86%, transparent);
         backdrop-filter: blur(14px) saturate(1.4);
@@ -763,9 +801,11 @@
       .share-input {
         flex: 1;
         min-width: 0;
+        min-height: 42px;
         border: none;
         outline: none;
         background: transparent;
+        color: var(--text);
         resize: none;
         max-height: 132px;
         padding: 8px 2px;
@@ -810,6 +850,14 @@
       }
 
       @media (max-width: 419px) {
+        .sharebar-inner {
+          align-items: center;
+        }
+
+        .share-input {
+          min-height: 46px;
+        }
+
         .send-label {
           display: none;
         }
@@ -2080,6 +2128,7 @@
           refs.connectToggle.setAttribute("aria-label", t("aria.connect"));
           refs.connectClose.setAttribute("aria-label", t("aria.close"));
           refs.attachBtn.setAttribute("aria-label", t("share.attach"));
+          refs.sendBtn.setAttribute("aria-label", t("share.send"));
           refs.dropOverlayText.textContent = t("drop.here");
           document.title = "DropLocal";
 
@@ -3120,9 +3169,16 @@
           );
         }
 
-        function setConnectOpen(open) {
+        function isCompactViewport() {
+          return window.matchMedia && window.matchMedia("(max-width: 559px)").matches;
+        }
+
+        function setConnectOpen(open, persist) {
           refs.connectCard.hidden = !open;
           refs.connectToggle.setAttribute("aria-pressed", String(open));
+          if (persist === false) {
+            return;
+          }
           try {
             localStorage.setItem("droplocal-connect", open ? "open" : "closed");
           } catch (_e) {}
@@ -3145,11 +3201,11 @@
         }
 
         function setupConnectCard() {
-          var stored = "open";
+          var stored = "";
           try {
-            stored = localStorage.getItem("droplocal-connect") || "open";
+            stored = localStorage.getItem("droplocal-connect") || "";
           } catch (_e) {}
-          setConnectOpen(stored !== "closed");
+          setConnectOpen(stored ? stored !== "closed" : !isCompactViewport(), Boolean(stored));
 
           var fallbackUrl = location.origin;
           state.shareUrl = fallbackUrl;
@@ -3177,9 +3233,7 @@
               var displayUrl = info.urls.friendly || ipUrl;
               state.shareUrl = displayUrl;
               refs.shareUrl.textContent = displayUrl;
-              // The QR always encodes the IP URL — Android browsers can't
-              // reliably resolve .local names.
-              renderQr(ipUrl);
+              renderQr(displayUrl);
               if (info.urls.friendly && info.urls.friendly !== ipUrl) {
                 refs.connectAlt.textContent = ipUrl;
                 refs.connectAlt.hidden = false;
@@ -3188,6 +3242,33 @@
               }
             })
             .catch(function () {});
+        }
+
+        function setDoctorOpen(open) {
+          refs.doctorPanel.hidden = !open;
+          refs.doctorBtn.setAttribute("aria-pressed", String(open));
+          if (open) {
+            refs.connectCard.dataset.mode = "doctor";
+          } else {
+            delete refs.connectCard.dataset.mode;
+          }
+          if (open) {
+            refreshDiagnostics();
+          }
+        }
+
+        function openDevices(showDoctor) {
+          refs.devicesCard.hidden = false;
+          refs.status.setAttribute("aria-expanded", "true");
+          refs.deviceNameInput.value = deviceName();
+          renderDevices();
+          setDoctorOpen(showDoctor);
+        }
+
+        function closeDevices() {
+          refs.devicesCard.hidden = true;
+          refs.status.setAttribute("aria-expanded", "false");
+          setDoctorOpen(false);
         }
 
         function doctorRows(diagnostics) {
@@ -3512,12 +3593,11 @@
           refs.inviteBtn.addEventListener("click", copyInviteLink);
 
           refs.doctorBtn.addEventListener("click", function () {
-            refs.devicesCard.hidden = false;
-            refs.doctorPanel.hidden = false;
-            refs.status.setAttribute("aria-expanded", "true");
-            refs.deviceNameInput.value = deviceName();
-            renderDevices();
-            refreshDiagnostics();
+            if (!refs.devicesCard.hidden && !refs.doctorPanel.hidden) {
+              closeDevices();
+              return;
+            }
+            openDevices(true);
           });
 
           refs.attachBtn.addEventListener("click", function () {
@@ -3571,15 +3651,10 @@
           refs.deleteSelectedBtn.addEventListener("click", deleteSelectedFiles);
 
           refs.status.addEventListener("click", function () {
-            var open = refs.devicesCard.hidden;
-            refs.devicesCard.hidden = !open;
-            refs.status.setAttribute("aria-expanded", String(open));
-            if (open) {
-              refs.deviceNameInput.value = deviceName();
-              renderDevices();
-              if (!refs.doctorPanel.hidden) {
-                refreshDiagnostics();
-              }
+            if (refs.devicesCard.hidden) {
+              openDevices(false);
+            } else {
+              closeDevices();
             }
           });
 
