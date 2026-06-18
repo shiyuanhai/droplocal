@@ -242,3 +242,87 @@ test("connection QR uses the friendly URL when available", async (t) => {
   await page.waitForFunction(() => window.__qrPayloads && window.__qrPayloads.includes("http://drop.local"));
   assert.equal(await page.locator("#shareUrl").innerText(), "http://drop.local");
 });
+
+test("PIN-protected connection QR uses an invite link", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-pin-qr-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir, pin: "4471" });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.route("**/vendor/qrcode.js", (route) => {
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.__qrPayloads = [];
+        window.qrcode = function () {
+          return {
+            addData: function (url) { window.__qrPayloads.push(url); },
+            make: function () {},
+            createSvgTag: function () { return "<svg></svg>"; }
+          };
+        };
+      `
+    });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.locator("#pinInput").fill("4471");
+  await page.locator("#pinSubmit").click();
+  await page.waitForFunction(() =>
+    window.__qrPayloads && window.__qrPayloads.some((url) => url.includes("invite=") && !url.includes("drop.local"))
+  );
+});
+
+test("item QR creates a scannable drop link", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-item-qr-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.route("**/vendor/qrcode.js", (route) => {
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.__qrPayloads = [];
+        window.qrcode = function () {
+          return {
+            addData: function (url) { window.__qrPayloads.push(url); },
+            make: function () {},
+            createSvgTag: function () { return "<svg></svg>"; }
+          };
+        };
+      `
+    });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.getByPlaceholder(/Type or paste anything/i).fill("QR note");
+  await page.getByRole("button", { name: /^Drop$/ }).click();
+  await page.getByText("QR note").waitFor();
+  await page.getByLabel("Show QR").click();
+  await page.locator("#dropQrModal").waitFor({ state: "visible" });
+  await page.waitForFunction(() =>
+    window.__qrPayloads && window.__qrPayloads.some((url) => url.includes("drop="))
+  );
+  assert.match(await page.locator("#dropQrUrl").innerText(), /drop=/);
+});

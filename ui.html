@@ -714,6 +714,11 @@
         background: color-mix(in srgb, var(--accent) 6%, var(--surface));
       }
 
+      .item.spotlight {
+        border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent), var(--shadow);
+      }
+
       .item-main {
         flex: 1;
         min-width: 0;
@@ -1034,6 +1039,78 @@
         border-color: rgba(255, 255, 255, 0.2);
         color: #fff;
         text-decoration: none;
+      }
+
+      .qr-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 90;
+        display: grid;
+        place-items: center;
+        padding: 22px;
+        background: rgba(5, 8, 16, 0.86);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      .qr-modal[hidden] {
+        display: none;
+      }
+
+      .qr-card {
+        width: min(380px, 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 18px;
+        background: var(--surface);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
+      }
+
+      .qr-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 750;
+      }
+
+      .drop-qr-box {
+        width: min(72vw, 260px);
+        height: min(72vw, 260px);
+        padding: 14px;
+        border-radius: 16px;
+        background: #fff;
+        border: 1px solid var(--border);
+        display: grid;
+        place-items: center;
+      }
+
+      .drop-qr-box svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .drop-qr-url {
+        width: 100%;
+        max-height: 74px;
+        overflow: auto;
+        padding: 9px 11px;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        background: var(--surface-2);
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.74rem;
+        white-space: normal;
+        word-break: break-all;
+      }
+
+      .qr-actions {
+        display: flex;
+        gap: 8px;
       }
 
       .pin-gate {
@@ -1377,6 +1454,17 @@
         <a class="pill-btn" id="lightboxDownload" href="#" data-i18n="item.download"></a>
       </div>
     </div>
+    <div class="qr-modal" id="dropQrModal" hidden>
+      <section class="qr-card" role="dialog" aria-modal="true" aria-labelledby="dropQrTitle">
+        <h2 class="qr-title" id="dropQrTitle"></h2>
+        <div class="drop-qr-box" id="dropQrBox"></div>
+        <code class="drop-qr-url" id="dropQrUrl"></code>
+        <div class="qr-actions">
+          <button class="pill-btn accent" id="dropQrCopy" type="button" data-i18n="qr.copy"></button>
+          <button class="pill-btn" id="dropQrClose" type="button" data-i18n="aria.close"></button>
+        </div>
+      </section>
+    </div>
     <div class="toast" id="toast" role="status"></div>
 
     <script src="/vendor/qrcode.js"></script>
@@ -1408,6 +1496,7 @@
     "share.hint.other": "Drag files anywhere · paste screenshots · Ctrl + Enter to send",
     "empty.title": "Nothing here yet",
     "empty.body": "Drop a file, paste a screenshot, or type a note — it shows up on every connected device instantly.",
+    "item.qr": "Show QR",
     "item.copy": "Copy",
     "item.download": "Download",
     "item.delete": "Delete",
@@ -1447,6 +1536,10 @@
     "sel.delete": "Delete",
     "item.select": "Select file",
     "item.preview": "Preview",
+    "qr.title": "Scan this drop",
+    "qr.copy": "Copy link",
+    "qr.copied": "Drop link copied",
+    "qr.loading": "Preparing QR…",
     "devices.title": "Connected devices",
     "devices.unnamed": "Unnamed device",
     "devices.you": "this device",
@@ -1501,6 +1594,7 @@
     "share.hint.other": "拖拽文件到任意位置 · 粘贴截图 · Ctrl + Enter 发送",
     "empty.title": "这里还空空如也",
     "empty.body": "拖入文件、粘贴截图或输入文字——内容会立刻出现在所有已连接的设备上。",
+    "item.qr": "显示二维码",
     "item.copy": "复制",
     "item.download": "下载",
     "item.delete": "删除",
@@ -1540,6 +1634,10 @@
     "sel.delete": "删除",
     "item.select": "选择文件",
     "item.preview": "预览",
+    "qr.title": "扫码打开此 drop",
+    "qr.copy": "复制链接",
+    "qr.copied": "Drop 链接已复制",
+    "qr.loading": "正在生成二维码…",
     "devices.title": "已连接的设备",
     "devices.unnamed": "未命名设备",
     "devices.you": "本机",
@@ -1594,6 +1692,7 @@
     "share.hint.other": "ファイルをドラッグ · スクリーンショットを貼り付け · Ctrl + Enter で送信",
     "empty.title": "まだ何もありません",
     "empty.body": "ファイルをドロップ、スクリーンショットを貼り付け、メモを入力——接続中のすべてのデバイスに即座に表示されます。",
+    "item.qr": "QRを表示",
     "item.copy": "コピー",
     "item.download": "ダウンロード",
     "item.delete": "削除",
@@ -1633,6 +1732,10 @@
     "sel.delete": "削除",
     "item.select": "ファイルを選択",
     "item.preview": "プレビュー",
+    "qr.title": "このドロップをスキャン",
+    "qr.copy": "リンクをコピー",
+    "qr.copied": "ドロップのリンクをコピーしました",
+    "qr.loading": "QRを準備中…",
     "devices.title": "接続中のデバイス",
     "devices.unnamed": "名前のないデバイス",
     "devices.you": "このデバイス",
@@ -1687,6 +1790,7 @@
     "share.hint.other": "파일을 끌어다 놓기 · 스크린샷 붙여넣기 · Ctrl + Enter로 전송",
     "empty.title": "아직 아무것도 없어요",
     "empty.body": "파일을 드롭하거나 스크린샷을 붙여넣거나 메모를 입력하면 연결된 모든 기기에 즉시 표시됩니다.",
+    "item.qr": "QR 표시",
     "item.copy": "복사",
     "item.download": "다운로드",
     "item.delete": "삭제",
@@ -1726,6 +1830,10 @@
     "sel.delete": "삭제",
     "item.select": "파일 선택",
     "item.preview": "미리보기",
+    "qr.title": "이 drop 스캔",
+    "qr.copy": "링크 복사",
+    "qr.copied": "Drop 링크가 복사되었습니다",
+    "qr.loading": "QR 준비 중…",
     "devices.title": "연결된 기기",
     "devices.unnamed": "이름 없는 기기",
     "devices.you": "이 기기",
@@ -1780,6 +1888,7 @@
     "share.hint.other": "Arrastra archivos aquí · pega capturas · Ctrl + Enter para enviar",
     "empty.title": "Aún no hay nada",
     "empty.body": "Suelta un archivo, pega una captura o escribe una nota: aparecerá al instante en todos los dispositivos conectados.",
+    "item.qr": "Mostrar QR",
     "item.copy": "Copiar",
     "item.download": "Descargar",
     "item.delete": "Eliminar",
@@ -1819,6 +1928,10 @@
     "sel.delete": "Eliminar",
     "item.select": "Seleccionar archivo",
     "item.preview": "Vista previa",
+    "qr.title": "Escanear este drop",
+    "qr.copy": "Copiar enlace",
+    "qr.copied": "Enlace del drop copiado",
+    "qr.loading": "Preparando QR…",
     "devices.title": "Dispositivos conectados",
     "devices.unnamed": "Dispositivo sin nombre",
     "devices.you": "este dispositivo",
@@ -1873,6 +1986,7 @@
     "share.hint.other": "Dateien hierher ziehen · Screenshots einfügen · Strg + Enter zum Senden",
     "empty.title": "Noch nichts hier",
     "empty.body": "Lege eine Datei ab, füge einen Screenshot ein oder schreibe eine Notiz — sie erscheint sofort auf allen verbundenen Geräten.",
+    "item.qr": "QR anzeigen",
     "item.copy": "Kopieren",
     "item.download": "Herunterladen",
     "item.delete": "Löschen",
@@ -1912,6 +2026,10 @@
     "sel.delete": "Löschen",
     "item.select": "Datei auswählen",
     "item.preview": "Vorschau",
+    "qr.title": "Diesen Drop scannen",
+    "qr.copy": "Link kopieren",
+    "qr.copied": "Drop-Link kopiert",
+    "qr.loading": "QR wird vorbereitet…",
     "devices.title": "Verbundene Geräte",
     "devices.unnamed": "Unbenanntes Gerät",
     "devices.you": "dieses Gerät",
@@ -1966,6 +2084,7 @@
     "share.hint.other": "Glissez des fichiers ici · collez des captures · Ctrl + Entrée pour envoyer",
     "empty.title": "Rien ici pour l'instant",
     "empty.body": "Déposez un fichier, collez une capture d'écran ou tapez une note — tout apparaît instantanément sur chaque appareil connecté.",
+    "item.qr": "Afficher le QR",
     "item.copy": "Copier",
     "item.download": "Télécharger",
     "item.delete": "Supprimer",
@@ -2005,6 +2124,10 @@
     "sel.delete": "Supprimer",
     "item.select": "Sélectionner le fichier",
     "item.preview": "Aperçu",
+    "qr.title": "Scanner ce drop",
+    "qr.copy": "Copier le lien",
+    "qr.copied": "Lien du drop copié",
+    "qr.loading": "Préparation du QR…",
     "devices.title": "Appareils connectés",
     "devices.unnamed": "Appareil sans nom",
     "devices.you": "cet appareil",
@@ -2091,6 +2214,12 @@
           lightboxName: document.getElementById("lightboxName"),
           lightboxDownload: document.getElementById("lightboxDownload"),
           lightboxClose: document.getElementById("lightboxClose"),
+          dropQrModal: document.getElementById("dropQrModal"),
+          dropQrTitle: document.getElementById("dropQrTitle"),
+          dropQrBox: document.getElementById("dropQrBox"),
+          dropQrUrl: document.getElementById("dropQrUrl"),
+          dropQrCopy: document.getElementById("dropQrCopy"),
+          dropQrClose: document.getElementById("dropQrClose"),
           pinGate: document.getElementById("pinGate"),
           pinForm: document.getElementById("pinForm"),
           pinInput: document.getElementById("pinInput"),
@@ -2117,7 +2246,11 @@
           query: "",
           clientId: "",
           locked: false,
-          pinEnabled: null
+          pinEnabled: null,
+          ipShareUrl: "",
+          requestedDropId: "",
+          focusedDropId: "",
+          dropQrUrl: ""
         };
 
         /* ---------- device identity ---------- */
@@ -2480,6 +2613,7 @@
           file: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V7z"/><path d="M14 2v5h5"/></svg>',
           note: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h9"/></svg>',
           copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>',
+          qr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14h1M14 20h1M20 20h1"/></svg>',
           check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>',
           download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>',
           trash: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/></svg>'
@@ -2767,6 +2901,11 @@
           var actions = document.createElement("div");
           actions.className = "item-actions";
 
+          var qrBtn = iconButton(t("item.qr"), ICONS.qr);
+          qrBtn.addEventListener("click", function () {
+            openDropQr(item);
+          });
+
           var copyBtn = iconButton(t("item.copy"), ICONS.copy);
           copyBtn.addEventListener("click", function () {
             copyText(item.text, function (ok) {
@@ -2783,6 +2922,7 @@
             deleteItem(item);
           });
 
+          actions.appendChild(qrBtn);
           actions.appendChild(copyBtn);
           actions.appendChild(deleteBtn);
 
@@ -2909,6 +3049,11 @@
           var actions = document.createElement("div");
           actions.className = "item-actions";
 
+          var qrBtn = iconButton(t("item.qr"), ICONS.qr);
+          qrBtn.addEventListener("click", function () {
+            openDropQr(item);
+          });
+
           var downloadLink = document.createElement("a");
           downloadLink.className = "icon-btn";
           downloadLink.href = "/api/files/" + encodeURIComponent(item.id);
@@ -2922,6 +3067,7 @@
             deleteItem(item);
           });
 
+          actions.appendChild(qrBtn);
           actions.appendChild(downloadLink);
           actions.appendChild(deleteBtn);
 
@@ -3005,6 +3151,9 @@
         }
 
         function renderStream() {
+          if (state.requestedDropId && state.items.has(state.requestedDropId)) {
+            state.expanded.add(state.requestedDropId);
+          }
           var entries = Array.from(state.items.values()).filter(itemMatchesQuery);
           entries.sort(function (left, right) {
             return String(right.timestamp).localeCompare(String(left.timestamp));
@@ -3022,6 +3171,7 @@
           });
 
           refs.emptyState.hidden = entries.length > 0 || state.uploads.size > 0;
+          focusRequestedDrop();
         }
 
         function refreshTimes() {
@@ -3029,6 +3179,29 @@
           for (var i = 0; i < nodes.length; i += 1) {
             nodes[i].textContent = formatRelativeTime(nodes[i].dataset.ts);
           }
+        }
+
+        function focusRequestedDrop() {
+          if (!state.requestedDropId || state.focusedDropId === state.requestedDropId) {
+            return;
+          }
+          var target = null;
+          Array.prototype.some.call(refs.stream.children, function (node) {
+            if (node.dataset && node.dataset.id === state.requestedDropId) {
+              target = node;
+              return true;
+            }
+            return false;
+          });
+          if (!target) {
+            return;
+          }
+          state.focusedDropId = state.requestedDropId;
+          target.classList.add("spotlight");
+          target.scrollIntoView({ block: "center", behavior: "smooth" });
+          window.setTimeout(function () {
+            target.classList.remove("spotlight");
+          }, 3200);
         }
 
         /* ---------- data ---------- */
@@ -3125,6 +3298,14 @@
           }
         }
 
+        function dropIdFromUrl() {
+          try {
+            return new URLSearchParams(location.search).get("drop") || "";
+          } catch (_e) {
+            return "";
+          }
+        }
+
         function consumeInviteToken() {
           var invite = inviteTokenFromUrl();
           if (!invite) {
@@ -3147,8 +3328,8 @@
             .catch(function () {});
         }
 
-        function copyInviteLink() {
-          fetch("/api/invites", { method: "POST" })
+        function createInviteLink() {
+          return fetch("/api/invites", { method: "POST" })
             .then(function (response) {
               if (response.status === 401) {
                 setLocked(true);
@@ -3160,7 +3341,22 @@
               if (!invite || !invite.url) {
                 return;
               }
-              copyText(invite.url, function (ok) {
+              return invite;
+            });
+        }
+
+        function preferredInviteUrl(invite) {
+          return (invite && (invite.fallbackUrl || invite.url)) || "";
+        }
+
+        function copyInviteLink() {
+          createInviteLink()
+            .then(function (invite) {
+              var url = preferredInviteUrl(invite);
+              if (!url) {
+                return;
+              }
+              copyText(url, function (ok) {
                 showToast(ok ? t("connect.inviteCopied") : t("toast.copyFailed"));
               });
             })
@@ -3427,20 +3623,90 @@
           } catch (_e) {}
         }
 
-        function renderQr(url) {
+        function renderQrInto(container, url) {
           if (typeof qrcode !== "function") {
-            refs.qrBox.hidden = true;
-            return;
+            container.textContent = "";
+            return false;
           }
           try {
             var qr = qrcode(0, "M");
             qr.addData(url);
             qr.make();
-            refs.qrBox.innerHTML = qr.createSvgTag(4, 0);
-            refs.qrBox.hidden = false;
+            container.innerHTML = qr.createSvgTag(4, 0);
+            return true;
           } catch (_e) {
-            refs.qrBox.hidden = true;
+            container.textContent = "";
+            return false;
           }
+        }
+
+        function renderQr(url) {
+          refs.qrBox.hidden = !renderQrInto(refs.qrBox, url);
+        }
+
+        function refreshConnectQr() {
+          var normalUrl = state.shareUrl || location.origin;
+          if (state.pinEnabled) {
+            createInviteLink()
+              .then(function (invite) {
+                renderQr(preferredInviteUrl(invite) || normalUrl);
+              })
+              .catch(function () {
+                renderQr(normalUrl);
+              });
+            return;
+          }
+          renderQr(normalUrl);
+        }
+
+        function shareBaseOrigin() {
+          var candidate = state.ipShareUrl || state.shareUrl || location.origin;
+          try {
+            return new URL(candidate).origin;
+          } catch (_e) {
+            return location.origin;
+          }
+        }
+
+        function buildDropUrl(item, invite) {
+          var url =
+            item.kind === "file"
+              ? new URL("/api/files/" + encodeURIComponent(item.id), shareBaseOrigin())
+              : new URL("/", shareBaseOrigin());
+          if (item.kind === "text") {
+            url.searchParams.set("drop", item.id);
+          }
+          if (invite && invite.token) {
+            url.searchParams.set("invite", invite.token);
+          }
+          return url.toString();
+        }
+
+        function closeDropQr() {
+          refs.dropQrModal.hidden = true;
+          refs.dropQrBox.textContent = "";
+          refs.dropQrUrl.textContent = "";
+          state.dropQrUrl = "";
+        }
+
+        function openDropQr(item) {
+          refs.dropQrTitle.textContent = t("qr.title");
+          refs.dropQrBox.textContent = t("qr.loading");
+          refs.dropQrUrl.textContent = "";
+          refs.dropQrModal.hidden = false;
+
+          var invitePromise = state.pinEnabled ? createInviteLink() : Promise.resolve(null);
+          invitePromise
+            .then(function (invite) {
+              var url = buildDropUrl(item, invite);
+              state.dropQrUrl = url;
+              refs.dropQrUrl.textContent = url;
+              renderQrInto(refs.dropQrBox, url);
+            })
+            .catch(function () {
+              closeDropQr();
+              showToast(t("toast.copyFailed"));
+            });
         }
 
         function setupConnectCard() {
@@ -3452,12 +3718,13 @@
 
           var fallbackUrl = location.origin;
           state.shareUrl = fallbackUrl;
+          state.ipShareUrl = fallbackUrl;
           // Keep the http:// scheme visible: mobile Safari upgrades a
           // scheme-less typed address to https://, which a LAN HTTP server
           // can't answer. Showing the scheme makes copy-by-eye typing work.
           refs.shareUrl.textContent = fallbackUrl;
           if (!isLoopbackHost(location.hostname)) {
-            renderQr(fallbackUrl);
+            refreshConnectQr();
           }
 
           refreshConnectInfo();
@@ -3475,9 +3742,10 @@
               }
               var ipUrl = isLoopbackHost(location.hostname) ? info.urls.primary : location.origin;
               var displayUrl = info.urls.friendly || ipUrl;
+              state.ipShareUrl = ipUrl;
               state.shareUrl = displayUrl;
               refs.shareUrl.textContent = displayUrl;
-              renderQr(displayUrl);
+              refreshConnectQr();
               if (info.urls.friendly && info.urls.friendly !== ipUrl) {
                 refs.connectAlt.textContent = ipUrl;
                 refs.connectAlt.hidden = false;
@@ -3534,6 +3802,7 @@
           state.diagnostics = diagnostics;
           state.pinEnabled = Boolean(diagnostics.pinEnabled);
           renderPrivacyStrip();
+          refreshConnectQr();
           refs.doctorGrid.textContent = "";
           doctorRows(diagnostics).forEach(function (row) {
             var wrap = document.createElement("div");
@@ -3931,9 +4200,25 @@
               closeLightbox();
             }
           });
+          refs.dropQrClose.addEventListener("click", closeDropQr);
+          refs.dropQrModal.addEventListener("click", function (event) {
+            if (event.target === refs.dropQrModal) {
+              closeDropQr();
+            }
+          });
+          refs.dropQrCopy.addEventListener("click", function () {
+            if (!state.dropQrUrl) {
+              return;
+            }
+            copyText(state.dropQrUrl, function (ok) {
+              showToast(ok ? t("qr.copied") : t("toast.copyFailed"));
+            });
+          });
           document.addEventListener("keydown", function (event) {
             if (event.key === "Escape" && !refs.lightbox.hidden) {
               closeLightbox();
+            } else if (event.key === "Escape" && !refs.dropQrModal.hidden) {
+              closeDropQr();
             }
           });
 
@@ -3967,6 +4252,7 @@
         /* ---------- init ---------- */
 
         state.clientId = loadClientId();
+        state.requestedDropId = dropIdFromUrl();
         applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
         applyLang(detectLang());
         setupConnectCard();
