@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-06-18
+
+### Added
+
+- Privacy visibility in the shared web UI: a local privacy status strip,
+  deduplicated "who can see this page" counts, warning state when another
+  device is present, and device-join toasts.
+- PIN-aware connection QR codes that use short-lived invite links, plus
+  per-drop QR codes for notes and files.
+- Command palette for heavy workflows, including quick navigation, file
+  actions, invite copying, theme switching, and local text templates.
+- Sender attribution chips for drops created from the web UI, persisted by
+  both the Node CLI server and the Rust desktop server.
+
+### Security
+
+- PIN authentication now uses constant-time comparison and per-IP exponential
+  lockout after repeated wrong attempts in both servers.
+
 ## [1.6.1] - 2026-06-15
 
 ### Fixed
