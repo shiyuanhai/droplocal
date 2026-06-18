@@ -116,6 +116,45 @@ test("connection doctor toggles and keeps the stream usable", async (t) => {
   assert.equal(await page.locator("#doctorBtn").getAttribute("aria-pressed"), "false");
 });
 
+test("privacy panel counts remote devices and announces joins", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-privacy-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const first = await browser.newContext();
+  const second = await browser.newContext();
+  await first.addInitScript(() => {
+    localStorage.setItem("droplocal-device-name", "MacBook");
+  });
+  await second.addInitScript(() => {
+    localStorage.setItem("droplocal-device-name", "Pixel 7");
+  });
+  const pageA = await first.newPage();
+  const pageB = await second.newPage();
+
+  t.after(async () => {
+    await first.close();
+    await second.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await pageA.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await pageA.getByText("Live · Only this device").waitFor();
+  await pageB.goto(baseUrl, { waitUntil: "domcontentloaded" });
+
+  await pageA.getByText("Pixel 7 connected").waitFor();
+  await pageA.getByText("Live · 1 other device can see this page").waitFor();
+  await pageA.locator("#status").click();
+  await pageA.getByText("1 other device can see the page right now.").waitFor();
+  await pageA.locator("#devicesList").getByText("Pixel 7", { exact: true }).waitFor();
+
+  const risk = await pageA.locator("#privacyStrip").getAttribute("data-risk");
+  assert.equal(risk, "shared");
+});
+
 test("mobile starts with the connection card collapsed and a usable share box", async (t) => {
   const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-mobile-"));
   const app = createDropLocalApp({ port: 0, dir: uploadDir });

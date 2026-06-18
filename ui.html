@@ -156,6 +156,10 @@
         background: var(--success);
       }
 
+      .status[data-state="live"][data-privacy="shared"] .status-dot {
+        background: var(--warn);
+      }
+
       .status[data-state="offline"] .status-dot {
         background: var(--danger);
         animation: pulse 1.4s ease-in-out infinite;
@@ -504,6 +508,28 @@
         padding-left: 18px;
         color: var(--danger);
         font-size: 0.78rem;
+      }
+
+      .device-summary,
+      .privacy-strip {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .privacy-strip {
+        margin: 0 16px 10px;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .privacy-strip[data-risk="shared"] {
+        border-color: color-mix(in srgb, var(--warn) 46%, var(--border));
+        color: color-mix(in srgb, var(--warn) 78%, var(--text));
+        background: color-mix(in srgb, var(--warn) 8%, var(--surface));
       }
 
       /* ---------- Selection bar ---------- */
@@ -1251,6 +1277,7 @@
 
       <section class="devices-card" id="devicesCard" hidden>
         <h2 class="connect-title" data-i18n="devices.title"></h2>
+        <p class="device-summary" id="deviceSummary"></p>
         <ul class="devices-list" id="devicesList"></ul>
         <div class="device-rename">
           <input id="deviceNameInput" maxlength="32" />
@@ -1263,6 +1290,8 @@
           <button class="pill-btn" id="copyDebugBtn" type="button" data-i18n="doctor.copyDebug"></button>
         </div>
       </section>
+
+      <section class="privacy-strip" id="privacyStrip" role="note"></section>
 
       <div class="stream-tools">
         <input class="stream-search" id="searchInput" type="search" data-i18n-placeholder="search.placeholder" />
@@ -1360,6 +1389,14 @@
     "status.offline": "Offline — reconnecting",
     "status.devices.one": "1 device",
     "status.devices.other": "{count} devices",
+    "status.private": "Only this device",
+    "status.viewers.one": "1 other device can see this page",
+    "status.viewers.other": "{count} devices can see this page",
+    "privacy.loading": "Local-only over HTTP. Connection privacy details are loading.",
+    "privacy.http.pin": "Local-only over HTTP. The PIN gates access, but it does not encrypt Wi-Fi traffic.",
+    "privacy.http.open": "Local-only over HTTP. Anyone who can open this address on this network can view drops.",
+    "privacy.https.pin": "Local-only. The PIN gates access for new sessions.",
+    "privacy.https.open": "Local-only. Anyone who can open this address on this network can view drops.",
     "connect.title": "Connect another device",
     "connect.hint": "Scan the QR code with the other device's camera, or tap Copy. If you type the address by hand, keep the http:// prefix. Both devices must be on the same Wi-Fi or network.",
     "connect.copy": "Copy",
@@ -1413,6 +1450,12 @@
     "devices.title": "Connected devices",
     "devices.unnamed": "Unnamed device",
     "devices.you": "this device",
+    "devices.summary.none": "Only this device can see the page right now.",
+    "devices.summary.one": "1 other device can see the page right now.",
+    "devices.summary.other": "{count} other devices can see the page right now.",
+    "devices.empty": "Waiting for this device to announce itself…",
+    "devices.joined": "{name} connected",
+    "devices.joinedUnnamed": "A new device connected",
     "devices.save": "Save",
     "devices.saved": "Device name updated",
     "connect.invite": "Copy invite",
@@ -1439,6 +1482,14 @@
     "status.offline": "离线 — 正在重连",
     "status.devices.one": "1 台设备",
     "status.devices.other": "{count} 台设备",
+    "status.private": "仅此设备",
+    "status.viewers.one": "还有 1 台设备可看到此页面",
+    "status.viewers.other": "还有 {count} 台设备可看到此页面",
+    "privacy.loading": "仅限本地 HTTP。正在读取连接隐私状态。",
+    "privacy.http.pin": "仅限本地 HTTP。PIN 只限制访问，不会加密 Wi-Fi 流量。",
+    "privacy.http.open": "仅限本地 HTTP。此网络中能打开该地址的人都可查看 drops。",
+    "privacy.https.pin": "仅限本地。PIN 会限制新会话访问。",
+    "privacy.https.open": "仅限本地。此网络中能打开该地址的人都可查看 drops。",
     "connect.title": "连接其他设备",
     "connect.hint": "用另一台设备的相机扫描二维码，或点「复制」。若手动输入地址，请连同 http:// 一起输入。两台设备需连接同一个 Wi-Fi 或网络。",
     "connect.copy": "复制",
@@ -1492,6 +1543,12 @@
     "devices.title": "已连接的设备",
     "devices.unnamed": "未命名设备",
     "devices.you": "本机",
+    "devices.summary.none": "当前只有此设备可看到页面。",
+    "devices.summary.one": "当前还有 1 台设备可看到页面。",
+    "devices.summary.other": "当前还有 {count} 台设备可看到页面。",
+    "devices.empty": "正在等待本设备完成连接声明…",
+    "devices.joined": "{name} 已连接",
+    "devices.joinedUnnamed": "新设备已连接",
     "devices.save": "保存",
     "devices.saved": "设备名称已更新",
     "connect.invite": "复制邀请",
@@ -1518,6 +1575,14 @@
     "status.offline": "オフライン — 再接続中",
     "status.devices.one": "1 台のデバイス",
     "status.devices.other": "{count} 台のデバイス",
+    "status.private": "このデバイスのみ",
+    "status.viewers.one": "他の 1 台がこのページを表示できます",
+    "status.viewers.other": "他の {count} 台がこのページを表示できます",
+    "privacy.loading": "ローカルHTTPのみ。接続のプライバシー状態を読み込んでいます。",
+    "privacy.http.pin": "ローカルHTTPのみ。PINはアクセスを制限しますが、Wi-Fi通信は暗号化しません。",
+    "privacy.http.open": "ローカルHTTPのみ。このネットワークでこのアドレスを開ける人はドロップを表示できます。",
+    "privacy.https.pin": "ローカルのみ。PINは新しいセッションのアクセスを制限します。",
+    "privacy.https.open": "ローカルのみ。このネットワークでこのアドレスを開ける人はドロップを表示できます。",
     "connect.title": "別のデバイスを接続",
     "connect.hint": "別のデバイスのカメラでQRコードをスキャンするか、「コピー」をタップしてください。アドレスを手入力する場合は http:// も付けてください。両方のデバイスが同じWi-Fi／ネットワークにある必要があります。",
     "connect.copy": "コピー",
@@ -1571,6 +1636,12 @@
     "devices.title": "接続中のデバイス",
     "devices.unnamed": "名前のないデバイス",
     "devices.you": "このデバイス",
+    "devices.summary.none": "現在このデバイスだけがページを表示できます。",
+    "devices.summary.one": "現在他の 1 台がページを表示できます。",
+    "devices.summary.other": "現在他の {count} 台がページを表示できます。",
+    "devices.empty": "このデバイスの接続通知を待っています…",
+    "devices.joined": "{name} が接続しました",
+    "devices.joinedUnnamed": "新しいデバイスが接続しました",
     "devices.save": "保存",
     "devices.saved": "デバイス名を更新しました",
     "connect.invite": "招待をコピー",
@@ -1597,6 +1668,14 @@
     "status.offline": "오프라인 — 재연결 중",
     "status.devices.one": "기기 1대",
     "status.devices.other": "기기 {count}대",
+    "status.private": "이 기기만",
+    "status.viewers.one": "다른 기기 1대가 이 페이지를 볼 수 있음",
+    "status.viewers.other": "다른 기기 {count}대가 이 페이지를 볼 수 있음",
+    "privacy.loading": "로컬 HTTP 전용입니다. 연결 개인정보 상태를 불러오는 중입니다.",
+    "privacy.http.pin": "로컬 HTTP 전용입니다. PIN은 접근만 제한하며 Wi-Fi 트래픽을 암호화하지 않습니다.",
+    "privacy.http.open": "로컬 HTTP 전용입니다. 이 네트워크에서 이 주소를 열 수 있는 사람은 drops를 볼 수 있습니다.",
+    "privacy.https.pin": "로컬 전용입니다. PIN은 새 세션 접근을 제한합니다.",
+    "privacy.https.open": "로컬 전용입니다. 이 네트워크에서 이 주소를 열 수 있는 사람은 drops를 볼 수 있습니다.",
     "connect.title": "다른 기기 연결하기",
     "connect.hint": "다른 기기의 카메라로 QR 코드를 스캔하거나 복사를 누르세요. 주소를 직접 입력할 때는 http:// 까지 함께 입력하세요. 두 기기가 같은 Wi-Fi/네트워크에 있어야 합니다.",
     "connect.copy": "복사",
@@ -1650,6 +1729,12 @@
     "devices.title": "연결된 기기",
     "devices.unnamed": "이름 없는 기기",
     "devices.you": "이 기기",
+    "devices.summary.none": "현재 이 기기만 페이지를 볼 수 있습니다.",
+    "devices.summary.one": "현재 다른 기기 1대가 페이지를 볼 수 있습니다.",
+    "devices.summary.other": "현재 다른 기기 {count}대가 페이지를 볼 수 있습니다.",
+    "devices.empty": "이 기기의 연결 알림을 기다리는 중…",
+    "devices.joined": "{name} 연결됨",
+    "devices.joinedUnnamed": "새 기기가 연결됨",
     "devices.save": "저장",
     "devices.saved": "기기 이름이 변경되었습니다",
     "connect.invite": "초대 복사",
@@ -1676,6 +1761,14 @@
     "status.offline": "Sin conexión — reconectando",
     "status.devices.one": "1 dispositivo",
     "status.devices.other": "{count} dispositivos",
+    "status.private": "Solo este dispositivo",
+    "status.viewers.one": "Otro dispositivo puede ver esta página",
+    "status.viewers.other": "{count} dispositivos pueden ver esta página",
+    "privacy.loading": "Solo local por HTTP. Cargando detalles de privacidad de la conexión.",
+    "privacy.http.pin": "Solo local por HTTP. El PIN controla el acceso, pero no cifra el tráfico Wi-Fi.",
+    "privacy.http.open": "Solo local por HTTP. Quien pueda abrir esta dirección en la red puede ver los drops.",
+    "privacy.https.pin": "Solo local. El PIN controla el acceso de sesiones nuevas.",
+    "privacy.https.open": "Solo local. Quien pueda abrir esta dirección en la red puede ver los drops.",
     "connect.title": "Conectar otro dispositivo",
     "connect.hint": "Escanea el código QR con la cámara del otro dispositivo o toca Copiar. Si escribes la dirección a mano, incluye el prefijo http://. Ambos deben estar en la misma red Wi-Fi.",
     "connect.copy": "Copiar",
@@ -1729,6 +1822,12 @@
     "devices.title": "Dispositivos conectados",
     "devices.unnamed": "Dispositivo sin nombre",
     "devices.you": "este dispositivo",
+    "devices.summary.none": "Ahora solo este dispositivo puede ver la página.",
+    "devices.summary.one": "Ahora otro dispositivo puede ver la página.",
+    "devices.summary.other": "Ahora otros {count} dispositivos pueden ver la página.",
+    "devices.empty": "Esperando a que este dispositivo se anuncie…",
+    "devices.joined": "{name} se conectó",
+    "devices.joinedUnnamed": "Se conectó un dispositivo nuevo",
     "devices.save": "Guardar",
     "devices.saved": "Nombre del dispositivo actualizado",
     "connect.invite": "Copiar invitación",
@@ -1755,6 +1854,14 @@
     "status.offline": "Offline — verbinde neu",
     "status.devices.one": "1 Gerät",
     "status.devices.other": "{count} Geräte",
+    "status.private": "Nur dieses Gerät",
+    "status.viewers.one": "1 weiteres Gerät kann diese Seite sehen",
+    "status.viewers.other": "{count} Geräte können diese Seite sehen",
+    "privacy.loading": "Nur lokal über HTTP. Verbindungsdatenschutz wird geladen.",
+    "privacy.http.pin": "Nur lokal über HTTP. Die PIN schützt den Zugang, verschlüsselt aber keinen Wi-Fi-Verkehr.",
+    "privacy.http.open": "Nur lokal über HTTP. Wer diese Adresse im Netzwerk öffnen kann, kann Drops sehen.",
+    "privacy.https.pin": "Nur lokal. Die PIN schützt neue Sitzungen.",
+    "privacy.https.open": "Nur lokal. Wer diese Adresse im Netzwerk öffnen kann, kann Drops sehen.",
     "connect.title": "Weiteres Gerät verbinden",
     "connect.hint": "Scanne den QR-Code mit der Kamera des anderen Geräts oder tippe auf Kopieren. Wenn du die Adresse von Hand eingibst, gib das http:// mit ein. Beide Geräte müssen im selben WLAN sein.",
     "connect.copy": "Kopieren",
@@ -1808,6 +1915,12 @@
     "devices.title": "Verbundene Geräte",
     "devices.unnamed": "Unbenanntes Gerät",
     "devices.you": "dieses Gerät",
+    "devices.summary.none": "Aktuell kann nur dieses Gerät die Seite sehen.",
+    "devices.summary.one": "Aktuell kann 1 weiteres Gerät die Seite sehen.",
+    "devices.summary.other": "Aktuell können {count} weitere Geräte die Seite sehen.",
+    "devices.empty": "Dieses Gerät meldet sich gerade an…",
+    "devices.joined": "{name} verbunden",
+    "devices.joinedUnnamed": "Ein neues Gerät ist verbunden",
     "devices.save": "Speichern",
     "devices.saved": "Gerätename aktualisiert",
     "connect.invite": "Einladung kopieren",
@@ -1834,6 +1947,14 @@
     "status.offline": "Hors ligne — reconnexion",
     "status.devices.one": "1 appareil",
     "status.devices.other": "{count} appareils",
+    "status.private": "Seulement cet appareil",
+    "status.viewers.one": "1 autre appareil peut voir cette page",
+    "status.viewers.other": "{count} appareils peuvent voir cette page",
+    "privacy.loading": "Local uniquement en HTTP. Chargement des détails de confidentialité.",
+    "privacy.http.pin": "Local uniquement en HTTP. Le PIN contrôle l'accès, mais ne chiffre pas le trafic Wi-Fi.",
+    "privacy.http.open": "Local uniquement en HTTP. Toute personne pouvant ouvrir cette adresse sur le réseau peut voir les drops.",
+    "privacy.https.pin": "Local uniquement. Le PIN contrôle l'accès des nouvelles sessions.",
+    "privacy.https.open": "Local uniquement. Toute personne pouvant ouvrir cette adresse sur le réseau peut voir les drops.",
     "connect.title": "Connecter un autre appareil",
     "connect.hint": "Scannez le code QR avec l'appareil photo de l'autre appareil, ou appuyez sur Copier. Si vous saisissez l'adresse à la main, conservez le préfixe http://. Les deux appareils doivent être sur le même réseau Wi-Fi.",
     "connect.copy": "Copier",
@@ -1887,6 +2008,12 @@
     "devices.title": "Appareils connectés",
     "devices.unnamed": "Appareil sans nom",
     "devices.you": "cet appareil",
+    "devices.summary.none": "Pour l'instant, seul cet appareil peut voir la page.",
+    "devices.summary.one": "Pour l'instant, 1 autre appareil peut voir la page.",
+    "devices.summary.other": "Pour l'instant, {count} autres appareils peuvent voir la page.",
+    "devices.empty": "En attente de l'annonce de cet appareil…",
+    "devices.joined": "{name} connecté",
+    "devices.joinedUnnamed": "Un nouvel appareil s'est connecté",
     "devices.save": "Enregistrer",
     "devices.saved": "Nom de l'appareil mis à jour",
     "connect.invite": "Copier l’invitation",
@@ -1933,9 +2060,11 @@
           stream: document.getElementById("stream"),
           streamWrap: document.getElementById("streamWrap"),
           devicesCard: document.getElementById("devicesCard"),
+          deviceSummary: document.getElementById("deviceSummary"),
           devicesList: document.getElementById("devicesList"),
           deviceNameInput: document.getElementById("deviceNameInput"),
           deviceNameSave: document.getElementById("deviceNameSave"),
+          privacyStrip: document.getElementById("privacyStrip"),
           doctorPanel: document.getElementById("doctorPanel"),
           doctorGrid: document.getElementById("doctorGrid"),
           doctorWarnings: document.getElementById("doctorWarnings"),
@@ -1982,28 +2111,40 @@
           expanded: new Set(),
           selected: new Set(),
           devices: [],
+          deviceListReady: false,
+          seenRemoteClientIds: new Set(),
           diagnostics: null,
           query: "",
           clientId: "",
-          locked: false
+          locked: false,
+          pinEnabled: null
         };
 
         /* ---------- device identity ---------- */
 
+        function normalizeClientId(value) {
+          return String(value || "")
+            .replace(/[\u0000-\u001f\u007f]/g, "")
+            .trim()
+            .slice(0, 32);
+        }
+
         function loadClientId() {
           try {
-            var stored = localStorage.getItem("droplocal-client-id");
+            var stored = normalizeClientId(localStorage.getItem("droplocal-client-id"));
             if (stored) {
+              localStorage.setItem("droplocal-client-id", stored);
               return stored;
             }
             var fresh =
               window.crypto && crypto.randomUUID
-                ? crypto.randomUUID()
+                ? crypto.randomUUID().replace(/-/g, "")
                 : "c-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+            fresh = normalizeClientId(fresh);
             localStorage.setItem("droplocal-client-id", fresh);
             return fresh;
           } catch (_e) {
-            return "c-" + Math.random().toString(36).slice(2);
+            return normalizeClientId("c-" + Math.random().toString(36).slice(2));
           }
         }
 
@@ -2034,19 +2175,70 @@
           }
         }
 
-        function renderDevices() {
-          refs.devicesList.textContent = "";
+        function deviceKey(device) {
+          return device && device.clientId ? "client:" + device.clientId : "socket:" + device.id;
+        }
+
+        function uniqueDevices() {
+          var byKey = new Map();
           state.devices.forEach(function (device) {
+            var key = deviceKey(device);
+            if (!key || byKey.has(key)) {
+              return;
+            }
+            byKey.set(key, device);
+          });
+          return Array.from(byKey.values());
+        }
+
+        function visibleRemoteDevices() {
+          return uniqueDevices().filter(function (device) {
+            return device.clientId && device.clientId !== state.clientId;
+          });
+        }
+
+        function remoteClientIds(devices) {
+          var ids = [];
+          devices.forEach(function (device) {
+            if (device.clientId && device.clientId !== state.clientId && ids.indexOf(device.clientId) === -1) {
+              ids.push(device.clientId);
+            }
+          });
+          return ids;
+        }
+
+        function deviceLabel(device) {
+          return device && device.name ? device.name : t("devices.unnamed");
+        }
+
+        function renderDevices() {
+          var devices = uniqueDevices();
+          var remotes = visibleRemoteDevices();
+          refs.devicesList.textContent = "";
+          refs.deviceSummary.textContent =
+            remotes.length === 0
+              ? t("devices.summary.none")
+              : remotes.length === 1
+                ? t("devices.summary.one")
+                : t("devices.summary.other", { count: remotes.length });
+
+          if (devices.length === 0) {
+            var empty = document.createElement("li");
+            empty.className = "device-unnamed";
+            empty.textContent = t("devices.empty");
+            refs.devicesList.appendChild(empty);
+            return;
+          }
+
+          devices.forEach(function (device) {
             var li = document.createElement("li");
             var dot = document.createElement("span");
             dot.className = "device-dot";
             li.appendChild(dot);
 
             var label = document.createElement("span");
-            if (device.name) {
-              label.textContent = device.name;
-            } else {
-              label.textContent = t("devices.unnamed");
+            label.textContent = deviceLabel(device);
+            if (!device.name) {
               label.className = "device-unnamed";
             }
             li.appendChild(label);
@@ -2060,6 +2252,30 @@
 
             refs.devicesList.appendChild(li);
           });
+        }
+
+        function handleDeviceList(devices) {
+          state.devices = devices;
+          var nextRemoteIds = remoteClientIds(uniqueDevices());
+          if (state.deviceListReady) {
+            nextRemoteIds.forEach(function (clientId) {
+              if (!state.seenRemoteClientIds.has(clientId)) {
+                var device = state.devices.find(function (entry) {
+                  return entry.clientId === clientId;
+                });
+                showToast(
+                  device && device.name
+                    ? t("devices.joined", { name: device.name })
+                    : t("devices.joinedUnnamed")
+                );
+              }
+            });
+          }
+          state.seenRemoteClientIds = new Set(nextRemoteIds);
+          state.deviceListReady = true;
+          renderDevices();
+          renderStatus();
+          renderPrivacyStrip();
         }
 
         /* ---------- i18n ---------- */
@@ -2133,6 +2349,8 @@
           document.title = "DropLocal";
 
           renderStatus();
+          renderPrivacyStrip();
+          renderDevices();
           renderStream();
         }
 
@@ -2289,17 +2507,41 @@
         /* ---------- rendering ---------- */
 
         function renderStatus() {
+          var viewers = visibleRemoteDevices().length;
           refs.status.dataset.state = state.wsState;
+          refs.status.dataset.privacy = viewers > 0 ? "shared" : "private";
           if (state.wsState === "connecting") {
             refs.statusText.textContent = t("status.connecting");
           } else if (state.wsState === "offline") {
             refs.statusText.textContent = t("status.offline");
           } else {
-            var devices =
-              state.deviceCount === 1
-                ? t("status.devices.one")
-                : t("status.devices.other", { count: state.deviceCount });
-            refs.statusText.textContent = t("status.live") + " · " + devices;
+            var privacy =
+              viewers === 0
+                ? t("status.private")
+                : viewers === 1
+                  ? t("status.viewers.one")
+                  : t("status.viewers.other", { count: viewers });
+            refs.statusText.textContent = t("status.live") + " · " + privacy;
+          }
+        }
+
+        function renderPrivacyStrip() {
+          var viewers = visibleRemoteDevices().length;
+          refs.privacyStrip.dataset.risk = viewers > 0 ? "shared" : "private";
+          if (state.pinEnabled === null) {
+            refs.privacyStrip.textContent = t("privacy.loading");
+            return;
+          }
+          if (location.protocol === "https:") {
+            refs.privacyStrip.textContent = state.pinEnabled
+              ? t("privacy.https.pin")
+              : t("privacy.https.open");
+            return;
+          }
+          if (state.pinEnabled) {
+            refs.privacyStrip.textContent = t("privacy.http.pin");
+          } else {
+            refs.privacyStrip.textContent = t("privacy.http.open");
           }
         }
 
@@ -2813,6 +3055,7 @@
         function setLocked(locked) {
           state.locked = locked;
           refs.pinGate.hidden = !locked;
+          renderPrivacyStrip();
           if (locked) {
             refs.pinInput.focus();
           }
@@ -2863,6 +3106,7 @@
                 loadInitial();
                 connectSocket();
                 refreshConnectInfo();
+                refreshDiagnostics();
               } else {
                 refs.pinError.hidden = false;
                 refs.pinInput.select();
@@ -3125,8 +3369,7 @@
               state.deviceCount = envelope.data.count;
               renderStatus();
             } else if (envelope.event === "device:list") {
-              state.devices = envelope.data.devices || [];
-              renderDevices();
+              handleDeviceList(envelope.data.devices || []);
             } else if (envelope.event === "snippet:new") {
               addSnippet(envelope.data);
               renderStream();
@@ -3218,6 +3461,7 @@
           }
 
           refreshConnectInfo();
+          refreshDiagnostics();
         }
 
         function refreshConnectInfo() {
@@ -3288,6 +3532,8 @@
 
         function renderDiagnostics(diagnostics) {
           state.diagnostics = diagnostics;
+          state.pinEnabled = Boolean(diagnostics.pinEnabled);
+          renderPrivacyStrip();
           refs.doctorGrid.textContent = "";
           doctorRows(diagnostics).forEach(function (row) {
             var wrap = document.createElement("div");
