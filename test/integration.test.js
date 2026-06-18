@@ -132,13 +132,18 @@ test("snippets REST lifecycle", async () => {
 
   const create = await fetch(`${baseUrl}/api/snippets`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-droplocal-device-name": "MacBook Pro",
+      "x-droplocal-client-id": "client-test"
+    },
     body: JSON.stringify({ text: "hello from test" })
   });
   assert.equal(create.status, 201);
   const created = await create.json();
   assert.ok(created.id);
   assert.equal(created.text, "hello from test");
+  assert.deepEqual(created.sender, { name: "MacBook Pro", clientId: "client-test" });
 
   const list = await fetch(`${baseUrl}/api/snippets`);
   const snippets = await list.json();
@@ -161,6 +166,10 @@ test("files upload, list, download and delete", async () => {
 
   const upload = await fetch(`${baseUrl}/api/files`, {
     method: "POST",
+    headers: {
+      "x-droplocal-device-name": "Pixel 7",
+      "x-droplocal-client-id": "phone-client"
+    },
     body: form
   });
 
@@ -168,6 +177,7 @@ test("files upload, list, download and delete", async () => {
   const uploaded = await upload.json();
   assert.ok(uploaded.id);
   assert.equal(uploaded.name, "note.txt");
+  assert.deepEqual(uploaded.sender, { name: "Pixel 7", clientId: "phone-client" });
 
   const listResponse = await fetch(`${baseUrl}/api/files`);
   const files = await listResponse.json();
@@ -316,6 +326,42 @@ test("invite links unlock a PIN-protected session", async () => {
 
     const authorized = await fetch(`${base}/api/snippets`, { headers: { cookie: inviteCookie } });
     assert.equal(authorized.status, 200);
+  } finally {
+    await pinApp.stop();
+    await fsp.rm(pinDir, { recursive: true, force: true });
+  }
+});
+
+test("pin auth locks out repeated wrong attempts", async () => {
+  const pinDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-pin-lock-"));
+  const pinApp = createDropLocalApp({ port: 0, dir: pinDir, pin: "4471" });
+  const startInfo = await pinApp.start();
+  const base = `http://127.0.0.1:${startInfo.port}`;
+
+  try {
+    for (let index = 0; index < 2; index += 1) {
+      const wrong = await fetch(`${base}/api/auth`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pin: "0000" })
+      });
+      assert.equal(wrong.status, 403);
+    }
+
+    const locked = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: "0000" })
+    });
+    assert.equal(locked.status, 429);
+    assert.ok(Number(locked.headers.get("retry-after")) >= 1);
+
+    const stillLocked = await fetch(`${base}/api/auth`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: "4471" })
+    });
+    assert.equal(stillLocked.status, 429);
   } finally {
     await pinApp.stop();
     await fsp.rm(pinDir, { recursive: true, force: true });

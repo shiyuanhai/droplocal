@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
-const { randomUUID } = require("node:crypto");
+const { randomUUID, timingSafeEqual } = require("node:crypto");
 const Busboy = require("busboy");
 const createMulticastDns = require("multicast-dns");
 const qrcode = require("qrcode-terminal");
@@ -23,6 +23,9 @@ const AUTH_COOKIE = "droplocal_auth";
 const INDEX_FILE_NAME = ".droplocal.json";
 const EXPIRY_SWEEP_INTERVAL_MS = 30_000;
 const INVITE_TTL_MS = 10 * 60 * 1000;
+const AUTH_FAILURE_LOCK_THRESHOLD = 3;
+const AUTH_BACKOFF_BASE_MS = 1_000;
+const AUTH_BACKOFF_MAX_MS = 30_000;
 // Received files belong somewhere a human looks: Downloads/DropLocal,
 // matching the desktop app. Fall back to a temp dir on systems without it.
 const DEFAULT_UPLOAD_ROOT = fs.existsSync(path.join(os.homedir(), "Downloads"))
@@ -509,6 +512,37 @@ function sanitizeFileName(fileName) {
   return stripped || "file";
 }
 
+function sanitizeHeaderValue(value) {
+  return String(value || "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim()
+    .slice(0, 64);
+}
+
+function senderFromHeaders(headers) {
+  const name = sanitizeHeaderValue(headers["x-droplocal-device-name"]).slice(0, 32);
+  const clientId = sanitizeHeaderValue(headers["x-droplocal-client-id"]).slice(0, 32);
+  if (!name && !clientId) {
+    return null;
+  }
+  return {
+    name: name || "Device",
+    clientId
+  };
+}
+
+function constantTimeEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left || ""));
+  const rightBuffer = Buffer.from(String(right || ""));
+  const length = Math.max(leftBuffer.length, rightBuffer.length, 1);
+  const leftPadded = Buffer.alloc(length);
+  const rightPadded = Buffer.alloc(length);
+  leftBuffer.copy(leftPadded);
+  rightBuffer.copy(rightPadded);
+  const equal = timingSafeEqual(leftPadded, rightPadded);
+  return equal && leftBuffer.length === rightBuffer.length;
+}
+
 function createJsonResponder(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -563,7 +597,7 @@ function contentDisposition(filename) {
   return `attachment; filename=\"${asciiSafe}\"; filename*=UTF-8''${encoded}`;
 }
 
-async function parseMultipartUpload(req, uploadDir) {
+async function parseMultipartUpload(req, uploadDir, sender = null) {
   const contentType = req.headers["content-type"] || "";
   if (!contentType.startsWith("multipart/form-data")) {
     const err = new Error("Expected multipart/form-data upload");
@@ -645,6 +679,7 @@ async function parseMultipartUpload(req, uploadDir) {
               mimeType: info.mimeType || "application/octet-stream",
               size,
               timestamp: new Date().toISOString(),
+              sender,
               path: targetPath
             });
             taskResolve();
@@ -703,6 +738,7 @@ function createServerState(options = {}) {
     pin: typeof options.pin === "string" ? options.pin.trim() : "",
     sessionToken: randomUUID(),
     invites: new Map(),
+    authFailures: new Map(),
     inviteTtlMs: Number(options.inviteTtlMs) > 0 ? Number(options.inviteTtlMs) : INVITE_TTL_MS,
     expireMinutes: Number(options.expireMinutes) > 0 ? Number(options.expireMinutes) : 0,
     ephemeral: Boolean(options.ephemeral),
@@ -837,7 +873,8 @@ function publicFileMetadata(file) {
     id: file.id,
     name: file.name,
     size: file.size,
-    timestamp: file.timestamp
+    timestamp: file.timestamp,
+    sender: file.sender || null
   };
 }
 
@@ -918,6 +955,49 @@ function createDropLocalApp(options = {}) {
 
   function authCookie() {
     return `${AUTH_COOKIE}=${state.sessionToken}; Path=/; HttpOnly; SameSite=Lax`;
+  }
+
+  function authKey(req) {
+    return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : "unknown";
+  }
+
+  function authRetryAfterSeconds(key) {
+    const record = state.authFailures.get(key);
+    if (!record || record.lockedUntil <= Date.now()) {
+      return 0;
+    }
+    return Math.max(1, Math.ceil((record.lockedUntil - Date.now()) / 1000));
+  }
+
+  function clearAuthFailures(key) {
+    state.authFailures.delete(key);
+  }
+
+  function recordAuthFailure(key) {
+    const now = Date.now();
+    const current = state.authFailures.get(key) || { failures: 0, lockedUntil: 0 };
+    const failures = current.failures + 1;
+    const delay =
+      failures >= AUTH_FAILURE_LOCK_THRESHOLD
+        ? Math.min(
+            AUTH_BACKOFF_BASE_MS * 2 ** (failures - AUTH_FAILURE_LOCK_THRESHOLD),
+            AUTH_BACKOFF_MAX_MS
+          )
+        : 0;
+    const record = { failures, lockedUntil: delay ? now + delay : 0 };
+    state.authFailures.set(key, record);
+    return delay ? Math.ceil(delay / 1000) : 0;
+  }
+
+  function rateLimitResponder(res, retryAfterSeconds) {
+    const payload = JSON.stringify({ error: "Too many PIN attempts" });
+    res.writeHead(429, {
+      "content-type": "application/json; charset=utf-8",
+      "content-length": Buffer.byteLength(payload),
+      "cache-control": "no-store",
+      "retry-after": String(retryAfterSeconds)
+    });
+    res.end(payload);
   }
 
   function cleanupInvites() {
@@ -1240,7 +1320,15 @@ function createDropLocalApp(options = {}) {
       const body = await readJsonBody(req);
       const submitted = typeof body.pin === "string" ? body.pin.trim() : "";
       const invite = typeof body.invite === "string" ? body.invite.trim() : "";
-      if ((submitted && submitted === state.pin) || validateInvite(invite)) {
+      const key = authKey(req);
+      const inviteValid = validateInvite(invite);
+      const retryAfterSeconds = inviteValid ? 0 : authRetryAfterSeconds(key);
+      if (retryAfterSeconds > 0) {
+        rateLimitResponder(res, retryAfterSeconds);
+        return;
+      }
+      if (inviteValid || (submitted && constantTimeEqual(submitted, state.pin))) {
+        clearAuthFailures(key);
         const payload = JSON.stringify({ ok: true });
         res.writeHead(200, {
           "content-type": "application/json; charset=utf-8",
@@ -1249,7 +1337,12 @@ function createDropLocalApp(options = {}) {
         });
         res.end(payload);
       } else {
-        createJsonResponder(res, 403, { error: "Wrong PIN" });
+        const lockedForSeconds = recordAuthFailure(key);
+        if (lockedForSeconds > 0) {
+          rateLimitResponder(res, lockedForSeconds);
+        } else {
+          createJsonResponder(res, 403, { error: "Wrong PIN" });
+        }
       }
       return;
     }
@@ -1363,7 +1456,8 @@ function createDropLocalApp(options = {}) {
       const snippet = {
         id: randomUUID(),
         text,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        sender: senderFromHeaders(req.headers)
       };
 
       state.snippets.unshift(snippet);
@@ -1410,7 +1504,11 @@ function createDropLocalApp(options = {}) {
     }
 
     if (method === "POST" && pathname === "/api/files") {
-      const uploadedFiles = await parseMultipartUpload(req, state.uploadDir);
+      const uploadedFiles = await parseMultipartUpload(
+        req,
+        state.uploadDir,
+        senderFromHeaders(req.headers)
+      );
       for (const file of uploadedFiles) {
         state.files.unshift(file);
         broadcast("file:new", publicFileMetadata(file));
