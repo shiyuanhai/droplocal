@@ -13,7 +13,7 @@ use axum::{
     body::Body,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        DefaultBodyLimit, Multipart, Path as AxumPath, Query, State,
+        ConnectInfo, DefaultBodyLimit, Multipart, Path as AxumPath, Query, State,
     },
     http::{HeaderMap, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
@@ -42,6 +42,9 @@ const AUTH_COOKIE: &str = "droplocal_auth";
 const INDEX_FILE_NAME: &str = ".droplocal.json";
 const EXPIRY_SWEEP_INTERVAL_SECS: u64 = 30;
 const INVITE_TTL_SECS: u64 = 10 * 60;
+const AUTH_FAILURE_LOCK_THRESHOLD: u32 = 3;
+const AUTH_BACKOFF_BASE_SECS: u64 = 1;
+const AUTH_BACKOFF_MAX_SECS: u64 = 30;
 const EMBEDDED_UI: &str = include_str!("../../../../ui.html");
 const FAVICON_SVG: &str = include_str!("../../../../assets/brand/logo.svg");
 const TOUCH_ICON_PNG: &[u8] = include_bytes!("../../../../assets/brand/apple-touch-icon.png");
@@ -284,6 +287,7 @@ impl ServerRuntime {
             id: Uuid::new_v4().to_string(),
             text: text.to_string(),
             timestamp: Utc::now().to_rfc3339(),
+            sender: None,
         };
         self.state.snippets.write().await.insert(0, snippet.clone());
         self.state.emit("snippet:new", json!(snippet));
@@ -349,8 +353,15 @@ struct ServerState {
     pin: String,
     session_token: String,
     invites: RwLock<HashMap<String, Instant>>,
+    auth_failures: RwLock<HashMap<String, AuthFailure>>,
     expire_minutes: u32,
     devices: RwLock<std::collections::HashMap<String, DeviceInfo>>,
+}
+
+#[derive(Debug, Clone)]
+struct AuthFailure {
+    failures: u32,
+    locked_until: Option<Instant>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -404,6 +415,7 @@ impl ServerState {
             pin,
             session_token: Uuid::new_v4().to_string(),
             invites: RwLock::new(HashMap::new()),
+            auth_failures: RwLock::new(HashMap::new()),
             expire_minutes,
             devices: RwLock::new(std::collections::HashMap::new()),
         }
@@ -455,6 +467,45 @@ impl ServerState {
         )
     }
 
+    async fn auth_retry_after(&self, key: &str) -> Option<u64> {
+        let failures = self.auth_failures.read().await;
+        let record = failures.get(key)?;
+        let locked_until = record.locked_until?;
+        let now = Instant::now();
+        if locked_until <= now {
+            return None;
+        }
+        Some(locked_until.duration_since(now).as_secs().max(1))
+    }
+
+    async fn clear_auth_failures(&self, key: &str) {
+        self.auth_failures.write().await.remove(key);
+    }
+
+    async fn record_auth_failure(&self, key: &str) -> Option<u64> {
+        let mut failures = self.auth_failures.write().await;
+        let current = failures.get(key).cloned().unwrap_or(AuthFailure {
+            failures: 0,
+            locked_until: None,
+        });
+        let count = current.failures.saturating_add(1);
+        let delay = if count >= AUTH_FAILURE_LOCK_THRESHOLD {
+            let exponent = count.saturating_sub(AUTH_FAILURE_LOCK_THRESHOLD);
+            let factor = 2u64.saturating_pow(exponent);
+            Some((AUTH_BACKOFF_BASE_SECS.saturating_mul(factor)).min(AUTH_BACKOFF_MAX_SECS))
+        } else {
+            None
+        };
+        failures.insert(
+            key.to_string(),
+            AuthFailure {
+                failures: count,
+                locked_until: delay.map(|seconds| Instant::now() + Duration::from_secs(seconds)),
+            },
+        );
+        delay
+    }
+
     async fn validate_invite(&self, token: &str) -> bool {
         let token = token.trim();
         if token.is_empty() {
@@ -492,11 +543,20 @@ struct Snippet {
     id: String,
     text: String,
     timestamp: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sender: Option<DropSender>,
 }
 
 #[derive(Debug, Deserialize)]
 struct NewSnippet {
     text: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct DropSender {
+    name: String,
+    #[serde(rename = "clientId")]
+    client_id: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -556,6 +616,8 @@ struct FileMeta {
     name: String,
     size: u64,
     timestamp: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sender: Option<DropSender>,
 }
 
 #[derive(Debug, Clone)]
@@ -573,6 +635,8 @@ struct IndexFile {
     name: String,
     size: u64,
     timestamp: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sender: Option<DropSender>,
     #[serde(rename = "mimeType", default)]
     mime_type: String,
     path: String,
@@ -743,10 +807,13 @@ pub async fn start(config: ServerConfig) -> anyhow::Result<ServerRuntime> {
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let task = tokio::spawn(async move {
-        let server =
-            axum::serve(listener, router.into_make_service()).with_graceful_shutdown(async {
-                let _ = shutdown_rx.await;
-            });
+        let server = axum::serve(
+            listener,
+            router.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .with_graceful_shutdown(async {
+            let _ = shutdown_rx.await;
+        });
 
         if let Err(error) = server.await {
             eprintln!("droplocal desktop server error: {error}");
@@ -839,12 +906,37 @@ async fn require_auth(
     }
 }
 
-async fn auth(State(state): State<Arc<ServerState>>, Json(payload): Json<AuthPayload>) -> Response {
+async fn auth(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    State(state): State<Arc<ServerState>>,
+    Json(payload): Json<AuthPayload>,
+) -> Response {
     if state.pin.is_empty() {
         return (StatusCode::OK, Json(json!({ "ok": true }))).into_response();
     }
 
-    if payload.pin.trim() == state.pin || state.validate_invite(&payload.invite).await {
+    let key = addr.ip().to_string();
+    let invite_valid = state.validate_invite(&payload.invite).await;
+    if !invite_valid {
+        if let Some(retry_after) = state.auth_retry_after(&key).await {
+            let mut response = (
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({ "error": "Too many PIN attempts" })),
+            )
+                .into_response();
+            if let Ok(value) = HeaderValue::from_str(&retry_after.to_string()) {
+                response
+                    .headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, value);
+            }
+            return response;
+        }
+    }
+
+    if invite_valid
+        || (!payload.pin.trim().is_empty() && constant_time_eq(payload.pin.trim(), &state.pin))
+    {
+        state.clear_auth_failures(&key).await;
         let cookie = state.auth_cookie();
         let mut response = (StatusCode::OK, Json(json!({ "ok": true }))).into_response();
         if let Ok(value) = HeaderValue::from_str(&cookie) {
@@ -854,7 +946,21 @@ async fn auth(State(state): State<Arc<ServerState>>, Json(payload): Json<AuthPay
         }
         response
     } else {
-        (StatusCode::FORBIDDEN, Json(json!({ "error": "Wrong PIN" }))).into_response()
+        if let Some(retry_after) = state.record_auth_failure(&key).await {
+            let mut response = (
+                StatusCode::TOO_MANY_REQUESTS,
+                Json(json!({ "error": "Too many PIN attempts" })),
+            )
+                .into_response();
+            if let Ok(value) = HeaderValue::from_str(&retry_after.to_string()) {
+                response
+                    .headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, value);
+            }
+            response
+        } else {
+            (StatusCode::FORBIDDEN, Json(json!({ "error": "Wrong PIN" }))).into_response()
+        }
     }
 }
 
@@ -880,6 +986,7 @@ async fn restore_index(state: &Arc<ServerState>) {
                     name: entry.name,
                     size: entry.size,
                     timestamp: entry.timestamp,
+                    sender: entry.sender,
                 },
                 mime_type: if entry.mime_type.is_empty() {
                     "application/octet-stream".to_string()
@@ -905,6 +1012,7 @@ async fn save_index(state: &Arc<ServerState>) {
             name: stored.meta.name.clone(),
             size: stored.meta.size,
             timestamp: stored.meta.timestamp.clone(),
+            sender: stored.meta.sender.clone(),
             mime_type: stored.mime_type.clone(),
             path: stored.path.to_string_lossy().to_string(),
         })
@@ -999,6 +1107,48 @@ fn query_value(query: Option<&str>, key: &str) -> String {
         }
     }
     String::new()
+}
+
+fn header_value(headers: &HeaderMap, name: &str, max_len: usize) -> String {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("")
+        .chars()
+        .filter(|ch| !ch.is_control())
+        .take(max_len)
+        .collect::<String>()
+        .trim()
+        .to_string()
+}
+
+fn sender_from_headers(headers: &HeaderMap) -> Option<DropSender> {
+    let name = header_value(headers, "x-droplocal-device-name", 32);
+    let client_id = header_value(headers, "x-droplocal-client-id", 32);
+    if name.is_empty() && client_id.is_empty() {
+        return None;
+    }
+    Some(DropSender {
+        name: if name.is_empty() {
+            "Device".to_string()
+        } else {
+            name
+        },
+        client_id,
+    })
+}
+
+fn constant_time_eq(left: &str, right: &str) -> bool {
+    let left = left.as_bytes();
+    let right = right.as_bytes();
+    let len = left.len().max(right.len()).max(1);
+    let mut diff = left.len() ^ right.len();
+    for index in 0..len {
+        let left_byte = left.get(index).copied().unwrap_or(0);
+        let right_byte = right.get(index).copied().unwrap_or(0);
+        diff |= usize::from(left_byte ^ right_byte);
+    }
+    diff == 0
 }
 
 fn with_invite_token(base_url: &str, token: &str) -> String {
@@ -1328,6 +1478,7 @@ async fn list_snippets(State(state): State<Arc<ServerState>>) -> impl IntoRespon
 
 async fn create_snippet(
     State(state): State<Arc<ServerState>>,
+    headers: HeaderMap,
     Json(payload): Json<NewSnippet>,
 ) -> ApiResult<impl IntoResponse> {
     let text = payload.text.trim();
@@ -1342,6 +1493,7 @@ async fn create_snippet(
         id: Uuid::new_v4().to_string(),
         text: text.to_string(),
         timestamp: Utc::now().to_rfc3339(),
+        sender: sender_from_headers(&headers),
     };
 
     state.snippets.write().await.insert(0, snippet.clone());
@@ -1384,12 +1536,14 @@ async fn list_files(State(state): State<Arc<ServerState>>) -> impl IntoResponse 
 
 async fn upload_files(
     State(state): State<Arc<ServerState>>,
+    headers: HeaderMap,
     mut multipart: Multipart,
 ) -> ApiResult<Response> {
     fs::create_dir_all(&state.upload_dir)
         .await
         .map_err(|error| ApiError::new(StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))?;
 
+    let sender = sender_from_headers(&headers);
     let mut uploaded = Vec::new();
 
     loop {
@@ -1428,6 +1582,7 @@ async fn upload_files(
             name: safe_name,
             size,
             timestamp: Utc::now().to_rfc3339(),
+            sender: sender.clone(),
         };
 
         let mime_type = field
@@ -2076,6 +2231,8 @@ mod tests {
 
         let created: Value = client
             .post(format!("{base}/api/snippets"))
+            .header("x-droplocal-device-name", "MacBook Pro")
+            .header("x-droplocal-client-id", "client-test")
             .json(&json!({ "text": "hello from rust" }))
             .send()
             .await
@@ -2084,6 +2241,8 @@ mod tests {
             .await
             .expect("snippet json");
         assert_eq!(created["text"], "hello from rust");
+        assert_eq!(created["sender"]["name"], "MacBook Pro");
+        assert_eq!(created["sender"]["clientId"], "client-test");
 
         let part = reqwest::multipart::Part::bytes(b"rust upload body".to_vec())
             .file_name("note.txt")
@@ -2092,6 +2251,8 @@ mod tests {
         let form = reqwest::multipart::Form::new().part("file", part);
         let uploaded: Value = client
             .post(format!("{base}/api/files"))
+            .header("x-droplocal-device-name", "Pixel 7")
+            .header("x-droplocal-client-id", "phone-client")
             .multipart(form)
             .send()
             .await
@@ -2100,6 +2261,8 @@ mod tests {
             .await
             .expect("upload json");
         assert_eq!(uploaded["name"], "note.txt");
+        assert_eq!(uploaded["sender"]["name"], "Pixel 7");
+        assert_eq!(uploaded["sender"]["clientId"], "phone-client");
 
         let downloaded = client
             .get(format!(
@@ -2353,6 +2516,25 @@ mod tests {
             .await
             .expect("invite authorized request");
         assert_eq!(invite_authorized.status(), reqwest::StatusCode::OK);
+
+        for _ in 0..2 {
+            let wrong = client
+                .post(format!("{base}/api/auth"))
+                .json(&json!({ "pin": "0000" }))
+                .send()
+                .await
+                .expect("wrong pin");
+            assert_eq!(wrong.status(), reqwest::StatusCode::FORBIDDEN);
+        }
+
+        let locked = client
+            .post(format!("{base}/api/auth"))
+            .json(&json!({ "pin": "0000" }))
+            .send()
+            .await
+            .expect("locked pin");
+        assert_eq!(locked.status(), reqwest::StatusCode::TOO_MANY_REQUESTS);
+        assert!(locked.headers().get("retry-after").is_some());
 
         runtime.stop().await.expect("stop");
     }
