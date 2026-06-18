@@ -155,6 +155,45 @@ test("privacy panel counts remote devices and announces joins", async (t) => {
   assert.equal(risk, "shared");
 });
 
+test("command palette runs commands and local text templates", async (t) => {
+  const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-command-"));
+  const app = createDropLocalApp({ port: 0, dir: uploadDir });
+  const startInfo = await app.start();
+  const baseUrl = `http://127.0.0.1:${startInfo.port}`;
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  t.after(async () => {
+    await context.close();
+    await browser.close();
+    await app.stop();
+    await fsp.rm(uploadDir, { recursive: true, force: true });
+  });
+
+  await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await page.keyboard.press("Control+K");
+  await page.locator("#commandOverlay").waitFor({ state: "visible" });
+  await page.locator("#commandInput").fill("search");
+  await page.keyboard.press("Enter");
+  assert.equal(await page.locator("#searchInput").evaluate((node) => document.activeElement === node), true);
+
+  await page.locator("#shareInput").fill("Meeting: https://meet.example.local/standup");
+  await page.keyboard.press("Control+K");
+  await page.locator("#commandInput").fill("save");
+  page.once("dialog", (dialog) => dialog.accept("Standup"));
+  await page.keyboard.press("Enter");
+  await page.getByText("Template saved").waitFor();
+
+  await page.locator("#shareInput").fill("");
+  await page.keyboard.press("Control+K");
+  await page.locator("#commandInput").fill("Standup");
+  await page.keyboard.press("Enter");
+  await page.waitForFunction(
+    () => document.querySelector("#shareInput").value === "Meeting: https://meet.example.local/standup"
+  );
+});
+
 test("mobile starts with the connection card collapsed and a usable share box", async (t) => {
   const uploadDir = await fsp.mkdtemp(path.join(os.tmpdir(), "droplocal-e2e-mobile-"));
   const app = createDropLocalApp({ port: 0, dir: uploadDir });
