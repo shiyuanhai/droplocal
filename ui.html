@@ -1113,6 +1113,85 @@
         gap: 8px;
       }
 
+      .command-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 95;
+        display: grid;
+        align-items: start;
+        justify-items: center;
+        padding: calc(54px + env(safe-area-inset-top)) 16px 16px;
+        background: rgba(5, 8, 16, 0.5);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      .command-overlay[hidden] {
+        display: none;
+      }
+
+      .command-panel {
+        width: min(560px, 100%);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      }
+
+      .command-input {
+        width: 100%;
+        border: none;
+        border-bottom: 1px solid var(--border);
+        outline: none;
+        background: transparent;
+        color: var(--text);
+        padding: 15px 16px;
+        font-size: 1rem;
+      }
+
+      .command-list {
+        list-style: none;
+        margin: 0;
+        padding: 6px;
+        max-height: min(58vh, 420px);
+        overflow-y: auto;
+      }
+
+      .command-item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        padding: 10px 12px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .command-item:hover,
+      .command-item[aria-selected="true"] {
+        background: var(--surface-2);
+      }
+
+      .command-label {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .command-kind {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 650;
+      }
+
       .pin-gate {
         position: fixed;
         inset: 0;
@@ -1316,6 +1395,9 @@
           </div>
         </section>
         <section class="top-actions">
+          <button class="icon-btn" id="commandToggle" type="button">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"/></svg>
+          </button>
           <button class="icon-btn" id="connectToggle" type="button" aria-pressed="true">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14h1M14 20h1M20 20h1"/></svg>
           </button>
@@ -1465,6 +1547,12 @@
         </div>
       </section>
     </div>
+    <div class="command-overlay" id="commandOverlay" hidden>
+      <section class="command-panel" role="dialog" aria-modal="true">
+        <input class="command-input" id="commandInput" type="search" autocomplete="off" />
+        <ul class="command-list" id="commandList"></ul>
+      </section>
+    </div>
     <div class="toast" id="toast" role="status"></div>
 
     <script src="/vendor/qrcode.js"></script>
@@ -1512,8 +1600,32 @@
     "toast.screenshot": "Screenshot added",
     "aria.theme": "Toggle dark mode",
     "aria.lang": "Language",
+    "aria.command": "Open command palette",
     "aria.connect": "Show connect info",
     "aria.close": "Close",
+    "cmd.placeholder": "Run a command…",
+    "cmd.kind.nav": "Navigate",
+    "cmd.kind.share": "Share",
+    "cmd.kind.file": "Files",
+    "cmd.kind.template": "Template",
+    "cmd.kind.app": "App",
+    "cmd.compose": "Focus composer",
+    "cmd.search": "Focus search",
+    "cmd.connect": "Show connection panel",
+    "cmd.invite": "Copy invite link",
+    "cmd.attach": "Attach files",
+    "cmd.selectFiles": "Select all files",
+    "cmd.downloadZip": "Download selected files as .zip",
+    "cmd.clearSelection": "Clear file selection",
+    "cmd.theme": "Toggle theme",
+    "cmd.insertWifi": "Insert Wi-Fi template",
+    "cmd.insertEnv": "Insert env block",
+    "cmd.insertMeeting": "Insert meeting link",
+    "cmd.saveTemplate": "Save current text as template",
+    "cmd.insertTemplate": "Insert template: {name}",
+    "cmd.noResults": "No matching commands",
+    "template.namePrompt": "Template name",
+    "template.saved": "Template saved",
     "time.now": "just now",
     "pin.title": "Enter the PIN",
     "pin.body": "This DropLocal requires a PIN. It is shown on the device that started the server.",
@@ -1610,8 +1722,32 @@
     "toast.screenshot": "已添加截图",
     "aria.theme": "切换深色模式",
     "aria.lang": "语言",
+    "aria.command": "打开命令面板",
     "aria.connect": "显示连接信息",
     "aria.close": "关闭",
+    "cmd.placeholder": "运行命令…",
+    "cmd.kind.nav": "导航",
+    "cmd.kind.share": "分享",
+    "cmd.kind.file": "文件",
+    "cmd.kind.template": "模板",
+    "cmd.kind.app": "应用",
+    "cmd.compose": "聚焦输入框",
+    "cmd.search": "聚焦搜索",
+    "cmd.connect": "显示连接面板",
+    "cmd.invite": "复制邀请链接",
+    "cmd.attach": "添加文件",
+    "cmd.selectFiles": "选择全部文件",
+    "cmd.downloadZip": "将所选文件下载为 .zip",
+    "cmd.clearSelection": "清除文件选择",
+    "cmd.theme": "切换主题",
+    "cmd.insertWifi": "插入 Wi-Fi 模板",
+    "cmd.insertEnv": "插入 env 块",
+    "cmd.insertMeeting": "插入会议链接",
+    "cmd.saveTemplate": "将当前文本保存为模板",
+    "cmd.insertTemplate": "插入模板：{name}",
+    "cmd.noResults": "没有匹配的命令",
+    "template.namePrompt": "模板名称",
+    "template.saved": "模板已保存",
     "time.now": "刚刚",
     "pin.title": "输入 PIN 码",
     "pin.body": "此 DropLocal 需要 PIN 码。它显示在启动服务器的设备上。",
@@ -1708,8 +1844,32 @@
     "toast.screenshot": "スクリーンショットを追加しました",
     "aria.theme": "ダークモード切り替え",
     "aria.lang": "言語",
+    "aria.command": "コマンドパレットを開く",
     "aria.connect": "接続情報を表示",
     "aria.close": "閉じる",
+    "cmd.placeholder": "コマンドを実行…",
+    "cmd.kind.nav": "移動",
+    "cmd.kind.share": "共有",
+    "cmd.kind.file": "ファイル",
+    "cmd.kind.template": "テンプレート",
+    "cmd.kind.app": "アプリ",
+    "cmd.compose": "入力欄にフォーカス",
+    "cmd.search": "検索にフォーカス",
+    "cmd.connect": "接続パネルを表示",
+    "cmd.invite": "招待リンクをコピー",
+    "cmd.attach": "ファイルを追加",
+    "cmd.selectFiles": "すべてのファイルを選択",
+    "cmd.downloadZip": "選択したファイルを .zip でダウンロード",
+    "cmd.clearSelection": "ファイル選択を解除",
+    "cmd.theme": "テーマを切り替え",
+    "cmd.insertWifi": "Wi-Fiテンプレートを挿入",
+    "cmd.insertEnv": "envブロックを挿入",
+    "cmd.insertMeeting": "会議リンクを挿入",
+    "cmd.saveTemplate": "現在のテキストをテンプレート保存",
+    "cmd.insertTemplate": "テンプレートを挿入: {name}",
+    "cmd.noResults": "一致するコマンドはありません",
+    "template.namePrompt": "テンプレート名",
+    "template.saved": "テンプレートを保存しました",
     "time.now": "たった今",
     "pin.title": "PINを入力",
     "pin.body": "このDropLocalにはPINが必要です。サーバーを起動したデバイスに表示されています。",
@@ -1806,8 +1966,32 @@
     "toast.screenshot": "스크린샷이 추가되었습니다",
     "aria.theme": "다크 모드 전환",
     "aria.lang": "언어",
+    "aria.command": "명령 팔레트 열기",
     "aria.connect": "연결 정보 표시",
     "aria.close": "닫기",
+    "cmd.placeholder": "명령 실행…",
+    "cmd.kind.nav": "이동",
+    "cmd.kind.share": "공유",
+    "cmd.kind.file": "파일",
+    "cmd.kind.template": "템플릿",
+    "cmd.kind.app": "앱",
+    "cmd.compose": "입력창으로 이동",
+    "cmd.search": "검색으로 이동",
+    "cmd.connect": "연결 패널 표시",
+    "cmd.invite": "초대 링크 복사",
+    "cmd.attach": "파일 추가",
+    "cmd.selectFiles": "모든 파일 선택",
+    "cmd.downloadZip": "선택한 파일을 .zip으로 다운로드",
+    "cmd.clearSelection": "파일 선택 해제",
+    "cmd.theme": "테마 전환",
+    "cmd.insertWifi": "Wi-Fi 템플릿 삽입",
+    "cmd.insertEnv": "env 블록 삽입",
+    "cmd.insertMeeting": "회의 링크 삽입",
+    "cmd.saveTemplate": "현재 텍스트를 템플릿으로 저장",
+    "cmd.insertTemplate": "템플릿 삽입: {name}",
+    "cmd.noResults": "일치하는 명령 없음",
+    "template.namePrompt": "템플릿 이름",
+    "template.saved": "템플릿이 저장되었습니다",
     "time.now": "방금",
     "pin.title": "PIN 입력",
     "pin.body": "이 DropLocal에는 PIN이 필요합니다. 서버를 시작한 기기에 표시되어 있습니다.",
@@ -1904,8 +2088,32 @@
     "toast.screenshot": "Captura añadida",
     "aria.theme": "Cambiar modo oscuro",
     "aria.lang": "Idioma",
+    "aria.command": "Abrir paleta de comandos",
     "aria.connect": "Mostrar información de conexión",
     "aria.close": "Cerrar",
+    "cmd.placeholder": "Ejecutar un comando…",
+    "cmd.kind.nav": "Navegar",
+    "cmd.kind.share": "Compartir",
+    "cmd.kind.file": "Archivos",
+    "cmd.kind.template": "Plantilla",
+    "cmd.kind.app": "App",
+    "cmd.compose": "Enfocar editor",
+    "cmd.search": "Enfocar búsqueda",
+    "cmd.connect": "Mostrar panel de conexión",
+    "cmd.invite": "Copiar enlace de invitación",
+    "cmd.attach": "Adjuntar archivos",
+    "cmd.selectFiles": "Seleccionar todos los archivos",
+    "cmd.downloadZip": "Descargar seleccionados como .zip",
+    "cmd.clearSelection": "Limpiar selección de archivos",
+    "cmd.theme": "Cambiar tema",
+    "cmd.insertWifi": "Insertar plantilla Wi-Fi",
+    "cmd.insertEnv": "Insertar bloque env",
+    "cmd.insertMeeting": "Insertar enlace de reunión",
+    "cmd.saveTemplate": "Guardar texto actual como plantilla",
+    "cmd.insertTemplate": "Insertar plantilla: {name}",
+    "cmd.noResults": "No hay comandos coincidentes",
+    "template.namePrompt": "Nombre de plantilla",
+    "template.saved": "Plantilla guardada",
     "time.now": "ahora mismo",
     "pin.title": "Introduce el PIN",
     "pin.body": "Este DropLocal requiere un PIN. Se muestra en el dispositivo que inició el servidor.",
@@ -2002,8 +2210,32 @@
     "toast.screenshot": "Screenshot hinzugefügt",
     "aria.theme": "Dunkelmodus umschalten",
     "aria.lang": "Sprache",
+    "aria.command": "Befehlspalette öffnen",
     "aria.connect": "Verbindungsinfo anzeigen",
     "aria.close": "Schließen",
+    "cmd.placeholder": "Befehl ausführen…",
+    "cmd.kind.nav": "Navigation",
+    "cmd.kind.share": "Teilen",
+    "cmd.kind.file": "Dateien",
+    "cmd.kind.template": "Vorlage",
+    "cmd.kind.app": "App",
+    "cmd.compose": "Eingabefeld fokussieren",
+    "cmd.search": "Suche fokussieren",
+    "cmd.connect": "Verbindungspanel anzeigen",
+    "cmd.invite": "Einladungslink kopieren",
+    "cmd.attach": "Dateien anhängen",
+    "cmd.selectFiles": "Alle Dateien auswählen",
+    "cmd.downloadZip": "Ausgewählte Dateien als .zip laden",
+    "cmd.clearSelection": "Dateiauswahl leeren",
+    "cmd.theme": "Theme umschalten",
+    "cmd.insertWifi": "Wi-Fi-Vorlage einfügen",
+    "cmd.insertEnv": "env-Block einfügen",
+    "cmd.insertMeeting": "Meeting-Link einfügen",
+    "cmd.saveTemplate": "Aktuellen Text als Vorlage speichern",
+    "cmd.insertTemplate": "Vorlage einfügen: {name}",
+    "cmd.noResults": "Keine passenden Befehle",
+    "template.namePrompt": "Vorlagenname",
+    "template.saved": "Vorlage gespeichert",
     "time.now": "gerade eben",
     "pin.title": "PIN eingeben",
     "pin.body": "Dieses DropLocal erfordert eine PIN. Sie wird auf dem Gerät angezeigt, das den Server gestartet hat.",
@@ -2100,8 +2332,32 @@
     "toast.screenshot": "Capture d'écran ajoutée",
     "aria.theme": "Basculer le mode sombre",
     "aria.lang": "Langue",
+    "aria.command": "Ouvrir la palette de commandes",
     "aria.connect": "Afficher les infos de connexion",
     "aria.close": "Fermer",
+    "cmd.placeholder": "Exécuter une commande…",
+    "cmd.kind.nav": "Navigation",
+    "cmd.kind.share": "Partage",
+    "cmd.kind.file": "Fichiers",
+    "cmd.kind.template": "Modèle",
+    "cmd.kind.app": "App",
+    "cmd.compose": "Placer le focus sur la saisie",
+    "cmd.search": "Placer le focus sur la recherche",
+    "cmd.connect": "Afficher le panneau de connexion",
+    "cmd.invite": "Copier le lien d'invitation",
+    "cmd.attach": "Joindre des fichiers",
+    "cmd.selectFiles": "Sélectionner tous les fichiers",
+    "cmd.downloadZip": "Télécharger la sélection en .zip",
+    "cmd.clearSelection": "Effacer la sélection de fichiers",
+    "cmd.theme": "Changer de thème",
+    "cmd.insertWifi": "Insérer le modèle Wi-Fi",
+    "cmd.insertEnv": "Insérer un bloc env",
+    "cmd.insertMeeting": "Insérer un lien de réunion",
+    "cmd.saveTemplate": "Enregistrer le texte actuel comme modèle",
+    "cmd.insertTemplate": "Insérer le modèle : {name}",
+    "cmd.noResults": "Aucune commande correspondante",
+    "template.namePrompt": "Nom du modèle",
+    "template.saved": "Modèle enregistré",
     "time.now": "à l'instant",
     "pin.title": "Saisir le PIN",
     "pin.body": "Ce DropLocal nécessite un PIN. Il s'affiche sur l'appareil qui a démarré le serveur.",
@@ -2170,6 +2426,7 @@
           status: document.getElementById("status"),
           statusText: document.getElementById("statusText"),
           connectToggle: document.getElementById("connectToggle"),
+          commandToggle: document.getElementById("commandToggle"),
           connectCard: document.getElementById("connectCard"),
           connectClose: document.getElementById("connectClose"),
           qrBox: document.getElementById("qrBox"),
@@ -2220,6 +2477,9 @@
           dropQrUrl: document.getElementById("dropQrUrl"),
           dropQrCopy: document.getElementById("dropQrCopy"),
           dropQrClose: document.getElementById("dropQrClose"),
+          commandOverlay: document.getElementById("commandOverlay"),
+          commandInput: document.getElementById("commandInput"),
+          commandList: document.getElementById("commandList"),
           pinGate: document.getElementById("pinGate"),
           pinForm: document.getElementById("pinForm"),
           pinInput: document.getElementById("pinInput"),
@@ -2250,7 +2510,10 @@
           ipShareUrl: "",
           requestedDropId: "",
           focusedDropId: "",
-          dropQrUrl: ""
+          dropQrUrl: "",
+          commandIndex: 0,
+          commandResults: [],
+          templates: []
         };
 
         /* ---------- device identity ---------- */
@@ -2474,16 +2737,19 @@
           refs.shareHint.textContent = t(IS_MAC ? "share.hint.mac" : "share.hint.other");
           refs.themeToggle.setAttribute("aria-label", t("aria.theme"));
           refs.langSelect.setAttribute("aria-label", t("aria.lang"));
+          refs.commandToggle.setAttribute("aria-label", t("aria.command"));
           refs.connectToggle.setAttribute("aria-label", t("aria.connect"));
           refs.connectClose.setAttribute("aria-label", t("aria.close"));
           refs.attachBtn.setAttribute("aria-label", t("share.attach"));
           refs.sendBtn.setAttribute("aria-label", t("share.send"));
           refs.dropOverlayText.textContent = t("drop.here");
+          refs.commandInput.placeholder = t("cmd.placeholder");
           document.title = "DropLocal";
 
           renderStatus();
           renderPrivacyStrip();
           renderDevices();
+          renderCommandList();
           renderStream();
         }
 
@@ -3886,6 +4152,287 @@
           refs.sendBtn.disabled = refs.shareInput.value.trim().length === 0;
         }
 
+        function loadTemplates() {
+          try {
+            var parsed = JSON.parse(localStorage.getItem("droplocal-text-templates") || "[]");
+            if (!Array.isArray(parsed)) {
+              return [];
+            }
+            return parsed
+              .filter(function (template) {
+                return template && template.name && template.text;
+              })
+              .map(function (template) {
+                return {
+                  id: String(template.id || "tpl-" + Math.random().toString(36).slice(2)),
+                  name: String(template.name).slice(0, 48),
+                  text: String(template.text).slice(0, 4000)
+                };
+              })
+              .slice(0, 24);
+          } catch (_e) {
+            return [];
+          }
+        }
+
+        function saveTemplates() {
+          try {
+            localStorage.setItem("droplocal-text-templates", JSON.stringify(state.templates));
+          } catch (_e) {}
+        }
+
+        function insertText(value) {
+          var text = String(value || "");
+          refs.shareInput.focus();
+          if (typeof refs.shareInput.setRangeText === "function") {
+            var start = refs.shareInput.selectionStart || 0;
+            var end = refs.shareInput.selectionEnd || start;
+            refs.shareInput.setRangeText(text, start, end, "end");
+          } else {
+            refs.shareInput.value += text;
+          }
+          autogrow();
+          updateSendState();
+        }
+
+        function builtInTemplateCommands() {
+          return [
+            {
+              id: "template-wifi",
+              label: t("cmd.insertWifi"),
+              kind: t("cmd.kind.template"),
+              run: function () {
+                insertText("Wi-Fi: \nPassword: ");
+              }
+            },
+            {
+              id: "template-env",
+              label: t("cmd.insertEnv"),
+              kind: t("cmd.kind.template"),
+              run: function () {
+                insertText("```env\nKEY=value\n```");
+              }
+            },
+            {
+              id: "template-meeting",
+              label: t("cmd.insertMeeting"),
+              kind: t("cmd.kind.template"),
+              run: function () {
+                insertText("Meeting: https://");
+              }
+            }
+          ];
+        }
+
+        function saveCurrentTemplate() {
+          var text = refs.shareInput.value.trim();
+          if (!text) {
+            return;
+          }
+          var name = window.prompt(t("template.namePrompt"), text.split("\n")[0].slice(0, 32));
+          if (!name) {
+            return;
+          }
+          state.templates.unshift({
+            id: "tpl-" + Date.now() + "-" + Math.random().toString(36).slice(2),
+            name: name.trim().slice(0, 48),
+            text: text
+          });
+          state.templates = state.templates.slice(0, 24);
+          saveTemplates();
+          showToast(t("template.saved"));
+        }
+
+        function selectAllFiles() {
+          state.items.forEach(function (item) {
+            if (item.kind === "file") {
+              state.selected.add(item.id);
+            }
+          });
+          renderStream();
+        }
+
+        function downloadSelectedZip() {
+          var ids = Array.from(state.selected);
+          if (!ids.length) {
+            return;
+          }
+          var anchor = document.createElement("a");
+          anchor.href = "/api/files.zip?ids=" + ids.join(",");
+          anchor.download = "";
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+          state.selected.clear();
+          renderStream();
+        }
+
+        function commandDefinitions() {
+          var commands = [
+            {
+              id: "compose",
+              label: t("cmd.compose"),
+              kind: t("cmd.kind.nav"),
+              run: function () {
+                refs.shareInput.focus();
+              }
+            },
+            {
+              id: "search",
+              label: t("cmd.search"),
+              kind: t("cmd.kind.nav"),
+              run: function () {
+                refs.searchInput.focus();
+              }
+            },
+            {
+              id: "connect",
+              label: t("cmd.connect"),
+              kind: t("cmd.kind.nav"),
+              run: function () {
+                setConnectOpen(true);
+              }
+            },
+            {
+              id: "invite",
+              label: t("cmd.invite"),
+              kind: t("cmd.kind.share"),
+              run: copyInviteLink
+            },
+            {
+              id: "attach",
+              label: t("cmd.attach"),
+              kind: t("cmd.kind.file"),
+              run: function () {
+                refs.fileInput.click();
+              }
+            },
+            {
+              id: "select-files",
+              label: t("cmd.selectFiles"),
+              kind: t("cmd.kind.file"),
+              run: selectAllFiles
+            },
+            {
+              id: "download-zip",
+              label: t("cmd.downloadZip"),
+              kind: t("cmd.kind.file"),
+              run: downloadSelectedZip
+            },
+            {
+              id: "clear-selection",
+              label: t("cmd.clearSelection"),
+              kind: t("cmd.kind.file"),
+              run: function () {
+                state.selected.clear();
+                renderStream();
+              }
+            },
+            {
+              id: "theme",
+              label: t("cmd.theme"),
+              kind: t("cmd.kind.app"),
+              run: function () {
+                applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+              }
+            }
+          ];
+
+          if (refs.shareInput.value.trim()) {
+            commands.push({
+              id: "save-template",
+              label: t("cmd.saveTemplate"),
+              kind: t("cmd.kind.template"),
+              run: saveCurrentTemplate
+            });
+          }
+
+          return commands.concat(builtInTemplateCommands()).concat(
+            state.templates.map(function (template) {
+              return {
+                id: template.id,
+                label: t("cmd.insertTemplate", { name: template.name }),
+                kind: t("cmd.kind.template"),
+                run: function () {
+                  insertText(template.text);
+                }
+              };
+            })
+          );
+        }
+
+        function filteredCommands() {
+          var query = refs.commandInput.value.trim().toLowerCase();
+          var commands = commandDefinitions();
+          if (!query) {
+            return commands;
+          }
+          return commands.filter(function (command) {
+            return (
+              command.label.toLowerCase().indexOf(query) !== -1 ||
+              command.kind.toLowerCase().indexOf(query) !== -1
+            );
+          });
+        }
+
+        function renderCommandList() {
+          if (!refs.commandList) {
+            return;
+          }
+          var commands = filteredCommands();
+          state.commandResults = commands;
+          state.commandIndex = Math.max(0, Math.min(state.commandIndex, Math.max(commands.length - 1, 0)));
+          refs.commandList.textContent = "";
+          if (!commands.length) {
+            var empty = document.createElement("li");
+            empty.className = "command-item";
+            empty.textContent = t("cmd.noResults");
+            refs.commandList.appendChild(empty);
+            return;
+          }
+          commands.forEach(function (command, index) {
+            var li = document.createElement("li");
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "command-item";
+            button.setAttribute("aria-selected", String(index === state.commandIndex));
+            var label = document.createElement("span");
+            label.className = "command-label";
+            label.textContent = command.label;
+            var kind = document.createElement("span");
+            kind.className = "command-kind";
+            kind.textContent = command.kind;
+            button.appendChild(label);
+            button.appendChild(kind);
+            button.addEventListener("mousemove", function () {
+              state.commandIndex = index;
+              renderCommandList();
+            });
+            button.addEventListener("click", function () {
+              runCommand(command);
+            });
+            li.appendChild(button);
+            refs.commandList.appendChild(li);
+          });
+        }
+
+        function openCommandPalette() {
+          refs.commandOverlay.hidden = false;
+          refs.commandInput.value = "";
+          state.commandIndex = 0;
+          renderCommandList();
+          refs.commandInput.focus();
+        }
+
+        function closeCommandPalette() {
+          refs.commandOverlay.hidden = true;
+        }
+
+        function runCommand(command) {
+          closeCommandPalette();
+          command.run();
+        }
+
         /* ---------- drag & drop / paste ---------- */
 
         var dragDepth = 0;
@@ -4084,6 +4631,8 @@
             applyLang(refs.langSelect.value);
           });
 
+          refs.commandToggle.addEventListener("click", openCommandPalette);
+
           refs.connectToggle.addEventListener("click", function () {
             setConnectOpen(refs.connectCard.hidden);
           });
@@ -4150,12 +4699,7 @@
           refs.pinForm.addEventListener("submit", submitPin);
 
           refs.selectAllBtn.addEventListener("click", function () {
-            state.items.forEach(function (item) {
-              if (item.kind === "file") {
-                state.selected.add(item.id);
-              }
-            });
-            renderStream();
+            selectAllFiles();
           });
 
           refs.selectClearBtn.addEventListener("click", function () {
@@ -4215,26 +4759,57 @@
             });
           });
           document.addEventListener("keydown", function (event) {
-            if (event.key === "Escape" && !refs.lightbox.hidden) {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+              event.preventDefault();
+              openCommandPalette();
+              return;
+            }
+            if (event.key === "Escape" && !refs.commandOverlay.hidden) {
+              closeCommandPalette();
+            } else if (event.key === "Escape" && !refs.lightbox.hidden) {
               closeLightbox();
             } else if (event.key === "Escape" && !refs.dropQrModal.hidden) {
               closeDropQr();
             }
           });
 
-          refs.zipBtn.addEventListener("click", function () {
-            var ids = Array.from(state.selected);
-            if (!ids.length) {
-              return;
+          refs.commandOverlay.addEventListener("click", function (event) {
+            if (event.target === refs.commandOverlay) {
+              closeCommandPalette();
             }
-            var anchor = document.createElement("a");
-            anchor.href = "/api/files.zip?ids=" + ids.join(",");
-            anchor.download = "";
-            document.body.appendChild(anchor);
-            anchor.click();
-            document.body.removeChild(anchor);
-            state.selected.clear();
-            renderStream();
+          });
+
+          refs.commandInput.addEventListener("input", function () {
+            state.commandIndex = 0;
+            renderCommandList();
+          });
+
+          refs.commandInput.addEventListener("keydown", function (event) {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              state.commandIndex = Math.min(
+                state.commandIndex + 1,
+                Math.max(state.commandResults.length - 1, 0)
+              );
+              renderCommandList();
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              state.commandIndex = Math.max(state.commandIndex - 1, 0);
+              renderCommandList();
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              var command = state.commandResults[state.commandIndex];
+              if (command) {
+                runCommand(command);
+              }
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              closeCommandPalette();
+            }
+          });
+
+          refs.zipBtn.addEventListener("click", function () {
+            downloadSelectedZip();
           });
 
           window.setInterval(refreshTimes, 30000);
@@ -4253,6 +4828,7 @@
 
         state.clientId = loadClientId();
         state.requestedDropId = dropIdFromUrl();
+        state.templates = loadTemplates();
         applyTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
         applyLang(detectLang());
         setupConnectCard();
