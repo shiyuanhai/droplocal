@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-06-20
+
+### Changed
+
+- The desktop app now shows its dashboard on every manual launch instead of
+  hiding silently in the menu bar. Only a launch-at-login start stays in the
+  background, so the window is always easy to find.
+- Redesigned the desktop dashboard around the QR code: a large code, a simple
+  status pill, the share link, and Copy/Open are all that remain on the main
+  screen. The window is now a focused portrait size that opens without a
+  scrollbar.
+- Moved technical connection details (interface, IP/friendly URLs, local
+  reachability, PIN) and the Copy invite / Copy debug actions into
+  Settings → Connection details.
+
+### Added
+
+- A one-time notification the first time the desktop window is closed,
+  explaining that DropLocal keeps running in the menu bar (macOS) / system
+  tray (Windows) and how to reopen or quit it.
+
 ## [1.7.0] - 2026-06-18
 
 ### Added

@@ -23,6 +23,10 @@ pub struct DesktopSettings {
     pub launch_at_login: bool,
     #[serde(default)]
     pub network_interface: String,
+    /// Set once the user has been told the window hides to the menu bar /
+    /// system tray instead of quitting. Keeps the hint a one-time event.
+    #[serde(default)]
+    pub menu_bar_hint_seen: bool,
 }
 
 impl Default for DesktopSettings {
@@ -44,6 +48,7 @@ impl Default for DesktopSettings {
             show_dock_icon: false,
             launch_at_login: false,
             network_interface: String::new(),
+            menu_bar_hint_seen: false,
         }
     }
 }
