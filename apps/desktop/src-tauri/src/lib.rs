@@ -21,6 +21,9 @@ use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
 const TRAY_ID: &str = "droplocal-tray";
+/// CLI marker added to the login-item command so a launch-at-login start can
+/// be told apart from a manual one (manual launches always show the window).
+const AUTOSTART_FLAG: &str = "--from-autostart";
 
 struct ManagedState {
     settings_path: PathBuf,
@@ -452,6 +455,42 @@ fn reveal_main_window(app: &AppHandle) {
     }
 }
 
+/// True when this process was started by the login item (autostart), so the
+/// dashboard should stay hidden in the menu bar instead of popping up.
+fn launched_at_login() -> bool {
+    std::env::args().any(|arg| arg == AUTOSTART_FLAG)
+}
+
+/// First time the user closes the dashboard, tell them it's still running in
+/// the menu bar / system tray rather than quitting — otherwise it looks like
+/// the app vanished. Shown once, then remembered in settings.
+fn show_menu_bar_hint_once(app: &AppHandle) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let state = app.state::<ManagedState>();
+
+        let snapshot = {
+            let mut settings = state.settings.lock().await;
+            if settings.menu_bar_hint_seen {
+                return;
+            }
+            settings.menu_bar_hint_seen = true;
+            settings.clone()
+        };
+
+        let _ = save_settings_file(&state.settings_path, &snapshot).await;
+
+        #[cfg(target_os = "macos")]
+        let body = "DropLocal is still running in the menu bar — click its icon up top to reopen, or use Quit to stop sharing.";
+        #[cfg(target_os = "windows")]
+        let body = "DropLocal is still running in the system tray — click its icon to reopen, or use Quit to stop sharing.";
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+        let body = "DropLocal is still running in the background.";
+
+        notify(&app, "DropLocal is still running", body);
+    });
+}
+
 fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let status_item = MenuItemBuilder::with_id("status", "Starting…")
         .enabled(false)
@@ -564,9 +603,12 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             reveal_main_window(app);
         }))
+        // The login-item launch carries this marker so setup() can start
+        // silently in the menu bar, while a manual launch always shows the
+        // window.
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            None,
+            Some(vec![AUTOSTART_FLAG]),
         ))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
@@ -581,6 +623,7 @@ pub fn run() {
                 {
                     api.prevent_close();
                     let _ = window.hide();
+                    show_menu_bar_hint_once(window.app_handle());
                 }
                 #[cfg(target_os = "linux")]
                 let _ = (window, api);
@@ -592,9 +635,6 @@ pub fn run() {
                 .app_config_dir()
                 .context("unable to locate app config directory")?;
             let settings_path = config_dir.join("settings.json");
-            // load_or_default writes the file when it's missing, so a missing
-            // file here means this is the very first launch.
-            let first_run = !settings_path.exists();
             let settings = tauri::async_runtime::block_on(load_or_default(&settings_path))
                 .unwrap_or_else(|_| DesktopSettings::default());
 
@@ -607,11 +647,11 @@ pub fn run() {
             create_tray(app.handle())?;
             apply_system_integration(app.handle(), &settings);
 
-            // Onboarding: show the dashboard (QR + share link) on the very
-            // first launch; later launches start silently in the menu bar.
-            // On Linux the window always shows — the tray is the only other
-            // affordance and not every desktop displays one.
-            if first_run || cfg!(target_os = "linux") {
+            // Show the dashboard (QR + share link) on every manual launch so
+            // the window is easy to find — only a launch-at-login start stays
+            // silent in the menu bar. On Linux the window always shows: the
+            // tray is the only other affordance and not every desktop has one.
+            if cfg!(target_os = "linux") || !launched_at_login() {
                 reveal_main_window(app.handle());
             }
 

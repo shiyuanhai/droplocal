@@ -40,42 +40,31 @@
         </div>
       </header>
 
-      <section class="connect">
-        <div class="qr-panel">
+      <section class="hero">
+        <div class="qr-card">
           <div id="qrCode" class="qr-frame"></div>
-        </div>
-        <div class="connect-body">
           <div class="status-pill" id="statusPill" data-state="starting">
             <span class="status-dot"></span>
             <span id="statusWord"></span>
+            <span class="status-meta" id="statusMeta"></span>
           </div>
-          <p class="status-line" id="statusLine"></p>
+        </div>
 
-          <label class="url-label" for="primaryUrl" data-i18n="url.label"></label>
+        <div class="share">
           <div class="url-field">
-            <input id="primaryUrl" readonly />
+            <input id="primaryUrl" readonly aria-label="Share link" />
           </div>
           <div class="url-actions">
             <button id="copyUrlBtn" type="button" class="btn ghost">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               <span data-i18n="url.copy"></span>
             </button>
-            <button id="openBrowserBtn" type="button" class="btn primary">
+            <button id="openBrowserBtn" type="button" class="btn ghost">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/></svg>
               <span data-i18n="url.open"></span>
             </button>
-            <button id="copyInviteBtn" type="button" class="btn ghost">
-              <span data-i18n="doctor.invite"></span>
-            </button>
-            <button id="copyDebugBtn" type="button" class="btn ghost">
-              <span data-i18n="doctor.copyDebug"></span>
-            </button>
           </div>
-          <p class="connect-hint" data-i18n="connect.scan"></p>
-          <div class="desktop-doctor">
-            <div class="doctor-grid" id="doctorGrid"></div>
-            <p class="doctor-warning" id="doctorWarning" hidden></p>
-          </div>
+          <p class="connect-hint" id="statusLine"></p>
         </div>
       </section>
 
@@ -84,9 +73,6 @@
         <button id="dropClipboardBtn" type="button" class="btn ghost big">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 4h8a2 2 0 012 2v1"/><path d="M8 4a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2v-1"/><path d="M9 4.5A2.5 2.5 0 0111.5 2h1A2.5 2.5 0 0115 4.5"/><path d="M13 14h8M17 10l4 4-4 4"/></svg>
           <span data-i18n="action.dropClipboard"></span>
-        </button>
-        <button id="refreshBtn" type="button" class="icon-btn" aria-label="Refresh">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
         </button>
       </section>
     </main>
@@ -149,6 +135,20 @@
             <button id="saveSettingsBtn" type="submit" class="btn primary" data-i18n="settings.save"></button>
           </div>
         </form>
+
+        <section class="advanced">
+          <h3 class="advanced-title" data-i18n="settings.connection"></h3>
+          <div class="doctor-grid" id="doctorGrid"></div>
+          <p class="doctor-warning" id="doctorWarning" hidden></p>
+          <div class="advanced-actions">
+            <button id="copyInviteBtn" type="button" class="btn ghost">
+              <span data-i18n="doctor.invite"></span>
+            </button>
+            <button id="copyDebugBtn" type="button" class="btn ghost">
+              <span data-i18n="doctor.copyDebug"></span>
+            </button>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -202,6 +202,7 @@
     "msg.settingsLoadFailed": "Couldn't load settings: {error}",
     "msg.saveFailed": "Save failed: {error}",
     "settings.title": "Settings",
+    "settings.connection": "Connection details",
     "settings.desc": "Saving restarts the local server so changes take effect immediately.",
     "settings.port": "Port (0 = automatic)",
     "settings.storageDir": "Save received files to",
@@ -259,6 +260,7 @@
     "msg.settingsLoadFailed": "加载设置失败：{error}",
     "msg.saveFailed": "保存失败：{error}",
     "settings.title": "设置",
+    "settings.connection": "连接详情",
     "settings.desc": "保存后会重启本地服务器，更改立即生效。",
     "settings.port": "端口（0 = 自动）",
     "settings.storageDir": "接收文件保存到",
@@ -319,6 +321,7 @@
     "msg.settingsLoadFailed": "設定の読み込み失敗：{error}",
     "msg.saveFailed": "保存失敗：{error}",
     "settings.title": "設定",
+    "settings.connection": "接続の詳細",
     "settings.desc": "保存するとローカルサーバーが再起動し、変更が即時反映されます。",
     "settings.port": "ポート（0 = 自動）",
     "settings.storageDir": "受信ファイルの保存先",
@@ -379,6 +382,7 @@
     "msg.settingsLoadFailed": "설정을 불러오지 못했습니다: {error}",
     "msg.saveFailed": "저장 실패: {error}",
     "settings.title": "설정",
+    "settings.connection": "연결 정보",
     "settings.desc": "저장하면 로컬 서버가 재시작되어 변경 사항이 즉시 적용됩니다.",
     "settings.port": "포트 (0 = 자동)",
     "settings.storageDir": "받은 파일 저장 위치",
@@ -439,6 +443,7 @@
     "msg.settingsLoadFailed": "No se pudieron cargar los ajustes: {error}",
     "msg.saveFailed": "Error al guardar: {error}",
     "settings.title": "Ajustes",
+    "settings.connection": "Detalles de conexión",
     "settings.desc": "Al guardar se reinicia el servidor local y los cambios se aplican al instante.",
     "settings.port": "Puerto (0 = automático)",
     "settings.storageDir": "Guardar archivos recibidos en",
@@ -499,6 +504,7 @@
     "msg.settingsLoadFailed": "Einstellungen konnten nicht geladen werden: {error}",
     "msg.saveFailed": "Speichern fehlgeschlagen: {error}",
     "settings.title": "Einstellungen",
+    "settings.connection": "Verbindungsdetails",
     "settings.desc": "Beim Speichern startet der lokale Server neu, Änderungen gelten sofort.",
     "settings.port": "Port (0 = automatisch)",
     "settings.storageDir": "Empfangene Dateien speichern unter",
@@ -559,6 +565,7 @@
     "msg.settingsLoadFailed": "Impossible de charger les réglages : {error}",
     "msg.saveFailed": "Échec de l'enregistrement : {error}",
     "settings.title": "Réglages",
+    "settings.connection": "Détails de connexion",
     "settings.desc": "L'enregistrement redémarre le serveur local ; les changements s'appliquent immédiatement.",
     "settings.port": "Port (0 = automatique)",
     "settings.storageDir": "Enregistrer les fichiers reçus dans",

@@ -66,12 +66,12 @@ input {
 
 .shell {
   height: 100vh;
-  max-width: 720px;
+  max-width: 460px;
   margin: 0 auto;
-  padding: 20px 24px 24px;
+  padding: 18px 22px 22px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 /* ---------- Top bar ---------- */
@@ -149,38 +149,42 @@ input {
   transform: scale(0.96);
 }
 
-/* ---------- Connect card ---------- */
+/* ---------- Hero (QR + share) ---------- */
 
-.connect {
-  /* Hug content and center between the header and the pinned action row,
-     so the card never stretches into an empty band. */
-  flex: 0 0 auto;
-  margin: auto 0;
+.hero {
+  /* Take the slack between header and action row, and center the QR + link
+     inside it, so larger windows add even whitespace instead of a gap. */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
-  gap: 22px;
+  flex-direction: column;
   align-items: center;
-  padding: 22px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
 }
 
-.qr-panel {
-  flex: 0 0 auto;
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .qr-frame {
-  width: 208px;
-  height: 208px;
+  /* Cap by width AND height so the QR shrinks on short windows instead of
+     pushing the hint into the action row. */
+  width: min(260px, 64vw, 34vh);
+  aspect-ratio: 1 / 1;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: 18px;
   background: #ffffff;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   color: var(--muted);
   font-size: 0.82rem;
-  padding: 12px;
+  padding: 14px;
   text-align: center;
 }
 
@@ -190,16 +194,11 @@ input {
   display: block;
 }
 
-.connect-body {
-  flex: 1;
-  min-width: 0;
-}
-
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 11px 5px 9px;
+  padding: 5px 12px 5px 10px;
   border-radius: 999px;
   background: var(--surface-2);
   font-size: 0.82rem;
@@ -222,40 +221,38 @@ input {
   background: var(--danger);
 }
 
-.status-line {
-  margin: 8px 0 16px;
+.status-meta {
   color: var(--muted);
-  font-size: 0.85rem;
-  min-height: 1.2em;
+  font-weight: 600;
 }
 
-.url-label {
-  display: block;
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  margin-bottom: 6px;
+.status-meta:empty {
+  display: none;
+}
+
+.share {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .url-field input {
   width: 100%;
+  text-align: center;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface-2);
   color: var(--text);
-  padding: 11px 14px;
+  padding: 12px 14px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
 .url-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 10px;
 }
 
 .url-actions .btn {
@@ -263,16 +260,13 @@ input {
 }
 
 .connect-hint {
-  margin: 14px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+  min-height: 1.2em;
 }
 
-.desktop-doctor {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-}
+/* ---------- Diagnostics (in Settings) ---------- */
 
 .doctor-grid {
   display: grid;
@@ -371,11 +365,6 @@ input {
   display: flex;
   gap: 10px;
   align-items: stretch;
-}
-
-.action-row .icon-btn {
-  width: 50px;
-  height: auto;
 }
 
 /* ---------- Modal ---------- */
@@ -503,6 +492,35 @@ input {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 6px;
+}
+
+/* ---------- Advanced / diagnostics (inside Settings) ---------- */
+
+.advanced {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.advanced-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.advanced-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.advanced-actions .btn {
+  flex: 1;
 }
 
 /* ---------- Toast ---------- */

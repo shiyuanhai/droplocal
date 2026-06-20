@@ -14,6 +14,7 @@ const refs = {
   settingsBtn: document.getElementById("settingsBtn"),
   statusPill: document.getElementById("statusPill"),
   statusWord: document.getElementById("statusWord"),
+  statusMeta: document.getElementById("statusMeta"),
   statusLine: document.getElementById("statusLine"),
   primaryUrl: document.getElementById("primaryUrl"),
   copyUrlBtn: document.getElementById("copyUrlBtn"),
@@ -25,7 +26,6 @@ const refs = {
   doctorWarning: document.getElementById("doctorWarning"),
   qrCode: document.getElementById("qrCode"),
   toggleServerBtn: document.getElementById("toggleServerBtn"),
-  refreshBtn: document.getElementById("refreshBtn"),
   toast: document.getElementById("toast"),
   settingsModal: document.getElementById("settingsModal"),
   settingsClose: document.getElementById("settingsClose"),
@@ -50,6 +50,7 @@ const IS_MAC = navigator.userAgent.includes("Mac");
 
 const state = {
   runtime: null,
+  settings: null,
   pollTimer: null,
   toastTimer: 0,
   lang: "en"
@@ -111,14 +112,6 @@ function showToast(message) {
   }, 2400);
 }
 
-function formatUptime(seconds) {
-  const safeSeconds = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
-  if (safeSeconds < 60) return `${safeSeconds}s`;
-  if (safeSeconds < 3600) return `${Math.floor(safeSeconds / 60)}m`;
-  if (safeSeconds < 86400) return `${Math.floor(safeSeconds / 3600)}h`;
-  return `${Math.floor(safeSeconds / 86400)}d`;
-}
-
 async function renderQr(url) {
   refs.qrCode.innerHTML = "";
   if (!url) {
@@ -140,20 +133,20 @@ function renderRuntime(runtime) {
   const running = Boolean(runtime?.running);
 
   if (running) {
-    const devices = runtime.connectedDevices === 1
-      ? t("stat.deviceOne")
-      : t("stat.deviceOther", { count: runtime.connectedDevices });
+    const count = runtime.connectedDevices || 0;
     refs.statusPill.dataset.state = "running";
     refs.statusWord.textContent = t("status.running");
-    refs.statusLine.textContent = [
-      devices,
-      t("stat.port", { port: runtime.port }),
-      t("stat.uptime", { time: formatUptime(runtime.uptimeSeconds) })
-    ].join("  ·  ");
+    // Friendly reassurance only — the techy port/uptime/IP details live in
+    // Settings → Connection details now.
+    refs.statusMeta.textContent = count > 0
+      ? "· " + (count === 1 ? t("stat.deviceOne") : t("stat.deviceOther", { count }))
+      : "";
+    refs.statusLine.textContent = t("connect.scan");
     refs.primaryUrl.value = runtime.friendlyUrl || runtime.primaryUrl;
   } else {
     refs.statusPill.dataset.state = "stopped";
     refs.statusWord.textContent = t("status.stopped");
+    refs.statusMeta.textContent = "";
     refs.statusLine.textContent = t("stat.offline");
     refs.primaryUrl.value = "";
   }
@@ -289,6 +282,8 @@ async function dropClipboard() {
 /* ---------- settings modal ---------- */
 
 function openSettings() {
+  // Refresh the diagnostics block with the latest runtime each time it opens.
+  renderDoctor(state.runtime);
   refs.settingsModal.hidden = false;
   refs.portInput.focus();
 }
@@ -307,6 +302,9 @@ function isEditableTarget(target) {
 async function loadSettings() {
   try {
     const settings = await invoke("get_settings");
+    // Keep the whole object so saving round-trips fields the form doesn't
+    // surface (showQrInTray, menuBarHintSeen, future additions).
+    state.settings = settings;
     refs.portInput.value = String(settings.port);
     refs.storageDirInput.value = settings.storageDir;
     refs.pinInput.value = settings.pin || "";
@@ -329,6 +327,7 @@ async function saveSettings(event) {
   event.preventDefault();
 
   const nextSettings = {
+    ...(state.settings || {}),
     port: Number.parseInt(refs.portInput.value, 10),
     storageDir: refs.storageDirInput.value.trim(),
     pin: refs.pinInput.value.trim(),
@@ -346,6 +345,7 @@ async function saveSettings(event) {
   submit.disabled = true;
   try {
     await invoke("save_settings", { settings: nextSettings });
+    state.settings = nextSettings;
     const runtime = await invoke("restart_server_with_settings");
     renderRuntime(runtime);
     closeSettings();
@@ -377,7 +377,6 @@ async function initialize() {
   refs.copyInviteBtn.addEventListener("click", () => void copyInvite());
   refs.copyDebugBtn.addEventListener("click", () => void copyDebug());
   refs.dropClipboardBtn.addEventListener("click", () => void dropClipboard());
-  refs.refreshBtn.addEventListener("click", () => void refreshRuntime());
 
   refs.settingsBtn.addEventListener("click", openSettings);
   refs.settingsClose.addEventListener("click", closeSettings);
