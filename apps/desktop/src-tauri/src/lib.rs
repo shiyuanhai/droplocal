@@ -2,6 +2,7 @@ mod server;
 mod settings;
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::Context;
 use arboard::Clipboard;
@@ -29,6 +30,10 @@ struct ManagedState {
     settings_path: PathBuf,
     settings: Mutex<DesktopSettings>,
     runtime: Mutex<Option<ServerRuntime>>,
+    /// macOS: when true the Dock icon stays visible even with the window
+    /// closed ("Show Dock icon" setting). Read synchronously from window
+    /// events, so it's a plain atomic rather than behind the async mutex.
+    dock_pinned: AtomicBool,
 }
 
 /// Tray menu items whose labels track the server state.
@@ -291,14 +296,18 @@ fn tray_status_text(status: &RuntimeStatus) -> String {
 fn apply_system_integration(app: &AppHandle, settings: &DesktopSettings) {
     #[cfg(target_os = "macos")]
     {
-        let policy = if settings.show_dock_icon {
-            tauri::ActivationPolicy::Regular
-        } else {
-            tauri::ActivationPolicy::Accessory
-        };
-        if let Err(error) = app.set_activation_policy(policy) {
-            eprintln!("droplocal: failed to set activation policy: {error}");
+        if let Some(state) = app.try_state::<ManagedState>() {
+            state
+                .dock_pinned
+                .store(settings.show_dock_icon, Ordering::Relaxed);
         }
+        // Keep the Dock icon whenever the window is open or the user pinned
+        // it; otherwise the menu-bar-only accessory mode.
+        let window_visible = app
+            .get_webview_window("main")
+            .and_then(|window| window.is_visible().ok())
+            .unwrap_or(false);
+        apply_dock_visibility(app, window_visible);
     }
 
     let autolaunch = app.autolaunch();
@@ -447,8 +456,32 @@ fn spawn_notification_listener(app: AppHandle, runtime: &ServerRuntime) {
     });
 }
 
+/// macOS: the Dock icon follows the window. It appears while the dashboard is
+/// open (Regular activation policy) and disappears when the window is closed
+/// back to the menu bar (Accessory) — unless the user pinned it on via the
+/// "Show Dock icon" setting.
+#[cfg(target_os = "macos")]
+fn apply_dock_visibility(app: &AppHandle, window_visible: bool) {
+    let pinned = app
+        .try_state::<ManagedState>()
+        .map(|state| state.dock_pinned.load(Ordering::Relaxed))
+        .unwrap_or(false);
+    let policy = if window_visible || pinned {
+        tauri::ActivationPolicy::Regular
+    } else {
+        tauri::ActivationPolicy::Accessory
+    };
+    if let Err(error) = app.set_activation_policy(policy) {
+        eprintln!("droplocal: failed to set activation policy: {error}");
+    }
+}
+
 fn reveal_main_window(app: &AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
+        // Bring up the Dock icon before showing so the window can take focus
+        // and front the app even when it was running as an accessory.
+        #[cfg(target_os = "macos")]
+        apply_dock_visibility(app, true);
         let _ = window.show();
         let _ = window.unminimize();
         let _ = window.set_focus();
@@ -623,6 +656,8 @@ pub fn run() {
                 {
                     api.prevent_close();
                     let _ = window.hide();
+                    #[cfg(target_os = "macos")]
+                    apply_dock_visibility(window.app_handle(), false);
                     show_menu_bar_hint_once(window.app_handle());
                 }
                 #[cfg(target_os = "linux")]
@@ -642,6 +677,7 @@ pub fn run() {
                 settings_path,
                 settings: Mutex::new(settings.clone()),
                 runtime: Mutex::new(None),
+                dock_pinned: AtomicBool::new(settings.show_dock_icon),
             });
 
             create_tray(app.handle())?;
@@ -689,23 +725,18 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while building DropLocal desktop");
 
-    // Seed the activation policy before the event loop starts: the setup
-    // hook runs after AppKit applies the default Regular policy, so setting
-    // Accessory only there makes the Dock icon flash on every launch.
+    // Settle the activation policy before the event loop starts: the setup
+    // hook runs before AppKit applies the default Regular policy, so the final
+    // word has to happen here or a hidden launch flashes a Dock icon. The
+    // window is already shown for a manual launch (→ Dock icon) and hidden for
+    // a launch-at-login start (→ menu-bar only, unless pinned).
     #[cfg(target_os = "macos")]
     {
-        let show_dock = app
-            .path()
-            .app_config_dir()
-            .ok()
-            .map(|dir| dir.join("settings.json"))
-            .and_then(|path| std::fs::read_to_string(path).ok())
-            .and_then(|raw| serde_json::from_str::<DesktopSettings>(&raw).ok())
-            .map(|settings| settings.show_dock_icon)
+        let window_visible = app
+            .get_webview_window("main")
+            .and_then(|window| window.is_visible().ok())
             .unwrap_or(false);
-        if !show_dock {
-            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-        }
+        apply_dock_visibility(app.handle(), window_visible);
     }
 
     app.run(|app, event| match event {

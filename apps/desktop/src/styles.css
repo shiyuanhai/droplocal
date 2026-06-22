@@ -111,19 +111,20 @@ input {
 .lang-select {
   appearance: none;
   -webkit-appearance: none;
+  height: 38px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 0.8rem;
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 8px 10px;
+  padding: 0 14px;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .lang-select:hover {
   background: var(--surface-2);
-  color: var(--text);
 }
 
 .icon-btn {
@@ -433,6 +434,16 @@ input {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 13px;
+}
+
+/* When one label wraps to two lines (e.g. "Auto-delete after…") its column is
+   taller; pin both inputs to the bottom so the fields stay aligned. */
+.field-grid label {
+  justify-content: flex-start;
+}
+
+.field-grid label input {
+  margin-top: auto;
 }
 
 .settings-form label {

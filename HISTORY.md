@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.1] - 2026-06-22
+
+### Fixed
+
+- The macOS Dock icon now appears whenever the dashboard window is open and
+  returns to menu-bar-only when the window is closed, so the app is no longer
+  invisible in the Dock after launching. The "Show Dock icon" setting still
+  pins the icon on permanently.
+- Aligned the Port and Auto-delete fields in desktop Settings so they no longer
+  drift apart when the auto-delete label wraps to two lines.
+- Restyled the desktop language selector as a solid button matching the
+  settings gear, instead of a faint, near-transparent box.
+
 ## [1.8.0] - 2026-06-20
 
 ### Changed
